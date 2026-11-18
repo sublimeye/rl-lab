@@ -1,0 +1,190 @@
+---
+title: "Tag, part 2: a chaser that learns"
+number: 4
+date: 2026-11-18
+summary: The runner from post 3 was easy to catch if you didn't chase like my scripts. I trained chasers to find its weak spots, trained the runner against them, and ended up with one that circles the pillars and is much harder to catch.
+---
+
+import TagGame from '../../components/TagGame.astro';
+import TagTraces from '../../components/TagTraces.astro';
+
+After [post 3](../003-tag/) I played the game myself. If you turn around and meet the blue square
+head-on, or aim where it's going instead of chasing it, you catch it in a second or two. It was
+only good against the two scripts it trained with.
+
+This post is about fixing that. The blue square below is the result. By default it picks moves
+with some randomness, and you're 10% slower.
+
+<TagGame
+  src="004-tag-selfplay/models.json"
+  model="sp3"
+  sample
+  caption="Pick the blue square from post 3 to compare. In the Orange menu you can also watch a trained chaser instead of playing."
+/>
+
+**Short answer:**
+
+- **Post 3's runner was weak, and a learned chaser shows it fast.** A chaser network trained
+  from scratch against it catches it in 100% of episodes after 250,000 steps, less than half a
+  minute of training.
+- **Self-play helped one seed out of three.** Training the runner and a chaser against each
+  other produced one runner (seed 3) that circles both pillars, where the chaser can't cut
+  across.
+- **Randomness is part of the defence.** The same network picking moves with randomness
+  escapes a chaser trained specifically against it 98% of the time at 80% speed and 68–78% at
+  90%. Taking its top choice every time, it escapes 19% and 2%.
+- **Two fancier methods made it worse.** Details below.
+
+## Why it was easy to catch
+
+I measured "how easy is it to catch" directly: freeze a runner, then train a fresh chaser
+network against it with PPO, the same way the runner learned. I call that chaser an
+**exploiter**. If an exploiter catches the runner every time, the runner has a hole a person
+can find too.
+
+Post 3's runner lasted 2.6–2.9 seconds on average against its exploiters, at both 80% and 90%
+chaser speed, and escaped none of 200 episodes. The exploiter learned to get in front of it and
+corner it, usually against a wall. The runner's only plan was "run laps along the walls", and nothing in
+its training ever came at it from the front.
+
+It isn't the physics. Both squares turn the same way: from full speed, stopping takes 0.25
+seconds and reaching 90% speed in the other direction takes 0.65. The runner never learned
+*when* to turn.
+
+## Self-play
+
+The fix I tried first: a second network learns to chase, and the two take turns training.
+
+1. Start the runner from post 3's version; the chaser starts from scratch.
+2. Train the chaser for a while against the current runner.
+3. Train the runner against the current chaser, older chasers, and the post 3 scripted bots.
+4. Repeat, 20 rounds, three seeds.
+
+The chaser won that race. While it trained, it caught the runner in 98–100% of episodes in
+every round, except the last two rounds of seed 3. Against post 3's scripted bots, the runners did improve: escapes from the
+intercept bot went from 74–82% to 82–93%, and from the keyboard-like bot from 82–85% to
+90–98%. But against the final learned chasers, two of the three runners escaped 0–4% of the
+time.
+
+Seed 3 was different. By round 20 it escaped 93–96% of the time against all three seeds' final
+chasers.
+
+## Can the runner win at all?
+
+There's an old puzzle about this, the lion and the man in a round arena. A runner circling near
+the wall can only stay away from a pursuer by roughly (1 − pursuer's speed ratio) × the circle's
+radius. Here the biggest circle has a radius of about 3.7 units (half the arena's height, minus
+half a square), and squares touch at 0.6 units apart. At 90% speed the gap is 0.37 units, so a
+chaser on the inside track should win. At 80% it's 0.74, just enough. It's a rough argument (the
+arena is a rectangle and the squares have momentum), but it matches what I saw.
+
+The pillars change that, and seed 3 found out how.
+
+<TagTraces
+  src="004-tag-selfplay/traces.json"
+  chaserLabel="Trained chaser"
+  caption="Each runner against an exploiter trained for 2 million steps to beat that exact runner. Start position 2 of the 200 test starts. The self-play runners pick moves with randomness, so a replay differs between runs. In 114 of the 200 starts I got this same pattern: the top two caught, both bottom ones escaping."
+/>
+
+Seed 3 runs a big oval around **both** pillars. The chaser follows on the inside track, hugging
+the pillars, and can't cut across the middle because the pillars are in the way. Seeds 1 and 2
+still run along the walls and get cornered, like post 3's runner.
+
+## The test that matters
+
+Every runner was tested the same way: a fresh exploiter trained against it for 2 million steps,
+then 200 episodes. The numbers are escapes, with the average time before being caught in
+brackets (20 seconds means never caught).
+
+| Runner | Picks moves | Chaser at 80% | Chaser at 90% |
+| --- | --- | --- | --- |
+| Post 3 | top choice | 0% (2.8 s) | 0% (2.6 s) |
+| Post 3 | with randomness | 0% (2.8 s) | 0% (2.6 s) |
+| Self-play, seed 1 | with randomness | 0% (5.5 s) | 0% (3.9 s) |
+| Self-play, seed 2 | with randomness | 1% (5.4 s) | 2% (4.7 s) |
+| Self-play, seed 3 | top choice | 19% (11.6 s) | 2% (6.5 s) |
+| **Self-play, seed 3** | **with randomness** | **98% (19.8 s)** | **68% (16.7 s)** |
+| Same, second exploiter seed | with randomness | 98% (19.6 s) | 78% (17.6 s) |
+
+Randomness only helps a runner that has a good plan. Post 3's runner and self-play seeds 1 and
+2 get caught just as fast either way, because running into a corner randomly is still running
+into a corner. For seed 3 it's the difference between 19% and 98%. My explanation: with
+randomness, the exploiter can't learn one exact ambush. It doesn't know which way around the
+pillars the runner will go next.
+
+Sampled results move a few points from run to run, since the randomness changes every
+episode.
+
+## Two things that made it worse
+
+**A league.** I took seed 3 and trained it against a pool of the strongest chasers so far,
+including the exploiters, three seeds. In training it escaped 88–98% of the time, and one of
+them escaped 98–100% against the two exploiters that had broken earlier runners. Then fresh
+exploiters held it to 0–6% escapes (5.3–7.7 seconds). Many of the pool chasers had the same
+weakness: they got stuck pushing against a pillar instead of going around it. The runner learned
+to exploit that, and lost its general skill.
+
+One league runner looked unbeatable: 100% escapes against its 80% exploiter. A second exploiter
+with a different seed held it to 6% escapes by 1 million steps and 4% by 2 million. Exploiters can fail to find
+a hole that exists, so a single test isn't proof.
+
+**PSRO.** The textbook fix for that: each iteration, train a fresh exploiter against the current
+runner, add it to the pool, then train the runner against the pool. Every chaser in the pool is
+then one that really beat the runner. Over 8 iterations, from the second one on, every new
+exploiter still caught the runner in 98–100% of its last training episodes. Worse, the runners forgot how to beat the
+simple scripted bots: against the intercept bot, escapes fell from 93% to 14–50%. Fresh
+exploiters caught all three in 0–2% escapes, even with randomness. I'd guess only 10% scripted
+opponents was too few, and the pillar orbit got trained away. I haven't tested that.
+
+## How the AI runs on this page
+
+- **What's stored:** only the part of the network that picks moves. That's 9 inputs, two layers
+  of 64 numbers, and 9 outputs: 5,385 numbers per network. Training saves a PyTorch file; an
+  export script copies those numbers into a JSON file (`models.json`), rounded to 5 decimal
+  places. This page's file holds 5 networks: 264 KB, 92 KB gzipped.
+- **How it loads:** the page is static HTML from GitHub Pages. The game is a small script, 11.4
+  KB before compression, which includes the physics and the network code. When it starts, it
+  `fetch()`es `models.json`. On post 3's live page, the file arrived about 130 ms after the
+  request, right after the page finished loading. Until then the Start button stays disabled.
+- **How it runs:** 20 times a second, the game builds the same 9 numbers the network saw in
+  training, multiplies them through the three layers in plain JavaScript, and picks an action.
+  One decision takes about 8 microseconds. No TensorFlow.js, no ONNX, no server.
+- **How I know it matches:** a test replays games recorded in Python and checks that the
+  JavaScript physics and network give the same results, step for step. It runs on every push.
+
+## What I take from it
+
+- **Test against a learner, not a script.** The scripted bots said post 3's runner was fine.
+  A chaser with 20 seconds of training said it wasn't.
+- **Use more than one exploiter.** One of them failed to find a hole that a second one found.
+- **Unpredictability is a real strategy.** Against an opponent that learns your habits, a
+  slightly random plan beats a perfect but predictable one.
+- **Self-play can stall.** Two of three seeds never got good, and the two methods meant to fix
+  that both made things worse here. The best runner came from one lucky seed.
+- **The arena decides a lot.** Without pillars to circle, at 90% speed, the theory says the
+  chaser should win.
+
+I haven't tested any of this against a person. Try the game and see if you can catch it.
+
+## Cost
+
+All on an M1 Pro, CPU only:
+
+- Self-play, three seeds in parallel: 23 minutes.
+- League: 18 minutes.
+- PSRO: 27 minutes.
+- Exploiter tests: 36 of them, about 3–4 minutes each, run several at a time.
+- Scoring: about 3 minutes.
+
+## Run it yourself
+
+```sh
+cd experiments/003-tag
+for s in 1 2 3; do uv run selfplay.py --seed $s --rounds 20 & done; wait   # self-play
+# a fresh chaser against one frozen runner (the "exploiter" test)
+uv run exploit.py --evader sp-s3/evader_r20 --ratio 0.8 --sample --seed 11 --name ts80-sp3
+uv run evaluate_selfplay.py        # scores every run with an exploit.json, writes the site data
+uv run summarize_selfplay.py       # prints every number quoted here
+```
+
+The league and PSRO commands are in `selfplay.py --help` and `psro.py --help`.

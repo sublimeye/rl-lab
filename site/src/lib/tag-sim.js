@@ -180,3 +180,23 @@ export function freePoint(w, rand) {
     }
   }
 }
+
+/** The network's action probabilities (softmax of the logits). */
+export function probs(net, input) {
+  const z = logits(net, input);
+  const m = Math.max(...z);
+  const e = z.map((v) => Math.exp(v - m));
+  const s = e.reduce((a, b) => a + b, 0);
+  return e.map((v) => v / s);
+}
+
+/** Draw an action from the network's probabilities, like it does while training. */
+export function sampleAct(net, input, rand = Math.random) {
+  const p = probs(net, input);
+  let r = rand();
+  for (let i = 0; i < p.length; i++) {
+    r -= p[i];
+    if (r < 0) return i;
+  }
+  return p.length - 1;
+}

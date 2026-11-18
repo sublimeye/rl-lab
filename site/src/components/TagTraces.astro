@@ -9,8 +9,10 @@ import path from 'node:path';
 interface Props {
   src: string;
   caption?: string;
+  /** legend name for the orange path */
+  chaserLabel?: string;
 }
-const { src, caption } = Astro.props;
+const { src, caption, chaserLabel = 'Scripted chaser' } = Astro.props;
 const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
 const w = data.world;
 const Y = (y: number) => w.height - y;
@@ -22,7 +24,7 @@ const h = w.half;
 <figure class="traces wide">
   <p class="legend">
     <span><i class="sw ai"></i>Trained square</span>
-    <span><i class="sw bot"></i>Scripted chaser</span>
+    <span><i class="sw bot"></i>{chaserLabel}</span>
     <span><i class="sw start"></i>Start (hollow)</span>
   </p>
   <div class="grid">

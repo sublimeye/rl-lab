@@ -11,6 +11,7 @@ site/src/lib/tag-sim.js can reproduce it step for step.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import gymnasium as gym
@@ -71,6 +72,54 @@ def sample_chaser(pool: str, rng: np.random.Generator) -> Chaser:
     raise ValueError(f"unknown chaser pool {pool!r}")
 
 
+class MLP:
+    """A policy network as numpy arrays: tanh hidden layers, linear action logits.
+
+    Same format as the JSON the browser loads: [{"w": out x in, "b": out}, ...].
+    """
+
+    def __init__(self, layers: list[dict]):
+        self.layers = [(np.asarray(L["w"], dtype=np.float64), np.asarray(L["b"])) for L in layers]
+
+    def to_json(self, digits: int | None = 5) -> dict:
+        def r(a):
+            return np.round(a, digits).tolist() if digits else a.tolist()
+
+        return {"layers": [{"w": r(w), "b": r(b)} for w, b in self.layers]}
+
+    def logits(self, x) -> np.ndarray:
+        x = np.asarray(x, dtype=np.float64)
+        for i, (w, b) in enumerate(self.layers):
+            x = w @ x + b
+            if i < len(self.layers) - 1:
+                x = np.tanh(x)
+        return x
+
+    def act(self, obs, rng: np.random.Generator | None = None) -> int:
+        """Best action, or a sample from the softmax when rng is given."""
+        z = self.logits(obs)
+        if rng is None:
+            return int(np.argmax(z))
+        p = np.exp(z - z.max())
+        return int(rng.choice(len(p), p=p / p.sum()))
+
+
+@dataclass(frozen=True)
+class NetChaser:
+    """A chaser driven by a trained network instead of a script."""
+
+    net: MLP
+    ratio: float = 0.9
+    sample: bool = False
+    reaction: int = 1
+
+
+@dataclass(frozen=True)
+class NetEvader:
+    net: MLP
+    sample: bool = False
+
+
 @dataclass
 class Config:
     arena: Arena = field(default_factory=Arena)
@@ -79,6 +128,11 @@ class Config:
     max_steps: int = 400  # 20 seconds
     chasers: str = "simple"
     min_start_distance: float = 4.0
+    # Optional opponent samplers (self-play). They override `chasers` for TagArena, and
+    # supply the evader for ChaserArena.
+    opponents: Callable[[np.random.Generator], Chaser | NetChaser] | None = None
+    evaders: Callable[[np.random.Generator], NetEvader] | None = None
+    chaser_ratio: tuple[float, float] = (0.8, 1.0)  # ChaserArena: own speed, drawn per episode
 
 
 # 0 = stand still, then 8 directions counter-clockwise from east.
@@ -246,7 +300,15 @@ class TagArena(gym.Env):
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
         options = options or {}
-        self.opponent = options.get("chaser") or sample_chaser(self.cfg.chasers, self.np_random)
+        self.opponent = options.get("chaser") or (
+            self.cfg.opponents(self.np_random)
+            if self.cfg.opponents
+            else sample_chaser(self.cfg.chasers, self.np_random)
+        )
+        self._spawn(options)
+        return self._obs(), {"chaser": self.opponent}
+
+    def _spawn(self, options: dict) -> None:
         if "evader" in options:
             self.evader = Body(*options["evader"])
             self.chaser = Body(*options["chaser_pos"])
@@ -259,11 +321,14 @@ class TagArena(gym.Env):
                     break
         self.steps = 0
         self._dir = (0.0, 0.0)
-        return self._obs(), {"chaser": self.opponent}
 
     def step(self, action: int):
         p, a, rw = self.cfg.physics, self.cfg.arena, self.cfg.rewards
-        if self.steps % self.opponent.reaction == 0:
+        if isinstance(self.opponent, NetChaser):
+            obs_c = observe(self.chaser, self.evader, p, a)
+            rng = self.np_random if self.opponent.sample else None
+            self._dir = ACTIONS[self.opponent.net.act(obs_c, rng)]
+        elif self.steps % self.opponent.reaction == 0:
             self._dir = chaser_direction(self.opponent, self.chaser, self.evader, p, a)
         self.steps += 1
         ax, ay = ACTIONS[int(action)]
@@ -299,6 +364,46 @@ class TagArena(gym.Env):
             "maxSpeed": p.max_speed,
             "maxSteps": self.cfg.max_steps,
         }
+
+
+class ChaserArena(TagArena):
+    """The same game from the chaser's side: the agent chases a network-driven evader.
+
+    Zero-sum: the chaser's reward is the evader's reward with the sign flipped.
+    """
+
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
+        gym.Env.reset(self, seed=seed)
+        options = options or {}
+        self.prey = options.get("prey") or self.cfg.evaders(self.np_random)
+        self.ratio = options.get("ratio") or float(self.np_random.uniform(*self.cfg.chaser_ratio))
+        self._spawn(options)
+        return self._obs(), {}
+
+    def step(self, action: int):
+        p, a, rw = self.cfg.physics, self.cfg.arena, self.cfg.rewards
+        rng = self.np_random if self.prey.sample else None
+        ea = self.prey.net.act(observe(self.evader, self.chaser, p, a), rng)
+        self.steps += 1
+        move(self.evader, *ACTIONS[ea], p.max_speed, p, a)
+        cx, cy = ACTIONS[int(action)]
+        move(self.chaser, cx, cy, p.max_speed * self.ratio, p, a)
+
+        info: dict = {}
+        if caught(self.evader, self.chaser, p.half):
+            info["outcome"] = "caught"
+            return self._obs(), -rw.caught, True, False, info
+        dist = math.hypot(self.chaser.x - self.evader.x, self.chaser.y - self.evader.y)
+        reward = -(rw.alive + rw.distance * min(dist, rw.distance_cap) / rw.distance_cap)
+        truncated = self.steps >= self.cfg.max_steps
+        if truncated:
+            info["outcome"] = "escaped"
+        return self._obs(), float(reward), False, truncated, info
+
+    def _obs(self) -> np.ndarray:
+        return np.array(
+            observe(self.chaser, self.evader, self.cfg.physics, self.cfg.arena), dtype=np.float32
+        )
 
 
 def flee_action(e: Body, c: Body) -> int:

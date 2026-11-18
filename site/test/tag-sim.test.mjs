@@ -3,7 +3,17 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { ACTIONS, body, caught, chaserDirection, logits, move, observe } from '../src/lib/tag-sim.js';
+import {
+  ACTIONS,
+  body,
+  caught,
+  chaserDirection,
+  logits,
+  move,
+  observe,
+  probs,
+  sampleAct,
+} from '../src/lib/tag-sim.js';
 
 const fx = JSON.parse(readFileSync(new URL('./tag-parity.json', import.meta.url), 'utf8'));
 const close = (a, b, tol, what) =>
@@ -32,4 +42,18 @@ test('policy network matches PyTorch', () => {
   for (const { obs, logits: want } of fx.policy.samples) {
     close(logits(fx.policy.net, obs), want, 1e-4, 'logits');
   }
+});
+
+test('sampling follows the softmax of the logits', () => {
+  const { obs, logits: z } = fx.policy.samples[0];
+  const m = Math.max(...z);
+  const e = z.map((v) => Math.exp(v - m));
+  const want = e.map((v) => v / e.reduce((a, b) => a + b, 0));
+  close(probs(fx.policy.net, obs), want, 1e-4, 'probs');
+  // a fixed sequence of uniforms maps to actions through the cumulative probabilities
+  let seed = 1;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  const counts = new Array(9).fill(0);
+  for (let i = 0; i < 20000; i++) counts[sampleAct(fx.policy.net, obs, rand)]++;
+  counts.forEach((c, i) => assert.ok(Math.abs(c / 20000 - want[i]) < 0.02, `action ${i}`));
 });

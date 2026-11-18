@@ -11,8 +11,17 @@ interface Props {
   caption?: string;
   /** Model id selected at load */
   model?: string;
+  /** Orange speed selected at load, as a fraction of blue's */
+  speed?: 0.8 | 0.9 | 1;
+  /** Blue samples its moves from the network's probabilities instead of the top choice */
+  sample?: boolean;
 }
-const { src, caption, model = '' } = Astro.props;
+const { src, caption, model = '', speed = 0.9, sample = false } = Astro.props;
+const speeds = [
+  { v: 0.8, label: '80% of blue' },
+  { v: 0.9, label: '90% of blue' },
+  { v: 1, label: '100% of blue' },
+];
 ---
 
 <figure class="tag wide">
@@ -33,9 +42,14 @@ const { src, caption, model = '' } = Astro.props;
         <label>
           Orange speed
           <select class="speed">
-            <option value="0.8">80% of blue</option>
-            <option value="0.9" selected>90% of blue</option>
-            <option value="1">100% of blue</option>
+            {speeds.map((o) => <option value={o.v} selected={o.v === speed}>{o.label}</option>)}
+          </select>
+        </label>
+        <label>
+          Blue picks moves
+          <select class="pick">
+            <option value="sample" selected={sample}>With some randomness</option>
+            <option value="best" selected={!sample}>Always its top choice</option>
           </select>
         </label>
         <label>
@@ -128,7 +142,7 @@ const { src, caption, model = '' } = Astro.props;
   }
   @media (min-width: 30rem) and (max-width: 51.99rem) {
     .controls {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
   label {
@@ -169,11 +183,13 @@ const { src, caption, model = '' } = Astro.props;
     freePoint,
     move,
     observe,
+    sampleAct,
   } from '../lib/tag-sim.js';
 
   type Body = { x: number; y: number; vx: number; vy: number };
   type Net = { layers: { w: number[][]; b: number[] }[] };
-  type Model = { id: string; label: string; steps: number; net: Net };
+  /** role 'evader' (default) drives the blue square; 'chaser' can drive the orange one. */
+  type Model = { id: string; label: string; steps: number; net: Net; role?: 'evader' | 'chaser' };
   type World = {
     width: number;
     height: number;
@@ -209,6 +225,7 @@ const { src, caption, model = '' } = Astro.props;
     modelSel!: HTMLSelectElement;
     speedSel!: HTMLSelectElement;
     whoSel!: HTMLSelectElement;
+    pickSel!: HTMLSelectElement;
 
     w!: World;
     models: Model[] = [];
@@ -241,11 +258,12 @@ const { src, caption, model = '' } = Astro.props;
       this.modelSel = q('.model');
       this.speedSel = q('.speed');
       this.whoSel = q('.who');
+      this.pickSel = q('.pick');
 
       new ResizeObserver(() => this.resize()).observe(this.canvas);
       matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => this.resize());
       this.startBtn.addEventListener('click', () => this.startRound());
-      for (const s of [this.modelSel, this.speedSel, this.whoSel]) {
+      for (const s of [this.modelSel, this.speedSel, this.whoSel, this.pickSel]) {
         s.addEventListener('change', () => this.settingsChanged());
       }
       window.addEventListener('keydown', (ev) => this.onKey(ev, true));
@@ -269,7 +287,10 @@ const { src, caption, model = '' } = Astro.props;
         this.statusEl.textContent = 'Could not load the trained models. Reload the page to try again.';
         return;
       }
-      for (const m of this.models) this.modelSel.add(new Option(m.label, m.id));
+      for (const m of this.models) {
+        if (m.role === 'chaser') this.whoSel.add(new Option(m.label, `net:${m.id}`));
+        else this.modelSel.add(new Option(m.label, m.id));
+      }
       if (this.dataset.model) this.modelSel.value = this.dataset.model;
       this.placeSquares();
       this.phase = 'idle';
@@ -280,16 +301,22 @@ const { src, caption, model = '' } = Astro.props;
     }
 
     get model() {
-      return this.models.find((m) => m.id === this.modelSel.value) ?? this.models[0];
+      return this.models.find((m) => m.id === this.modelSel.value && m.role !== 'chaser')!;
     }
     get ratio() {
       return Number(this.speedSel.value);
     }
     get who() {
-      return this.whoSel.value as 'you' | 'pursuit' | 'intercept';
+      return this.whoSel.value;
+    }
+    /** How the orange square is named in messages: "you", "the pursuit bot", "the trained chaser"... */
+    get orangeName() {
+      if (this.who === 'you') return 'you';
+      const opt = this.whoSel.selectedOptions[0];
+      return `the ${opt.text.charAt(0).toLowerCase()}${opt.text.slice(1)}`;
     }
     get comboKey() {
-      return `${this.modelSel.value}|${this.speedSel.value}|${this.whoSel.value}`;
+      return `${this.modelSel.value}|${this.speedSel.value}|${this.whoSel.value}|${this.pickSel.value}`;
     }
 
     settingsChanged() {
@@ -297,7 +324,7 @@ const { src, caption, model = '' } = Astro.props;
       this.statusEl.textContent =
         this.who === 'you'
           ? 'Catch the blue square within 20 seconds.'
-          : `Watch the ${this.who} bot chase the blue square.`;
+          : `Watch ${this.orangeName} chase the blue square.`;
       this.updateScore();
     }
 
@@ -343,7 +370,8 @@ const { src, caption, model = '' } = Astro.props;
         t.rounds++;
         if (won) t.caught++;
         this.tally.set(this.comboKey, t);
-        const by = this.who === 'you' ? 'You caught' : `The ${this.who} bot caught`;
+        const name = this.orangeName;
+        const by = this.who === 'you' ? 'You caught' : `${name.charAt(0).toUpperCase()}${name.slice(1)} caught`;
         this.result = won ? `${by} it in ${secs} s` : 'It got away';
         this.statusEl.textContent = won
           ? `${by} it in ${secs} seconds.`
@@ -413,10 +441,16 @@ const { src, caption, model = '' } = Astro.props;
       if (this.who === 'you') {
         dir = this.inputDir();
       } else {
-        const spec = { kind: this.who, ratio: this.ratio, reaction: 1, dirs8: false, lead: 1 };
-        dir = chaserDirection(spec, this.c, this.e, w) as [number, number];
+        if (this.who.startsWith('net:')) {
+          const cm = this.models.find((m) => `net:${m.id}` === this.who)!;
+          dir = ACTIONS[act(cm.net, observe(this.c, this.e, w))] as [number, number];
+        } else {
+          const spec = { kind: this.who, ratio: this.ratio, reaction: 1, dirs8: false, lead: 1 };
+          dir = chaserDirection(spec, this.c, this.e, w) as [number, number];
+        }
       }
-      const a = act(this.model.net, observe(this.e, this.c, w));
+      const obs = observe(this.e, this.c, w);
+      const a = this.pickSel.value === 'sample' ? sampleAct(this.model.net, obs) : act(this.model.net, obs);
       const [ax, ay] = ACTIONS[a];
       move(this.e, ax, ay, w.maxSpeed, w);
       move(this.c, dir[0], dir[1], w.maxSpeed * this.ratio, w);

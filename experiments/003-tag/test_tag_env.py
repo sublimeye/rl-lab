@@ -4,9 +4,14 @@ import numpy as np
 from gymnasium.utils.env_checker import check_env
 
 from tag_env import (
+    ACTIONS,
+    MLP,
     Arena,
     Body,
+    ChaserArena,
     Config,
+    NetChaser,
+    NetEvader,
     Physics,
     TagArena,
     caught,
@@ -101,3 +106,46 @@ def test_observation_in_range():
         assert np.all(np.abs(obs) <= 2.0)
         if term or trunc:
             obs, _ = env.reset()
+
+
+def _tiny_net(seed: int = 0) -> MLP:
+    rng = np.random.default_rng(seed)
+    shapes = [(64, 9), (64, 64), (9, 64)]
+    return MLP([{"w": rng.normal(0, 0.3, s), "b": rng.normal(0, 0.1, s[0])} for s in shapes])
+
+
+def test_mlp_act_and_sample():
+    net = _tiny_net()
+    obs = np.linspace(-1, 1, 9)
+    assert net.act(obs) == int(np.argmax(net.logits(obs)))
+    rng = np.random.default_rng(0)
+    assert all(0 <= net.act(obs, rng) < 9 for _ in range(20))
+    assert MLP(net.to_json(digits=None)["layers"]).act(obs) == net.act(obs)
+
+
+def test_net_chaser_drives_the_chaser():
+    cfg = Config(opponents=lambda rng: NetChaser(_tiny_net(1), ratio=0.9))
+    env = TagArena(cfg)
+    env.reset(seed=0)
+    start = (env.chaser.x, env.chaser.y)
+    for _ in range(20):
+        env.step(0)
+    assert (env.chaser.x, env.chaser.y) != start
+
+
+def test_chaser_arena_is_zero_sum_and_catches():
+    cfg = Config(evaders=lambda rng: NetEvader(_tiny_net(2)))
+    check_env(ChaserArena(cfg), skip_render_check=True)
+    env = ChaserArena(cfg)
+    obs, _ = env.reset(seed=0)
+    total, term = 0.0, False
+    for _ in range(400):
+        e, c = env.evader, env.chaser
+        # greedy chase: pick the action pointing most toward the evader
+        dx, dy = e.x - c.x, e.y - c.y
+        a = max(range(1, 9), key=lambda i: ACTIONS[i][0] * dx + ACTIONS[i][1] * dy)
+        obs, r, term, trunc, info = env.step(a)
+        total += r
+        if term or trunc:
+            break
+    assert term and info["outcome"] == "caught" and r == 5.0
