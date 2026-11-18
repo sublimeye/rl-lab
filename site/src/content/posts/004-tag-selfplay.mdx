@@ -142,10 +142,11 @@ opponents was too few, and the pillar orbit got trained away. I haven't tested t
   of 64 numbers, and 9 outputs: 5,385 numbers per network. Training saves a PyTorch file; an
   export script copies those numbers into a JSON file (`models.json`), rounded to 5 decimal
   places. This page's file holds 5 networks: 264 KB, 92 KB gzipped.
-- **How it loads:** the page is static HTML from GitHub Pages. The game is a small script, 11.4
-  KB before compression, which includes the physics and the network code. When it starts, it
-  `fetch()`es `models.json`. On post 3's live page, the file arrived about 130 ms after the
-  request, right after the page finished loading. Until then the Start button stays disabled.
+- **How it loads:** the page is static HTML from GitHub Pages. The game is one small script
+  (11 KB, 4.7 KB over the network) holding the physics and the network code. As soon as the page
+  has loaded, it `fetch()`es `models.json`: 92.5 KB over the network. In three fresh loads of this
+  page, the request started 200–310 ms after navigation and took 31–136 ms, so the game was ready
+  in under half a second. Until then the Start button stays disabled.
 - **How it runs:** 20 times a second, the game builds the same 9 numbers the network saw in
   training, multiplies them through the three layers in plain JavaScript, and picks an action.
   One decision takes about 8 microseconds. No TensorFlow.js, no ONNX, no server.
