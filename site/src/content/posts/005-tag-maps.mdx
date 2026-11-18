@@ -176,14 +176,18 @@ small script runs it in plain JavaScript.
 - **Size:** the runner reads 25 numbers now instead of 9: the 16 sensors are new. That adds
   16 × 64 weights to the first layer, so a network has 6,409 numbers instead of 5,385, 19%
   more. In the JSON file that's 61 KB instead of 51 KB per network, 21 KB instead of 18 KB
-  gzipped. This page's file holds seven networks (five runners and two chasers): 407 KB, 140
-  KB gzipped.
+  gzipped. This page's file holds seven networks (five runners and two chasers): 407 KB, 147
+  KB over the network.
+- **Loading:** the game script grew from 11 KB to 18 KB (7.5 KB over the network) with the map
+  generator and path planning. In three fresh loads of this page, the models request started
+  273–356 ms after navigation and took 50–154 ms, so the game was ready in about half a
+  second.
 - **Speed:** one decision (sensors plus network) takes about 9 microseconds: about 1.2 for the
   16 rays and 7.9 for the network, measured in Node on an M1 Pro. The game decides 20 times a
   second, so that's under 0.02% of the time between steps.
 - **Maps:** the map generator and its walk-through check run in the browser too, from a seed,
-  so **New map** downloads nothing. The scripted bots plan paths on a grid, which takes about
-  40 ms to set up per map; the network runner doesn't need that.
+  so **New map** downloads nothing. A click takes about 33 ms in the browser, most of it setting
+  up the scripted bots' path grid; the network runner doesn't need that.
 - **Same results as Python:** a test rebuilds 30 maps from their seeds, compares sensors, bot
   paths, four episodes and the network's outputs with Python's, and runs on every push.
 
