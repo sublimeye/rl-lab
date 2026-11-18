@@ -1,0 +1,181 @@
+:root {
+  color-scheme: light;
+  --paper: #f3f5f6;
+  --ink: #1b2228;
+  --muted: #5a6672;
+  --rule: #d6dce1;
+  --floor: #ffffff;
+  --grid: #e7ebee;
+  --wall: #a3aeb8;
+  --lava: #eb6834;
+  --coin: #eda100;
+  --flag: #2a78d6;
+  --timeout: #1baf7a;
+  --link: #1f5fae;
+  --code-bg: #e8ecef;
+
+  --font: 'Schibsted Grotesk', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --measure: 40rem;
+  --wide: 58rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --paper: #171a1d;
+    --ink: #e3e7ea;
+    --muted: #9aa5ae;
+    --rule: #2c3237;
+    --floor: #1f2327;
+    --grid: #2a2f34;
+    --wall: #4b555e;
+    --lava: #d95926;
+    --coin: #c98500;
+    --flag: #3987e5;
+    --timeout: #199e70;
+    --link: #79b0f0;
+    --code-bg: #23282d;
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #171a1d;
+  --ink: #e3e7ea;
+  --muted: #9aa5ae;
+  --rule: #2c3237;
+  --floor: #1f2327;
+  --grid: #2a2f34;
+  --wall: #4b555e;
+  --lava: #d95926;
+  --coin: #c98500;
+  --flag: #3987e5;
+  --timeout: #199e70;
+  --link: #79b0f0;
+  --code-bg: #23282d;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  font-feature-settings: 'tnum' 0;
+}
+
+main,
+.site-header,
+.site-footer {
+  width: 100%;
+  max-width: calc(var(--measure) + 2rem);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+h1 {
+  font-size: clamp(2.1rem, 6vw, 3rem);
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.03em;
+}
+h2 {
+  font-size: 1.45rem;
+  margin: 2.75rem 0 0.75rem;
+}
+h3 {
+  font-size: 1.15rem;
+  margin: 2rem 0 0.5rem;
+}
+p,
+ul,
+ol,
+table {
+  margin: 0 0 1.1rem;
+}
+
+a {
+  color: var(--link);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+a:hover {
+  text-decoration-thickness: 2px;
+}
+:focus-visible {
+  outline: 2px solid var(--flag);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--code-bg);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+pre {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding: 0.9rem 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0 0 1.25rem;
+}
+pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.75rem 0.4rem 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+th {
+  font-weight: 600;
+}
+
+/* Lets a figure break out of the text column on wide screens. */
+.wide {
+  width: min(var(--wide), 100vw - 2rem);
+  margin-inline: calc((min(var(--wide), 100vw - 2rem) - 100%) / -2);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,82 @@
+---
+import '../styles/global.css';
+import { url } from '../lib';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = 'Small reinforcement-learning experiments, replayed in the browser.' } =
+  Astro.props;
+const siteTitle = 'rl-lab';
+const fullTitle = title === siteTitle ? title : `${title} | ${siteTitle}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" type="image/svg+xml" href={url('favicon.svg')} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Schibsted+Grotesk:ital,wght@0,400..800;1,400..800&display=swap"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href={url()}>
+        <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+          <rect x="1" y="9" width="8" height="8" rx="1.5" fill="currentColor"></rect>
+          <path d="M13 17V3" stroke="var(--flag)" stroke-width="1.6" stroke-linecap="round"></path>
+          <path d="M13.8 3.2 19 5.6l-5.2 2.4Z" fill="var(--flag)"></path>
+        </svg>
+        rl-lab
+      </a>
+      <span class="tagline muted">Roman's reinforcement-learning notebook</span>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="site-footer muted">
+      <a href="https://github.com/sublimeye/rl-lab">Source and training code on GitHub</a>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    padding-block: 1.5rem 2.5rem;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-decoration: none;
+    align-self: center;
+  }
+  .tagline {
+    font-size: 0.95rem;
+  }
+  .site-footer {
+    padding-block: 4rem 2.5rem;
+    font-size: 0.9rem;
+  }
+  .site-footer a {
+    color: inherit;
+  }
+</style>

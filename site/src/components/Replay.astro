@@ -1,0 +1,533 @@
+---
+/**
+ * Replays exported rollouts (experiments/<n>/export.py) on a canvas.
+ * Several runs per checkpoint are drawn at once, so you see the spread of behaviour.
+ */
+import { url } from '../lib';
+
+interface Props {
+  /** Path under public/data, e.g. "001-cube-to-flag/shaped.json" */
+  src: string;
+  caption?: string;
+  /** Start on this checkpoint index (default: first) */
+  start?: number;
+}
+const { src, caption, start = 0 } = Astro.props;
+---
+
+<figure class="replay wide">
+  <rl-replay data-src={url(`data/${src}`)} data-start={start}>
+    <div class="stage">
+      <canvas role="img" aria-label="Replay of the agent in the arena"></canvas>
+    </div>
+    <div class="panel">
+      <p class="status" aria-live="polite">
+        <span class="steps">Loading replay…</span>
+        <span class="summary muted"></span>
+      </p>
+      <div class="controls">
+        <button class="play" type="button">Play</button>
+        <button class="restart" type="button">Restart</button>
+        <label class="speed-label">
+          Speed
+          <select class="speed">
+            <option value="1">1×</option>
+            <option value="2" selected>2×</option>
+            <option value="4">4×</option>
+          </select>
+        </label>
+        <span class="clock muted"></span>
+      </div>
+      <ol class="timeline" aria-label="Training checkpoints"></ol>
+      <label class="auto">
+        <input type="checkbox" checked />
+        Move to the next checkpoint when a replay ends
+      </label>
+      <p class="legend muted">
+        <span><i class="glyph flag"></i> reached the flag</span>
+        <span><i class="glyph lava"></i> fell in lava</span>
+        <span><i class="glyph timeout"></i> ran out of time</span>
+      </p>
+    </div>
+  </rl-replay>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .replay {
+    margin-block: 2rem 2.5rem;
+  }
+  rl-replay {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  @media (min-width: 52rem) {
+    rl-replay {
+      grid-template-columns: minmax(0, 32rem) minmax(0, 1fr);
+      align-items: start;
+    }
+  }
+  .stage {
+    aspect-ratio: 1;
+    width: 100%;
+    max-width: 32rem;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--floor);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .status {
+    margin: 0 0 0.75rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .steps {
+    font-size: 1.6rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.6rem;
+    margin-bottom: 1rem;
+  }
+  button,
+  select {
+    font: inherit;
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+  }
+  button:hover,
+  select:hover {
+    border-color: var(--muted);
+  }
+  .speed-label {
+    font-size: 0.92rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .speed {
+    padding-inline: 0.4rem;
+  }
+  .clock {
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
+  }
+  .timeline {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    border-left: 2px solid var(--rule);
+  }
+  .timeline :global(button) {
+    display: grid;
+    grid-template-columns: 4.5rem 4.2rem 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    border-radius: 0 5px 5px 0;
+    background: transparent;
+    padding: 0.32rem 0.6rem;
+    margin-left: -2px;
+    border-left: 2px solid transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  .timeline :global(button:hover) {
+    background: var(--code-bg);
+  }
+  .timeline :global(button[aria-current='true']) {
+    border-left-color: var(--ink);
+    background: var(--code-bg);
+    font-weight: 650;
+  }
+  .timeline :global(.k) {
+    font-weight: inherit;
+  }
+  .timeline :global(.glyphs) {
+    display: inline-flex;
+    gap: 3px;
+  }
+  .timeline :global(.what) {
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-weight: 400;
+  }
+  .auto {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+    font-size: 0.9rem;
+    margin-bottom: 0.6rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    font-size: 0.85rem;
+    margin: 0;
+  }
+  :global(.glyph) {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    vertical-align: -0.05em;
+  }
+  :global(.glyph.flag) {
+    background: var(--flag);
+    border-radius: 50%;
+  }
+  :global(.glyph.lava) {
+    background: var(--lava);
+    transform: rotate(45deg) scale(0.85);
+  }
+  :global(.glyph.timeout) {
+    border: 2px solid var(--timeout);
+    border-radius: 50%;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  type Run = { outcome: 'flag' | 'lava' | 'timeout'; return: number; xy: number[]; coins: [number, number][] };
+  type Checkpoint = { steps: number; runs: Run[] };
+  type Arena = {
+    width: number;
+    height: number;
+    start: [number, number];
+    flag: { x: number; y: number; r: number };
+    walls: number[][];
+    lava: number[][];
+    coins: [number, number][];
+    cube: number;
+    dt: number;
+  };
+  type Replay = { arena: Arena; checkpoints: Checkpoint[] };
+
+  const HOLD_SECONDS = 1.2;
+  const OUTCOME_TEXT = { flag: 'reached the flag', lava: 'fell in lava', timeout: 'ran out of time' };
+
+  function fmtSteps(n: number) {
+    if (n >= 1_000_000) return `${+(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1000) return `${Math.round(n / 1000)}k`;
+    return String(n);
+  }
+
+  function summarize(runs: Run[]) {
+    const counts = { flag: 0, lava: 0, timeout: 0 };
+    runs.forEach((r) => counts[r.outcome]++);
+    if (counts.flag === runs.length) return `All ${runs.length} reached the flag`;
+    return (Object.keys(counts) as Run['outcome'][])
+      .filter((k) => counts[k])
+      .map((k) => `${counts[k]} ${OUTCOME_TEXT[k]}`)
+      .join(', ');
+  }
+
+  class RlReplay extends HTMLElement {
+    data!: Replay;
+    ctx!: CanvasRenderingContext2D;
+    canvas!: HTMLCanvasElement;
+    colors: Record<string, string> = {};
+    hatch: CanvasPattern | null = null;
+    ck = 0;
+    frame = 0;
+    holdLeft = HOLD_SECONDS;
+    playing = false;
+    visible = false;
+    raf = 0;
+    last = 0;
+    size = 0;
+    reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    async connectedCallback() {
+      this.canvas = this.querySelector('canvas')!;
+      this.ctx = this.canvas.getContext('2d')!;
+      try {
+        const res = await fetch(this.dataset.src!);
+        if (!res.ok) throw new Error(`${res.status}`);
+        this.data = await res.json();
+      } catch (err) {
+        this.q('.steps').textContent = 'Replay data failed to load';
+        this.q('.summary').textContent = `Could not fetch ${this.dataset.src} (${err}).`;
+        return;
+      }
+      this.ck = Math.min(Number(this.dataset.start ?? 0), this.data.checkpoints.length - 1);
+      this.buildTimeline();
+      this.readColors();
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        this.readColors();
+        this.draw();
+      });
+      new ResizeObserver(() => this.resize()).observe(this.canvas);
+      new IntersectionObserver(([e]) => {
+        this.visible = e.isIntersecting;
+        if (this.visible && this.playing) this.loop();
+      }).observe(this);
+
+      this.q('.play').addEventListener('click', () => this.setPlaying(!this.playing));
+      this.q('.restart').addEventListener('click', () => {
+        this.frame = 0;
+        this.holdLeft = HOLD_SECONDS;
+        this.setPlaying(true);
+      });
+      this.select(this.ck);
+      // Reduced motion: show the finished paths and let the reader press Play.
+      if (this.reduceMotion) {
+        this.frame = this.maxFrame();
+        this.draw();
+      } else {
+        this.setPlaying(true);
+      }
+    }
+
+    q<T extends HTMLElement = HTMLElement>(sel: string) {
+      return this.querySelector(sel) as T;
+    }
+
+    get speed() {
+      return Number(this.q<HTMLSelectElement>('.speed').value);
+    }
+    get autoAdvance() {
+      return this.q<HTMLInputElement>('.auto input').checked;
+    }
+
+    buildTimeline() {
+      const ol = this.q('.timeline');
+      this.data.checkpoints.forEach((c, i) => {
+        const li = document.createElement('li');
+        const b = document.createElement('button');
+        b.type = 'button';
+        const glyphs = c.runs.map((r) => `<i class="glyph ${r.outcome}"></i>`).join('');
+        b.innerHTML = `<span class="k">${fmtSteps(c.steps)} steps</span><span class="glyphs" aria-hidden="true">${glyphs}</span><span class="what">${summarize(c.runs)}</span>`;
+        b.addEventListener('click', () => {
+          this.q<HTMLInputElement>('.auto input').checked = false;
+          this.select(i);
+          this.setPlaying(!this.reduceMotion || this.playing);
+          if (!this.playing) {
+            this.frame = this.maxFrame();
+            this.draw();
+          }
+        });
+        li.append(b);
+        ol.append(li);
+      });
+    }
+
+    select(i: number) {
+      this.ck = i;
+      this.frame = 0;
+      this.holdLeft = HOLD_SECONDS;
+      const c = this.data.checkpoints[i];
+      this.querySelectorAll('.timeline button').forEach((b, j) => b.setAttribute('aria-current', String(j === i)));
+      this.q('.steps').textContent = c.steps === 0 ? 'Untrained' : `After ${c.steps.toLocaleString('en-US')} steps`;
+      const s = summarize(c.runs);
+      this.q('.summary').textContent = `${c.runs.length} runs: ${s.charAt(0).toLowerCase()}${s.slice(1)}`;
+      this.canvas.setAttribute('aria-label', `Arena replay, ${fmtSteps(c.steps)} training steps: ${s}`);
+      this.draw();
+    }
+
+    setPlaying(p: boolean) {
+      this.playing = p;
+      this.q('.play').textContent = p ? 'Pause' : 'Play';
+      if (p) this.loop();
+    }
+
+    maxFrame() {
+      return Math.max(...this.data.checkpoints[this.ck].runs.map((r) => r.xy.length / 2 - 1));
+    }
+
+    loop() {
+      cancelAnimationFrame(this.raf);
+      this.last = performance.now();
+      const tick = (now: number) => {
+        if (!this.playing || !this.visible) return;
+        const dt = Math.min(0.1, (now - this.last) / 1000);
+        this.last = now;
+        const end = this.maxFrame();
+        if (this.frame < end) {
+          this.frame = Math.min(end, this.frame + (dt / this.data.arena.dt) * this.speed);
+        } else if ((this.holdLeft -= dt) <= 0) {
+          const next = this.autoAdvance && this.ck < this.data.checkpoints.length - 1 ? this.ck + 1 : this.ck;
+          this.select(next);
+        }
+        this.draw();
+        this.raf = requestAnimationFrame(tick);
+      };
+      this.raf = requestAnimationFrame(tick);
+    }
+
+    readColors() {
+      const cs = getComputedStyle(this);
+      for (const k of ['floor', 'grid', 'wall', 'lava', 'coin', 'flag', 'timeout', 'ink', 'muted']) {
+        this.colors[k] = cs.getPropertyValue(`--${k}`).trim();
+      }
+      // Diagonal stripes on lava: a second cue besides colour.
+      const p = document.createElement('canvas');
+      p.width = p.height = 8;
+      const g = p.getContext('2d')!;
+      g.fillStyle = this.colors.lava;
+      g.fillRect(0, 0, 8, 8);
+      g.strokeStyle = 'rgba(0,0,0,0.18)';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(-2, 10);
+      g.lineTo(10, -2);
+      g.stroke();
+      this.hatch = this.ctx.createPattern(p, 'repeat');
+    }
+
+    resize() {
+      const dpr = window.devicePixelRatio || 1;
+      this.size = this.canvas.clientWidth;
+      this.canvas.width = Math.round(this.size * dpr);
+      this.canvas.height = Math.round(this.size * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.draw();
+    }
+
+    draw() {
+      if (!this.data || !this.size) return;
+      const { ctx, colors: C } = this;
+      const a = this.data.arena;
+      const s = this.size / a.width;
+      const X = (x: number) => x * s;
+      const Y = (y: number) => (a.height - y) * s;
+      const rect = (r: number[]) => [X(r[0]), Y(r[3]), (r[2] - r[0]) * s, (r[3] - r[1]) * s] as const;
+
+      ctx.fillStyle = C.floor;
+      ctx.fillRect(0, 0, this.size, this.size);
+      ctx.strokeStyle = C.grid;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 1; i < a.width; i++) {
+        ctx.moveTo(Math.round(X(i)) + 0.5, 0);
+        ctx.lineTo(Math.round(X(i)) + 0.5, this.size);
+        ctx.moveTo(0, Math.round(Y(i)) + 0.5);
+        ctx.lineTo(this.size, Math.round(Y(i)) + 0.5);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = this.hatch ?? C.lava;
+      a.lava.forEach((r) => ctx.fillRect(...rect(r)));
+      ctx.fillStyle = C.wall;
+      a.walls.forEach((r) => ctx.fillRect(...rect(r)));
+
+      // start pad
+      ctx.strokeStyle = C.muted;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(X(a.start[0] - 0.55), Y(a.start[1] + 0.55), 1.1 * s, 1.1 * s);
+      ctx.setLineDash([]);
+
+      // flag
+      const f = a.flag;
+      ctx.fillStyle = C.flag;
+      ctx.globalAlpha = 0.12;
+      ctx.beginPath();
+      ctx.arc(X(f.x), Y(f.y), f.r * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.flag;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(X(f.x - 0.15), Y(f.y - 0.35));
+      ctx.lineTo(X(f.x - 0.15), Y(f.y + 0.45));
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(X(f.x - 0.15), Y(f.y + 0.45));
+      ctx.lineTo(X(f.x + 0.35), Y(f.y + 0.28));
+      ctx.lineTo(X(f.x - 0.15), Y(f.y + 0.11));
+      ctx.fill();
+
+      const runs = this.data.checkpoints[this.ck].runs;
+      const fr = this.frame;
+
+      // coins fade as runs pick them up
+      a.coins.forEach(([cx, cy], i) => {
+        const left = runs.filter((r) => !r.coins.some(([ci, at]) => ci === i && at <= fr)).length;
+        ctx.globalAlpha = 0.15 + (0.85 * left) / runs.length;
+        ctx.fillStyle = C.coin;
+        ctx.beginPath();
+        ctx.arc(X(cx), Y(cy), 0.2 * s, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      const half = (a.cube / 2) * s;
+      for (const r of runs) {
+        const n = r.xy.length / 2;
+        const upto = Math.min(fr, n - 1);
+        const i0 = Math.floor(upto);
+        const t = upto - i0;
+        const i1 = Math.min(i0 + 1, n - 1);
+        const x = r.xy[i0 * 2] + (r.xy[i1 * 2] - r.xy[i0 * 2]) * t;
+        const y = r.xy[i0 * 2 + 1] + (r.xy[i1 * 2 + 1] - r.xy[i0 * 2 + 1]) * t;
+
+        ctx.strokeStyle = C.ink;
+        ctx.globalAlpha = 0.28;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(X(r.xy[0]), Y(r.xy[1]));
+        for (let k = 1; k <= i0; k++) ctx.lineTo(X(r.xy[k * 2]), Y(r.xy[k * 2 + 1]));
+        ctx.lineTo(X(x), Y(y));
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        const done = fr >= n - 1;
+        const cx = X(x) - half;
+        const cy = Y(y) - half;
+        if (!done) {
+          ctx.fillStyle = C.ink;
+          ctx.globalAlpha = 0.85;
+          ctx.fillRect(cx, cy, half * 2, half * 2);
+          ctx.globalAlpha = 1;
+        } else if (r.outcome === 'flag') {
+          ctx.fillStyle = C.flag;
+          ctx.fillRect(cx, cy, half * 2, half * 2);
+        } else if (r.outcome === 'lava') {
+          ctx.fillStyle = C.ink;
+          ctx.fillRect(cx, cy, half * 2, half * 2);
+          ctx.strokeStyle = C.floor;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(cx + 3, cy + 3);
+          ctx.lineTo(cx + half * 2 - 3, cy + half * 2 - 3);
+          ctx.moveTo(cx + half * 2 - 3, cy + 3);
+          ctx.lineTo(cx + 3, cy + half * 2 - 3);
+          ctx.stroke();
+        } else {
+          ctx.strokeStyle = C.timeout;
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(cx + 1.25, cy + 1.25, half * 2 - 2.5, half * 2 - 2.5);
+        }
+      }
+
+      const secs = (Math.min(fr, this.maxFrame()) * a.dt).toFixed(1);
+      this.q('.clock').textContent = `${secs} s`;
+    }
+  }
+
+  customElements.define('rl-replay', RlReplay);
+</script>

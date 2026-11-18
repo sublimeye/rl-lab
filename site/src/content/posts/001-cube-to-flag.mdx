@@ -1,0 +1,113 @@
+---
+title: Cube to flag
+number: 1
+date: 2026-11-17
+summary: A cube learns to cross a lava arena in about a minute of training on a laptop, once it has a reason to leave the safe corner.
+---
+
+import Replay from '../../components/Replay.astro';
+import OutcomeChart from '../../components/OutcomeChart.astro';
+
+<Replay
+  src="001-cube-to-flag/shaped.json"
+  caption="Four runs per checkpoint, drawn together. The checkpoints were saved during one training run of one million steps."
+/>
+
+## The arena
+
+A 10 × 10 room. The cube starts at the bottom left, the flag is at the top left, and a lava
+band across the middle means the only way up is through the gap on the right. A second lava pool
+at the top leaves a corridor back to the flag. There's one wall near the start, and five coins.
+
+The cube has momentum. Each step (1/20 of a simulated second) it picks one of five actions: push
+up, down, left, right, or do nothing. It sees its own position and velocity, plus which coins are
+still there. It does not see the map; it has to learn it.
+
+| Event | Reward |
+| --- | --- |
+| Every step | −0.005 |
+| Coin | +1 |
+| Reach the flag | +10, episode ends |
+| Touch lava | −3, episode ends |
+| 500 steps without either | episode ends |
+
+The policy is a small neural network (two layers of 64) trained with PPO from
+[Stable-Baselines3](https://stable-baselines3.readthedocs.io/), eight copies of the arena running
+in parallel.
+
+## First try: it learned to hide
+
+With only the rewards in the table, the cube never got anywhere. Early random runs found lava
+more often than coins, so the policy learned that the lava is the thing to avoid. By 20,000 steps
+it drove straight into the bottom edge of the arena, as far from the lava as it could get, and
+waited out the clock there: −2.5 per episode, every episode, for the rest of the million steps.
+
+<Replay
+  src="001-cube-to-flag/sparse.json"
+  start={7}
+  caption="The sparse-reward run after a million steps. Every run heads for the bottom edge and waits there until time runs out."
+/>
+
+This is the classic sparse-reward problem. The flag is far away and the agent has no hint that
+it exists until it stumbles into it, which a cautious policy never does.
+
+## Fix: reward getting closer
+
+The second version adds one more reward: each step, the cube earns 0.5 × the amount it shortened
+its *walking* distance to the flag, and loses the same if it moves away. Walking distance goes
+around walls and lava rather than through them, so the hint points through the gap on the right
+instead of straight into the lava band. It's precomputed once for a grid over the arena with
+Dijkstra.
+
+The bonus only depends on how far the cube is from the flag, so a round trip earns nothing
+overall: the cube can't farm it by going in circles. (This is a simple form of
+[potential-based shaping](https://people.eecs.berkeley.edu/~pabbeel/cs287-fa09/readings/NgHaradaRussell-shaping-ICML1999.pdf).)
+
+<OutcomeChart
+  runs={[
+    { src: '001-cube-to-flag/sparse.json', label: 'Sparse rewards' },
+    { src: '001-cube-to-flag/shaped.json', label: 'With the distance hint' },
+  ]}
+  caption="Every training episode, grouped by 50,000 steps. With sparse rewards almost every episode times out. With the hint, the cube first reaches the flag around 200,000 steps and almost always does by the end."
+/>
+
+## What the checkpoints show
+
+- **20k steps:** it wanders, and sometimes picks up a coin by accident.
+- **50k:** it has found the gap on the right, but all four runs clip the corner of the lava band
+  on the way through.
+- **100k:** it makes it through the gap and collects the three upper coins, then dips back
+  into the band while heading left.
+- **200k:** it reaches the top-left corridor and parks there, a couple of units short of the
+  flag, until time runs out.
+- **350k and later:** all four runs reach the flag. The route gets faster with more training:
+  about 6.6 seconds at 350k, 5 seconds at one million.
+
+It never takes the two coins below the lava band. Picking them up would mean a detour along the
+bottom first, and PPO settled on the shorter route. That's a local optimum, not necessarily the
+best possible score.
+
+## Cost
+
+Both runs took under 80 seconds for one million steps on an M1 Pro, on the CPU. For a network
+this small, the CPU is faster than the Apple GPU. The replay data for this page is about 280 KB of
+JSON.
+
+## Run it yourself
+
+```sh
+git clone https://github.com/sublimeye/rl-lab && cd rl-lab
+uv sync
+uv run experiments/001-cube-to-flag/train.py --variant shaped --steps 1000000
+uv run experiments/001-cube-to-flag/export.py --variant shaped
+cd site && npm install && npm run dev
+```
+
+The arena, physics and rewards are all in
+[`cube_env.py`](https://github.com/sublimeye/rl-lab/blob/main/experiments/001-cube-to-flag/cube_env.py).
+
+## Next
+
+Ideas for the next experiments: randomize the map so the cube has to use sensors instead of
+memorizing it, compare PPO with a simple evolutionary algorithm on the same arena, and replace
+the cube with a 2D car that has lidar-style rays.

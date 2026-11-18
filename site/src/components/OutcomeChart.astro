@@ -1,0 +1,300 @@
+---
+/**
+ * Share of training episodes by outcome, per training-step bin (100% stacked bars).
+ * Rendered to SVG at build time from the exported replay JSON; one panel per run.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { formatSteps } from '../lib';
+
+interface Props {
+  runs: { src: string; label: string }[];
+  caption?: string;
+}
+const { runs, caption } = Astro.props;
+
+type Bin = { from: number; to: number; flag: number; lava: number; timeout: number };
+const KEYS = ['flag', 'lava', 'timeout'] as const;
+const NAMES = { flag: 'Reached the flag', lava: 'Fell in lava', timeout: 'Ran out of time' };
+
+const panels = runs.map(({ src, label }) => {
+  const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
+  const bins: Bin[] = data.training.bins;
+  return { label, bins, total: data.training.totalSteps as number };
+});
+
+// Axis labels are HTML (so they stay readable at any width); the SVG holds only marks and grid.
+const W = 640;
+const H = 150;
+const M = { top: 1, right: 0, bottom: 0, left: 0 };
+const iw = W - M.left - M.right;
+const ih = H - M.top - M.bottom;
+const GAP = 2;
+
+function topRounded(x: number, y: number, w: number, h: number, r: number) {
+  r = Math.min(r, h, w / 2);
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+}
+
+function bars(bins: Bin[]) {
+  const bw = iw / bins.length;
+  return bins.map((b, i) => {
+    const n = b.flag + b.lava + b.timeout || 1;
+    const x = M.left + i * bw + GAP / 2;
+    const w = bw - GAP;
+    let base = M.top + ih;
+    const present = KEYS.filter((k) => b[k] > 0);
+    const segs = present.map((k, j) => {
+      const h = (b[k] / n) * ih;
+      const isTop = j === present.length - 1;
+      const y = base - h;
+      base = y;
+      // 2px surface gap above every segment except the top one
+      const hh = isTop ? h : Math.max(0, h - GAP);
+      const yy = isTop ? y : y + GAP;
+      return { k, d: isTop ? topRounded(x, yy, w, hh, 3) : `M${x},${yy}h${w}v${hh}h${-w}Z` };
+    });
+    const pct = (k: (typeof KEYS)[number]) => Math.round((b[k] / n) * 100);
+    const tip = `${formatSteps(b.from)}–${formatSteps(b.to)} steps|${n} episodes|${KEYS.map((k) => `${NAMES[k]}: ${pct(k)}%`).join('|')}`;
+    return { x: M.left + i * bw, w: bw, segs, tip };
+  });
+}
+const yTicks = [0, 0.5, 1];
+---
+
+<figure class="outcomes wide">
+  <p class="legend">
+    {
+      KEYS.map((k) => (
+        <span>
+          <i class={`sw ${k}`} />
+          {NAMES[k]}
+        </span>
+      ))
+    }
+  </p>
+  <div class="panels">
+    {
+      panels.map((p) => (
+        <div class="panel">
+          <p class="panel-title">{p.label}</p>
+          <div class="plot">
+            <div class="y-axis" aria-hidden="true">
+              {yTicks.map((t) => (
+                <span style={`top:${((M.top + ih * (1 - t)) / H) * 100}%`}>{t * 100}%</span>
+              ))}
+            </div>
+            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${p.label}: share of episodes by outcome over training`}>
+              {yTicks.map((t) => (
+                <line class="grid" x1={M.left} x2={W - M.right} y1={M.top + ih * (1 - t)} y2={M.top + ih * (1 - t)} vector-effect="non-scaling-stroke" />
+              ))}
+              {bars(p.bins).map((b) => (
+                <g class="bar" data-tip={b.tip}>
+                  {b.segs.map((s) => (
+                    <path class={s.k} d={s.d} />
+                  ))}
+                  <rect class="hit" x={b.x} y={0} width={b.w} height={H} />
+                </g>
+              ))}
+            </svg>
+            <div class="x-axis" aria-hidden="true">
+              {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+                <span class={f === 0 ? 'first' : f === 1 ? 'last' : ''} style={`left:${f * 100}%`}>
+                  {formatSteps(p.total * f)}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+  <div class="tooltip" role="status" hidden></div>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+  <details>
+    <summary>Show the numbers as a table</summary>
+    {
+      panels.map((p) => (
+        <table>
+          <caption>{p.label}</caption>
+          <thead>
+            <tr>
+              <th>Training steps</th>
+              <th>Episodes</th>
+              {KEYS.map((k) => (
+                <th>{NAMES[k]}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {p.bins.map((b) => (
+              <tr>
+                <td>
+                  {formatSteps(b.from)}–{formatSteps(b.to)}
+                </td>
+                <td>{b.flag + b.lava + b.timeout}</td>
+                {KEYS.map((k) => (
+                  <td>{b[k]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ))
+    }
+  </details>
+</figure>
+
+<style>
+  .outcomes {
+    position: relative;
+    margin-block: 1.75rem 2.25rem;
+    --c-flag: var(--flag);
+    --c-lava: var(--lava);
+    --c-timeout: var(--timeout);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+  }
+  .sw {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 0.35rem;
+    vertical-align: -0.05em;
+  }
+  .sw.flag,
+  path.flag {
+    background: var(--c-flag);
+    fill: var(--c-flag);
+  }
+  .sw.lava,
+  path.lava {
+    background: var(--c-lava);
+    fill: var(--c-lava);
+  }
+  .sw.timeout,
+  path.timeout {
+    background: var(--c-timeout);
+    fill: var(--c-timeout);
+  }
+  .panels {
+    display: grid;
+    gap: 1rem 1.5rem;
+  }
+  @media (min-width: 52rem) {
+    .panels {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .panel-title {
+    font-weight: 650;
+    margin: 0 0 0.25rem;
+    font-size: 0.98rem;
+  }
+  .plot {
+    position: relative;
+    margin-left: 2.6rem;
+    padding-bottom: 1.4rem;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: 9rem;
+  }
+  .y-axis span,
+  .x-axis span {
+    position: absolute;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .y-axis span {
+    right: calc(100% + 0.4rem);
+    transform: translateY(-50%);
+  }
+  .y-axis {
+    position: absolute;
+    inset: 0 0 1.4rem 0;
+  }
+  .x-axis span {
+    bottom: 0;
+    transform: translateX(-50%);
+  }
+  .x-axis span.first {
+    transform: none;
+  }
+  .x-axis span.last {
+    transform: translateX(-100%);
+  }
+  .grid {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  .hit {
+    fill: transparent;
+  }
+  .bar:hover path,
+  .bar.active path {
+    opacity: 0.8;
+  }
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--floor);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+    font-variant-numeric: tabular-nums;
+    z-index: 2;
+    white-space: nowrap;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+  details {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+  }
+  summary {
+    cursor: pointer;
+    color: var(--link);
+  }
+  table caption {
+    text-align: left;
+    font-weight: 650;
+    padding: 0.75rem 0 0.25rem;
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('figure.outcomes').forEach((fig) => {
+    const tip = fig.querySelector<HTMLElement>('.tooltip')!;
+    const show = (bar: SVGGElement, x: number, y: number) => {
+      const [head, ...lines] = (bar.dataset.tip ?? '').split('|');
+      tip.innerHTML = `<strong>${head}</strong><br>${lines.join('<br>')}`;
+      tip.hidden = false;
+      const box = fig.getBoundingClientRect();
+      const left = Math.min(Math.max(0, x - box.left + 14), box.width - tip.offsetWidth);
+      tip.style.left = `${left}px`;
+      tip.style.top = `${y - box.top - tip.offsetHeight - 10}px`;
+    };
+    fig.querySelectorAll<SVGGElement>('.bar').forEach((bar) => {
+      bar.addEventListener('pointermove', (e) => show(bar, e.clientX, e.clientY));
+      bar.addEventListener('pointerleave', () => (tip.hidden = true));
+    });
+  });
+</script>

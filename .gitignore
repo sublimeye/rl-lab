@@ -1,0 +1,12 @@
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# Training output: checkpoints and raw logs stay local; exported replays live in site/public/data
+experiments/*/runs/
+
+# Tools
+.playwright-cli/
+.DS_Store

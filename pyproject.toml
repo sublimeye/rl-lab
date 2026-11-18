@@ -1,0 +1,31 @@
+[project]
+name = "rl-lab"
+version = "0.1.0"
+description = "Small reinforcement-learning experiments with browser replays"
+requires-python = ">=3.12,<3.13"
+# Environments only need these, so CI can test them without installing torch.
+dependencies = [
+    "numpy>=2.0",
+    "gymnasium>=1.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+train = ["stable-baselines3>=2.4", "tqdm", "rich"]
+
+[tool.uv]
+default-groups = ["dev", "train"]
+package = false
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["experiments"]
+pythonpath = ["."]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["cube_env", "train"]
