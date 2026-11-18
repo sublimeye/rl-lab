@@ -138,7 +138,7 @@ const { src, caption, start = 0 } = Astro.props;
   }
   .timeline :global(button) {
     display: grid;
-    grid-template-columns: 4.5rem 4.2rem 1fr;
+    grid-template-columns: 4.5rem max-content 1fr;
     align-items: center;
     gap: 0.5rem;
     width: 100%;
@@ -150,6 +150,9 @@ const { src, caption, start = 0 } = Astro.props;
     margin-left: -2px;
     border-left: 2px solid transparent;
     font-variant-numeric: tabular-nums;
+  }
+  .timeline:global(.labeled) :global(button) {
+    grid-template-columns: 6.6rem max-content 1fr;
   }
   .timeline :global(button:hover) {
     background: var(--code-bg);
@@ -212,7 +215,7 @@ const { src, caption, start = 0 } = Astro.props;
 
 <script>
   type Run = { outcome: 'flag' | 'lava' | 'timeout'; return: number; xy: number[]; coins: [number, number][] };
-  type Checkpoint = { steps: number; runs: Run[] };
+  type Checkpoint = { steps: number; label?: string; runs: Run[] };
   type Arena = {
     width: number;
     height: number;
@@ -315,12 +318,16 @@ const { src, caption, start = 0 } = Astro.props;
 
     buildTimeline() {
       const ol = this.q('.timeline');
+      if (this.data.checkpoints.some((c) => c.label)) ol.classList.add('labeled');
       this.data.checkpoints.forEach((c, i) => {
         const li = document.createElement('li');
         const b = document.createElement('button');
         b.type = 'button';
         const glyphs = c.runs.map((r) => `<i class="glyph ${r.outcome}"></i>`).join('');
-        b.innerHTML = `<span class="k">${fmtSteps(c.steps)} steps</span><span class="glyphs" aria-hidden="true">${glyphs}</span><span class="what">${summarize(c.runs)}</span>`;
+        const name = c.label ?? `${fmtSteps(c.steps)} steps`;
+        const stepsInLabel = !c.label || c.label.includes(fmtSteps(c.steps));
+        const what = stepsInLabel ? summarize(c.runs) : `${fmtSteps(c.steps)} steps: ${summarize(c.runs).toLowerCase()}`;
+        b.innerHTML = `<span class="k">${name}</span><span class="glyphs" aria-hidden="true">${glyphs}</span><span class="what">${what}</span>`;
         b.addEventListener('click', () => {
           this.q<HTMLInputElement>('.auto input').checked = false;
           this.select(i);
@@ -341,9 +348,11 @@ const { src, caption, start = 0 } = Astro.props;
       this.holdLeft = HOLD_SECONDS;
       const c = this.data.checkpoints[i];
       this.querySelectorAll('.timeline button').forEach((b, j) => b.setAttribute('aria-current', String(j === i)));
-      this.q('.steps').textContent = c.steps === 0 ? 'Untrained' : `After ${c.steps.toLocaleString('en-US')} steps`;
+      const after = c.steps === 0 ? 'Untrained' : `After ${c.steps.toLocaleString('en-US')} steps`;
+      this.q('.steps').textContent = c.label ? `${c.label}` : after;
       const s = summarize(c.runs);
-      this.q('.summary').textContent = `${c.runs.length} runs: ${s.charAt(0).toLowerCase()}${s.slice(1)}`;
+      const sub = c.label ? `${after}. ` : '';
+      this.q('.summary').textContent = `${sub}${c.runs.length} runs: ${s.charAt(0).toLowerCase()}${s.slice(1)}`;
       this.canvas.setAttribute('aria-label', `Arena replay, ${fmtSteps(c.steps)} training steps: ${s}`);
       this.draw();
     }

@@ -1,0 +1,204 @@
+---
+title: Does more training help?
+number: 2
+date: 2026-11-17
+summary: I trained the lava cube ten times longer on three seeds. It got faster and steadier, but barely better at anything new. Training from random start positions fixed that with under a third of the steps.
+---
+
+import Replay from '../../components/Replay.astro';
+import EvalChart from '../../components/EvalChart.astro';
+import StartMaps from '../../components/StartMaps.astro';
+
+In [the first post](../001-cube-to-flag/), a cube learned to cross a lava arena in a million
+training steps. Here I trained the same setup ten times longer, on three random seeds, and
+checked every saved version properly: 200 episodes each, instead of the four replays I eyeballed
+last time.
+
+**Short answer:** training longer polished what the cube already knew. It didn't teach it anything new.
+
+- **Capable early:** every seed first reached the flag in 99% of episodes by 375,000 steps.
+- **Not stable until much later:** after that, the seeds kept slipping back (one dropped to 0%).
+  From 5 million steps on, all three stayed at 100%.
+- **Faster:** 7.1 seconds to the flag at 300k steps, 5.2 s at 1M, 4.7 s at 10M. Most of that
+  came by 1.5M.
+- **Not more general:** from start positions it never trained on, success went from 71% at 1M
+  to 76% at 10M, and was flat after 5M.
+- **What fixed that:** starting each training episode in a random spot. After 3M steps (4
+  minutes), it reached the flag from 99% of those starts.
+
+## Knows nothing, halfway, final
+
+<Replay
+  src="001-cube-to-flag/stages.json"
+  caption="Seed 1. Halfway is 150,000 steps: half of the 300,000 this seed needed to reach the flag in at least 99% of episodes for the first time. Final is 10 million steps. Four runs each, with actions sampled from the policy."
+/>
+
+- **Knows nothing (0 steps):** the network is random. The cube jitters around and drifts until
+  it hits the lava band or the clock runs out. All four of these runs end in lava; across 200
+  test episodes it's 60% lava, 40% out of time.
+- **Halfway (150k):** it has found the gap on the right and picks up most of the coins
+  above the lava band. Then it doesn't know where to go: two runs wander in the top corridor until
+  time runs out, one dips back into the band, one clips the lava pool.
+- **Final (10M):** a smooth curve through the gap, three coins on the way, at the flag in under
+  five seconds.
+
+The literal halfway point of the 10M run, 5M steps, scores the same as the final version on
+every measure below, which is the first hint that the second 5 million steps didn't buy much.
+
+## How I measured it
+
+Every saved checkpoint plays 200 episodes in four conditions:
+
+| | What it means |
+| --- | --- |
+| **Usual starts** | Near the bottom-left corner, like in training |
+| **Anywhere starts** | Anywhere below the lava band; it never started there in training |
+| **Best action** | Always do the action the network rates highest (how you'd deploy it) |
+| **Sampled actions** | Roll the dice using the network's probabilities (how it behaves while training) |
+
+I call a checkpoint **capable** when at least 99% of episodes reach the flag.
+
+## It learns fast, then wobbles
+
+<EvalChart
+  src="001-cube-to-flag/long-eval.json"
+  metric="success"
+  start="usual"
+  title="Episodes that reach the flag, usual starts"
+  caption="Mean of three seeds (bold) and each seed (thin). The x-axis is logarithmic."
+/>
+
+All three seeds first became capable between 300,000 and 375,000 steps. But that wasn't the end
+of it. Seed 1 hit 100% at 300k, then at 375k *every* best-action episode timed out, then it was
+back to 100% by 500k. Seed 1 dropped again to 46% at 3M steps.
+
+Counting every check after a seed was first capable: 8 of 24 checks before 1M steps fell
+below 99%, 3 of 12 between 1M and 5M, and none of the 9 after 5M. So the extra training did buy
+something: stability. It took 5 million steps to get there, for two of the three seeds. The
+third was stable from 475,000.
+
+Once the task is learned, sampled actions are steadier than best actions. My guess at why: with
+best actions, a small change in the network can flip the top choice in some spot for every
+episode at once, while sampling blurs that over many episodes.
+
+## Does training longer help?
+
+<EvalChart
+  src="001-cube-to-flag/long-eval.json"
+  metric="secondsToFlag"
+  start="usual"
+  title="Seconds to reach the flag, usual starts"
+  yMin={4}
+  yMax={10}
+  yTicks={[4, 7, 10]}
+  fromSteps={300000}
+  caption="Only successful episodes count. Starts at 300,000 steps, when the seeds first reach the flag."
+/>
+
+Three-seed means, comparing the version from the first post (1M steps) with ten times the
+training:
+
+| | 1M steps | 10M steps |
+| --- | --- | --- |
+| Usual starts, best action | 93% (worst seed 79%) | 100% (every seed) |
+| Usual starts, sampled actions | 99.8% | 99.5% |
+| Seconds to the flag | 5.2 | 4.7 |
+| Coins collected, out of 5 | 2.5 | 2.9 |
+| Anywhere starts, best action | 71% | 76% |
+
+Nine million extra steps bought half a second on the route, reliable behaviour with the best
+action, and the three upper coins nearly every time. From the usual start it still skips the two
+coins under the lava band. And it barely got better at starting somewhere new.
+
+## Where it can start from
+
+<EvalChart
+  src="001-cube-to-flag/long-eval.json"
+  metric="success"
+  start="anywhere"
+  title="Episodes that reach the flag, anywhere starts"
+  caption="Starting anywhere below the lava band. Success flattens out after about a million steps and never gets near 99%."
+/>
+
+Starting from a random spot below the lava band (it always starts in the bottom-left corner
+during training), about a quarter of episodes still fail at 10M steps. The failures aren't
+random. They cluster:
+
+- a strip along the top-left, just under the lava band, where the cube times out;
+- a column under the left edge of the gap, where at 1M it steers straight into the corner of
+  the band (mostly fixed by 10M);
+- a patch near the right wall, where it times out.
+
+<StartMaps
+  src="001-cube-to-flag/start-maps.json"
+  caption="Seed 1. Each square is one start position, coloured by what the best-action policy does from there."
+/>
+
+## Fix: start somewhere else
+
+The cube only ever started in one corner, so it only learned the states along one route. It
+doesn't see the map; it sees its position and speed. A position it has never been in is a
+guess.
+
+So I changed one thing: every training episode starts at a random point below the lava band,
+the same area as the "anywhere" test. Same rewards, same network, same PPO settings. Three new
+seeds, 3 million steps each.
+
+<Replay
+  src="001-cube-to-flag/anywhere.json"
+  caption="Six starts below the lava band, best actions only. The same six positions for every model."
+/>
+
+<EvalChart
+  src="001-cube-to-flag/rand-eval.json"
+  metric="success"
+  start="anywhere"
+  title="Random-start training: episodes that reach the flag, anywhere starts"
+  caption="Three new seeds trained for 3M steps, each episode starting at a random point below the lava band."
+/>
+
+From anywhere below the band it reached 96% by 1M steps and 99.3% at 3M (seeds: 100%, 98%,
+100%). From the usual corner it's at 100% for all three. On the start map above, 491 of 492
+start positions reach the flag. That's more than the 10M-step run managed, in under a third of
+the steps.
+
+It's slightly slower from the usual start (4.9–5.1 s instead of 4.7 s), because it often
+detours for the lower coins now.
+
+## What I take from it
+
+- **Check the behaviour you care about, not the training reward.** In the first post, training
+  said "almost always reaches the flag" at 1M steps. With best actions, seed 1 made it 79% of the
+  time.
+- **More steps polish; they don't generalize.** Ten times the training made the route faster
+  and the policy steadier, and moved success from new starts by five points.
+- **New skills came from new experience.** Varied starts got to 99% from anywhere in a third of
+  the steps. With random starts it also learned to grab the lower coins (3.6 per episode instead
+  of 2.9), because it now passes them.
+- **Seeds matter.** Same code, same settings: one seed was stable at 475,000 steps, the other
+  two at 5 million.
+- **"Capable" needs a definition.** For two of the three seeds, "reached 99% once" happened at
+  300,000 steps and "stays above 99%" at 5 million.
+
+## Cost
+
+The three 10M-step runs trained in parallel in 13.8 minutes on an M1 Pro (CPU only, two
+threads each). The three random-start runs took 4.1 minutes. Evaluation plays 800 episodes for every
+saved checkpoint (29 per 10M run), batched so the network handles 200 episodes at once.
+
+## Run it yourself
+
+```sh
+# three 10M-step runs in parallel (~14 min on an M1 Pro)
+for s in 1 2 3; do
+  uv run experiments/001-cube-to-flag/train.py --steps 10000000 --seed $s \
+    --name long-s$s --schedule dense --threads 2 &
+done; wait
+# random-start runs
+for s in 1 2 3; do
+  uv run experiments/001-cube-to-flag/train.py --variant randstart --steps 3000000 --seed $s \
+    --name rand-s$s --schedule dense --threads 2 &
+done; wait
+uv run experiments/001-cube-to-flag/evaluate.py long-s1 long-s2 long-s3 rand-s1 rand-s2 rand-s3
+uv run experiments/001-cube-to-flag/summarize.py
+```

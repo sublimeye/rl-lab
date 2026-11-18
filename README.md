@@ -7,6 +7,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | Experiment | What it is |
 | --- | --- |
 | [001 Cube to flag](https://sublimeye.github.io/rl-lab/posts/001-cube-to-flag/) | A cube crosses a lava arena with PPO; sparse rewards vs a walking-distance hint |
+| [002 Does more training help?](https://sublimeye.github.io/rl-lab/posts/002-does-more-training-help/) | Same cube, 10M steps × 3 seeds, 200-episode evals per checkpoint; random starts vs more steps |
 
 ## Layout
 
@@ -16,9 +17,11 @@ experiments/NNN-slug/     one folder per experiment
   test_*.py               environment tests
   train.py                training (Stable-Baselines3), writes runs/ (git-ignored)
   export.py               rolls out checkpoints → site/public/data/NNN-slug/*.json
+  evaluate.py             200-episode evals per checkpoint, report replays + start maps
+  summarize.py            prints the numbers quoted in the report
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
-  src/components/         Replay (canvas player), OutcomeChart (training chart)
+  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps
   public/data/            exported replays (committed, small JSON)
 ```
 

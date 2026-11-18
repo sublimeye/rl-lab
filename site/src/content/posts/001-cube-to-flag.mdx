@@ -106,6 +106,12 @@ cd site && npm install && npm run dev
 The arena, physics and rewards are all in
 [`cube_env.py`](https://github.com/sublimeye/rl-lab/blob/main/experiments/001-cube-to-flag/cube_env.py).
 
+## Update
+
+[Part 2](../002-does-more-training-help/) trains this for ten times longer on three seeds and
+tests every checkpoint on 200 episodes. Short version: the 1M-step policy was less reliable than
+these four replays suggest, and more training made it faster and steadier but not more general.
+
 ## Next
 
 Ideas for the next experiments: randomize the map so the cube has to use sensors instead of

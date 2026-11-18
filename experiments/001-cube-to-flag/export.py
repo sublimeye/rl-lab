@@ -23,13 +23,23 @@ RUNS_PER_CHECKPOINT = 4
 TRAINING_BINS = 20
 
 
-def rollout(model: PPO, env: CubeArena, seed: int) -> dict:
-    obs, _ = env.reset(seed=seed)
+def ckpt_steps(path: Path) -> int:
+    return int(path.stem.split("_")[1])
+
+
+def rollout(
+    model: PPO,
+    env: CubeArena,
+    seed: int,
+    options: dict | None = None,
+    deterministic: bool = False,
+) -> dict:
+    obs, _ = env.reset(seed=seed, options=options)
     frames = [round(float(v), 3) for v in env.pos]
     coins, total = [], 0.0
     while True:
         # Sample from the policy (not argmax) so early checkpoints show what they actually explore.
-        action, _ = model.predict(obs, deterministic=False)
+        action, _ = model.predict(obs, deterministic=deterministic)
         obs, reward, terminated, truncated, info = env.step(int(action))
         total += reward
         frames += [round(float(v), 3) for v in env.pos]
@@ -69,7 +79,7 @@ def main() -> None:
 
     env = CubeArena(Config(rewards=VARIANTS[args.variant]))
     checkpoints = []
-    for path in sorted(src.glob("ckpt_*.zip")):
+    for path in sorted(src.glob("ckpt_*.zip"), key=ckpt_steps):
         steps = int(path.stem.split("_")[1])
         model = PPO.load(path, device="cpu")
         model.set_random_seed(steps)

@@ -1,0 +1,165 @@
+---
+/**
+ * Small multiples: for each model, the deterministic outcome from a grid of start positions.
+ * Data: evaluate.py → start-maps.json. Outcome codes: f = flag, l = lava, t = timeout.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+
+interface Props {
+  src: string;
+  caption?: string;
+}
+const { src, caption } = Astro.props;
+const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
+const a = data.arena;
+const NAMES: Record<string, string> = { f: 'reaches the flag', l: 'falls in lava', t: 'runs out of time' };
+const CLS: Record<string, string> = { f: 'flag', l: 'lava', t: 'timeout' };
+const Y = (y: number) => a.height - y;
+const counts = (cells: [number, number, string][]) => {
+  const c: Record<string, number> = { f: 0, l: 0, t: 0 };
+  cells.forEach((x) => c[x[2]]++);
+  return c;
+};
+---
+
+<figure class="startmaps wide">
+  <p class="legend">
+    <span><i class="sw flag"></i>Reaches the flag</span>
+    <span><i class="sw lava"></i>Falls in lava</span>
+    <span><i class="sw timeout"></i>Runs out of time (hollow)</span>
+  </p>
+  <div class="maps">
+    {
+      data.maps.map((m: any) => {
+        const c = counts(m.cells);
+        const n = m.cells.length;
+        const r = m.res;
+        return (
+          <div class="map">
+            <p class="name">{m.label}</p>
+            <p class="pct">
+              {c.f} of {n} starts reach the flag
+            </p>
+            <svg
+              viewBox={`0 0 ${a.width} ${a.height}`}
+              role="img"
+              aria-label={`${m.label}: from ${n} start positions, ${c.f} reach the flag, ${c.l} fall in lava, ${c.t} run out of time`}
+            >
+              <rect class="floor" x="0" y="0" width={a.width} height={a.height} />
+              {a.lava.map((l: number[]) => (
+                <rect class="lavazone" x={l[0]} y={Y(l[3])} width={l[2] - l[0]} height={l[3] - l[1]} />
+              ))}
+              {a.walls.map((w: number[]) => (
+                <rect class="wall" x={w[0]} y={Y(w[3])} width={w[2] - w[0]} height={w[3] - w[1]} />
+              ))}
+              <circle class="goal" cx={a.flag.x} cy={Y(a.flag.y)} r={a.flag.r} />
+              {m.cells.map(([x, y, o]: [number, number, string]) =>
+                o === 't' ? (
+                  <rect class="cell t" x={x - r / 2 + 0.04} y={Y(y) - r / 2 + 0.04} width={r - 0.08} height={r - 0.08}>
+                    <title>{`Start (${x}, ${y}): ${NAMES[o]}`}</title>
+                  </rect>
+                ) : (
+                  <rect class={`cell ${CLS[o]}`} x={x - r / 2 + 0.02} y={Y(y) - r / 2 + 0.02} width={r - 0.04} height={r - 0.04}>
+                    <title>{`Start (${x}, ${y}): ${NAMES[o]}`}</title>
+                  </rect>
+                ),
+              )}
+            </svg>
+            <p class="counts muted">
+              {c.l} fall in lava, {c.t} run out of time
+            </p>
+          </div>
+        );
+      })
+    }
+  </div>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .startmaps {
+    margin-block: 1.75rem 2.25rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin: 0 0 0.75rem;
+  }
+  .sw {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 0.35rem;
+    vertical-align: -0.05em;
+  }
+  .sw.flag {
+    background: var(--flag);
+  }
+  .sw.lava {
+    background: var(--lava);
+  }
+  .sw.timeout {
+    border: 2px solid var(--timeout);
+  }
+  .maps {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
+  .name {
+    font-weight: 650;
+    margin: 0;
+  }
+  .pct {
+    margin: 0 0 0.4rem;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .counts {
+    font-size: 0.82rem;
+    margin: 0.3rem 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+  }
+  .floor {
+    fill: var(--floor);
+  }
+  .lavazone {
+    fill: var(--lava);
+    opacity: 0.35;
+  }
+  .wall {
+    fill: var(--wall);
+  }
+  .goal {
+    fill: var(--flag);
+    opacity: 0.35;
+  }
+  .cell.flag {
+    fill: var(--flag);
+  }
+  .cell.lava {
+    fill: var(--lava);
+  }
+  .cell.t {
+    fill: none;
+    stroke: var(--timeout);
+    stroke-width: 0.06;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>

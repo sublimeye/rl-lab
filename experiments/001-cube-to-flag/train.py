@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
@@ -18,7 +19,9 @@ from cube_env import Config, CubeArena, Rewards
 
 HERE = Path(__file__).parent
 RUNS = HERE / "runs"  # git-ignored: runs/<variant>/ checkpoints + raw log
-VARIANTS = {"shaped": Rewards(), "sparse": Rewards(shaping=0.0)}
+VARIANTS = {"shaped": Rewards(), "sparse": Rewards(shaping=0.0), "randstart": Rewards()}
+# Below the lava band: the same area evaluate.py uses for its "anywhere" starts.
+BELOW_BAND: tuple[float, float, float, float] = (0.3, 0.3, 9.7, 3.8)
 
 
 class Recorder(BaseCallback):
@@ -54,14 +57,29 @@ def main() -> None:
     ap.add_argument("--steps", type=int, default=500_000)
     ap.add_argument("--envs", type=int, default=8)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--name", help="run folder under runs/ (default: the variant name)")
+    ap.add_argument(
+        "--schedule",
+        choices=["post", "dense"],
+        default="post",
+        help="post: 7 checkpoints for a replay; dense: many, for the long-training study",
+    )
+    ap.add_argument("--threads", type=int, default=0, help="torch threads (0 = torch default)")
     args = ap.parse_args()
 
-    out = RUNS / args.variant
+    if args.threads:
+        os.environ["OMP_NUM_THREADS"] = str(args.threads)
+        import torch
+
+        torch.set_num_threads(args.threads)
+    out = RUNS / (args.name or args.variant)
     out.mkdir(parents=True, exist_ok=True)
     for old in out.glob("ckpt_*.zip"):
         old.unlink()
 
     cfg = Config(rewards=VARIANTS[args.variant])
+    if args.variant == "randstart":
+        cfg.start_region = BELOW_BAND
     env = make_vec_env(CubeArena, n_envs=args.envs, seed=args.seed, env_kwargs={"config": cfg})
     model = PPO(
         "MlpPolicy",
@@ -75,8 +93,13 @@ def main() -> None:
         device="cpu",  # tiny MLP: CPU beats the M-series GPU here
         verbose=0,
     )
-    fractions = [0.02, 0.05, 0.1, 0.2, 0.35, 0.6, 1.0]
-    rec = Recorder([int(args.steps * f) for f in fractions], out)
+    if args.schedule == "post":
+        save_at = [int(args.steps * f) for f in (0.02, 0.05, 0.1, 0.2, 0.35, 0.6, 1.0)]
+    else:
+        early = list(range(25_000, 500_001, 25_000))
+        late = [750_000, 1_000_000, 1_500_000, 2_000_000, 3_000_000, 5_000_000, 7_500_000]
+        save_at = [s for s in early + late if s < args.steps] + [args.steps]
+    rec = Recorder(save_at, out)
 
     t0 = time.time()
     model.learn(total_timesteps=args.steps, callback=rec, progress_bar=True)

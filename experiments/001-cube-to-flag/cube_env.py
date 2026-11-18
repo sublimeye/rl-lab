@@ -65,6 +65,9 @@ class Config:
     rewards: Rewards = field(default_factory=Rewards)
     max_steps: int = 500
     start_jitter: float = 0.3
+    # If set, every episode starts uniformly inside this rectangle (avoiding walls)
+    # instead of near layout.start.
+    start_region: Rect | None = None
 
 
 ACTIONS = np.array([[0, 0], [0, 1], [0, -1], [-1, 0], [1, 0]], dtype=np.float64)
@@ -128,8 +131,18 @@ class CubeArena(gym.Env):
     # -- gym API -----------------------------------------------------------
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
-        j = self.cfg.start_jitter
-        self.pos = np.array(self.cfg.layout.start) + self.np_random.uniform(-j, j, size=2)
+        if options and "start" in options:  # explicit start position (used by evaluation)
+            self.pos = np.array(options["start"], dtype=np.float64)
+        elif self.cfg.start_region:
+            x0, y0, x1, y1 = self.cfg.start_region
+            half = self.cfg.physics.half
+            while True:
+                self.pos = self.np_random.uniform((x0, y0), (x1, y1))
+                if not any(_overlaps(*self.pos, half, w) for w in self.cfg.layout.walls):
+                    break
+        else:
+            j = self.cfg.start_jitter
+            self.pos = np.array(self.cfg.layout.start) + self.np_random.uniform(-j, j, size=2)
         self.vel = np.zeros(2)
         self.coins_left[:] = True
         self.steps = 0

@@ -51,3 +51,15 @@ def test_timeout_truncates():
     for _ in range(5):
         *_, terminated, truncated, info = env.step(0)
     assert truncated and not terminated and info["outcome"] == "timeout"
+
+
+def test_start_region_spreads_starts_and_avoids_walls():
+    env = CubeArena(Config(start_region=(0.3, 0.3, 9.7, 3.8)))
+    xs = []
+    for seed in range(200):
+        env.reset(seed=seed)
+        x, y = env.pos
+        assert 0.3 <= x <= 9.7 and 0.3 <= y <= 3.8
+        assert not (4.55 < x < 5.45 and y < 2.65)  # wall at x 4.8-5.2, y < 2.4, plus cube size
+        xs.append(x)
+    assert max(xs) - min(xs) > 8

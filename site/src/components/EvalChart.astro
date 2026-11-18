@@ -1,0 +1,385 @@
+---
+/**
+ * One evaluation metric over training (log-scale steps), from evaluate.py's long-eval.json.
+ * Two series: "best action" and "sampled". Thin lines are individual seeds, the bold line is
+ * their mean. Axis labels, direct labels and the tooltip are HTML so they stay readable.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { formatSteps } from '../lib';
+
+type Metric = 'success' | 'secondsToFlag' | 'coins' | 'lava' | 'timeout';
+interface Props {
+  src: string;
+  metric: Metric;
+  start: 'usual' | 'anywhere';
+  title: string;
+  caption?: string;
+  /** y-axis range; defaults to 0..1 for rates */
+  yMin?: number;
+  yMax?: number;
+  yTicks?: number[];
+  /** hide checkpoints before this many steps (log axis can't show 0) */
+  fromSteps?: number;
+}
+const { src, metric, start, title, caption, fromSteps = 25_000 } = Astro.props;
+const isRate = ['success', 'lava', 'timeout'].includes(metric);
+const yMin = Astro.props.yMin ?? 0;
+const yMax = Astro.props.yMax ?? 1;
+const yTicks = Astro.props.yTicks ?? (isRate ? [0, 0.5, 1] : [yMin, (yMin + yMax) / 2, yMax]);
+const fmt = (v: number | null) =>
+  v == null ? '–' : isRate ? `${Math.round(v * 100)}%` : metric === 'secondsToFlag' ? `${v.toFixed(1)} s` : v.toFixed(2);
+
+const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
+const runs: { name: string; checkpoints: any[] }[] = data.runs;
+const steps: number[] = runs[0].checkpoints.map((c: any) => c.steps).filter((s: number) => s >= fromSteps);
+
+const SERIES = [
+  { key: 'best', name: 'Best action', cls: 's1' },
+  { key: 'sampled', name: 'Sampled actions', cls: 's2' },
+] as const;
+
+const W = 1000;
+const H = 300;
+const lx = (s: number) => Math.log10(s);
+const x0 = lx(steps[0]);
+const x1 = lx(steps[steps.length - 1]);
+const X = (s: number) => ((lx(s) - x0) / (x1 - x0)) * W;
+const Y = (v: number) => H - ((v - yMin) / (yMax - yMin)) * H;
+const pctX = (s: number) => (X(s) / W) * 100;
+const pctY = (v: number) => (Y(v) / H) * 100;
+
+function value(run: any, s: number, key: string): number | null {
+  const c = run.checkpoints.find((c: any) => c.steps === s);
+  return c ? c[`${start}_${key}`][metric] : null;
+}
+function line(points: [number, number | null][]) {
+  let d = '';
+  let pen = false;
+  for (const [s, v] of points) {
+    if (v == null) {
+      pen = false;
+      continue;
+    }
+    d += `${pen ? 'L' : 'M'}${X(s).toFixed(1)},${Y(v).toFixed(1)}`;
+    pen = true;
+  }
+  return d;
+}
+const mean = (vs: (number | null)[]) => {
+  const ok = vs.filter((v): v is number => v != null);
+  return ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null;
+};
+
+const series = SERIES.map((sr) => {
+  const perSeed = runs.map((r) => steps.map((s) => [s, value(r, s, sr.key)] as [number, number | null]));
+  const avg = steps.map((s, i) => [s, mean(perSeed.map((p) => p[i][1]))] as [number, number | null]);
+  return { ...sr, perSeed, avg };
+});
+
+// Direct labels at the right end, nudged apart if they collide.
+const ends = series.map((s) => ({ name: s.name, cls: s.cls, y: pctY(s.avg[s.avg.length - 1][1] ?? yMin) }));
+if (ends.length === 2 && Math.abs(ends[0].y - ends[1].y) < 9) {
+  const mid = (ends[0].y + ends[1].y) / 2;
+  const [hi, lo] = ends[0].y <= ends[1].y ? [ends[0], ends[1]] : [ends[1], ends[0]];
+  hi.y = mid - 4.5;
+  lo.y = mid + 4.5;
+}
+
+const xTicks = [25_000, 100_000, 300_000, 1_000_000, 3_000_000, 10_000_000].filter(
+  (t) => t >= steps[0] && t <= steps[steps.length - 1],
+);
+const tipData = steps.map((s, i) => ({
+  x: pctX(s),
+  head: `${formatSteps(s)} steps`,
+  rows: series.map((sr) => {
+    const vals = sr.perSeed.map((p) => p[i][1]).filter((v): v is number => v != null);
+    const range = vals.length > 1 ? ` (seeds ${fmt(Math.min(...vals))}–${fmt(Math.max(...vals))})` : '';
+    return { cls: sr.cls, text: `${sr.name}: ${fmt(sr.avg[i][1])}${range}` };
+  }),
+  ys: series.map((sr) => (sr.avg[i][1] == null ? null : pctY(sr.avg[i][1]!))),
+}));
+---
+
+<figure class="evalchart wide">
+  <p class="title">{title}</p>
+  <p class="legend">
+    {
+      series.map((s) => (
+        <span>
+          <i class={`sw ${s.cls}`} />
+          {s.name}
+        </span>
+      ))
+    }
+    <span class="seeds">thin lines: each of {runs.length} seeds; bold: their mean</span>
+  </p>
+  <div class="plot" data-tips={JSON.stringify(tipData)}>
+    <div class="y-axis" aria-hidden="true">
+      {yTicks.map((t) => <span style={`top:${pctY(t)}%`}>{fmt(t)}</span>)}
+    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${title}. See the table below for values.`}>
+      {yTicks.map((t) => <line class="grid" x1="0" x2={W} y1={Y(t)} y2={Y(t)} vector-effect="non-scaling-stroke" />)}
+      {
+        series.map((s) => (
+          <g class={s.cls}>
+            {s.perSeed.map((p) => (
+              <path class="seed" d={line(p)} vector-effect="non-scaling-stroke" />
+            ))}
+            <path class="avg" d={line(s.avg)} vector-effect="non-scaling-stroke" />
+          </g>
+        ))
+      }
+    </svg>
+    <div class="ends" aria-hidden="true">
+      {ends.map((e) => <span class={e.cls} style={`top:${e.y}%`}>{e.name}</span>)}
+    </div>
+    <div class="x-axis" aria-hidden="true">
+      {
+        xTicks.map((t, i) => (
+          <span class={i === 0 ? 'first' : ''} style={`left:${pctX(t)}%`}>
+            {formatSteps(t)}
+          </span>
+        ))
+      }
+    </div>
+    <div class="cross" hidden></div>
+    <div class="dots" hidden>{series.map((s) => <i class={s.cls} />)}</div>
+    <div class="tip" hidden></div>
+  </div>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+  <details>
+    <summary>Show the numbers as a table</summary>
+    <table>
+      <thead>
+        <tr>
+          <th>Training steps</th>
+          {series.map((s) => <th>{s.name} (mean)</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          steps.map((st, i) => (
+            <tr>
+              <td>{formatSteps(st)}</td>
+              {series.map((s) => (
+                <td>{fmt(s.avg[i][1])}</td>
+              ))}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </details>
+</figure>
+
+<style>
+  .evalchart {
+    margin-block: 1.75rem 2.25rem;
+    --s1: var(--flag);
+    --s2: #e87ba4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .evalchart {
+      --s2: #d55181;
+    }
+  }
+  :root[data-theme='dark'] .evalchart {
+    --s2: #d55181;
+  }
+  .title {
+    font-weight: 650;
+    margin: 0 0 0.3rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin: 0 0 0.75rem;
+  }
+  .sw {
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    margin-right: 0.4rem;
+    vertical-align: 0.25em;
+  }
+  .sw.s1 {
+    background: var(--s1);
+  }
+  .sw.s2 {
+    background: var(--s2);
+  }
+  .plot {
+    position: relative;
+    margin: 0 7.5rem 0 2.8rem;
+    padding-bottom: 1.4rem;
+  }
+  @media (max-width: 40rem) {
+    .plot {
+      margin-right: 0;
+    }
+    .ends {
+      display: none;
+    }
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: 12rem;
+    overflow: visible;
+  }
+  .grid {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  path {
+    fill: none;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .s1 path {
+    stroke: var(--s1);
+  }
+  .s2 path {
+    stroke: var(--s2);
+  }
+  .seed {
+    stroke-width: 1;
+    opacity: 0.35;
+  }
+  .avg {
+    stroke-width: 2;
+  }
+  .y-axis,
+  .ends {
+    position: absolute;
+    inset: 0 0 1.4rem 0;
+    pointer-events: none;
+  }
+  .y-axis span,
+  .x-axis span,
+  .ends span {
+    position: absolute;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .y-axis span {
+    right: calc(100% + 0.4rem);
+    transform: translateY(-50%);
+  }
+  .ends span {
+    left: calc(100% + 0.5rem);
+    transform: translateY(-50%);
+    font-size: 0.82rem;
+    color: var(--ink);
+  }
+  .x-axis span {
+    bottom: 0;
+    transform: translateX(-50%);
+  }
+  .x-axis span.first {
+    transform: none;
+  }
+  .cross {
+    position: absolute;
+    top: 0;
+    bottom: 1.4rem;
+    width: 1px;
+    background: var(--muted);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .dots i {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 2px var(--paper);
+    pointer-events: none;
+  }
+  .dots i.s1 {
+    background: var(--s1);
+  }
+  .dots i.s2 {
+    background: var(--s2);
+  }
+  .tip {
+    position: absolute;
+    top: -0.5rem;
+    pointer-events: none;
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    z-index: 2;
+  }
+  .tip :global(i) {
+    display: inline-block;
+    width: 10px;
+    height: 3px;
+    margin-right: 0.35rem;
+    vertical-align: 0.25em;
+  }
+  .tip :global(i.s1) {
+    background: var(--s1);
+  }
+  .tip :global(i.s2) {
+    background: var(--s2);
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+  details {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+  }
+  summary {
+    cursor: pointer;
+    color: var(--link);
+  }
+</style>
+
+<script>
+  type Tip = { x: number; head: string; rows: { cls: string; text: string }[]; ys: (number | null)[] };
+  document.querySelectorAll<HTMLElement>('figure.evalchart .plot').forEach((plot) => {
+    const tips: Tip[] = JSON.parse(plot.dataset.tips!);
+    const cross = plot.querySelector<HTMLElement>('.cross')!;
+    const dots = plot.querySelector<HTMLElement>('.dots')!;
+    const tip = plot.querySelector<HTMLElement>('.tip')!;
+    const svg = plot.querySelector('svg')!;
+    const hide = () => (cross.hidden = dots.hidden = tip.hidden = true);
+    svg.addEventListener('pointerleave', hide);
+    svg.addEventListener('pointermove', (e) => {
+      const box = svg.getBoundingClientRect();
+      const px = ((e.clientX - box.left) / box.width) * 100;
+      const t = tips.reduce((a, b) => (Math.abs(b.x - px) < Math.abs(a.x - px) ? b : a));
+      cross.hidden = dots.hidden = tip.hidden = false;
+      cross.style.left = `${t.x}%`;
+      [...dots.children].forEach((d, i) => {
+        const el = d as HTMLElement;
+        el.style.display = t.ys[i] == null ? 'none' : '';
+        el.style.left = `${t.x}%`;
+        el.style.top = `${((t.ys[i] ?? 0) / 100) * box.height}px`;
+      });
+      tip.innerHTML = `<strong>${t.head}</strong><br>${t.rows.map((r) => `<i class="${r.cls}"></i>${r.text}`).join('<br>')}`;
+      const w = tip.offsetWidth;
+      const left = (t.x / 100) * box.width;
+      tip.style.left = `${left + 12 + w > box.width ? left - w - 12 : left + 12}px`;
+    });
+  });
+</script>
