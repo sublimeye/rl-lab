@@ -1,0 +1,225 @@
+---
+title: "Tag, part 3: random maps"
+number: 5
+date: 2026-11-18
+summary: Post 4's runner only knew one room. I gave it 16 distance sensors, trained it on random maps, and tested it on 200 maps it had never seen, against scripted bots and against chasers trained to beat it.
+---
+
+import TagGame from '../../components/TagGame.astro';
+import TagTraces from '../../components/TagTraces.astro';
+import MapGallery from '../../components/MapGallery.astro';
+
+The runner from [post 4](../004-tag-selfplay/) learned one trick: run a big oval around the two
+pillars. It only works in that room. On other maps it runs into walls and gets caught: against
+the intercept bot it escaped 3% of the time.
+
+So this time every episode is on a random map: pillars, blocks, walls, small mazes, or a mix.
+The runner gets 16 distance sensors so it can see the walls around it. Press **New map** for
+another one.
+
+<TagGame
+  src="005-tag-maps/models.json"
+  model="sp40"
+  sample
+  maps
+  caption="The map menu picks a kind of map, or the room from posts 3 and 4. Under Blue square you can try the earlier runners for comparison, and under Orange you can watch a trained chaser instead of playing."
+/>
+
+**Short answer:**
+
+- **Seeing the walls matters.** Trained only
+  on random maps against scripted bots, a runner with 16 distance sensors escapes the intercept
+  bot on 60–80% of maps it has never seen. Without the sensors: 52%. Post 4's runner: 3%.
+- **Bots alone still leave it easy to catch.** A chaser network trained against that runner
+  catches it 98% of the time after 2 million steps.
+- **Self-play helped all three seeds this time**, not one lucky one. After 40 rounds, a fresh
+  chaser trained against the runner for 5 million steps still lets it escape 23–46% of the time
+  at 90% speed. After 20 rounds: 8–13%.
+- **The model barely grew:** 6,409 numbers instead of 5,385. A network 3.3 times bigger did no
+  better.
+
+## The maps
+
+Five kinds of maps, all in the same 12 × 8 room:
+
+<MapGallery
+  seeds={[1, 2]}
+  caption="Seeds 1 and 2 of each kind, drawn by the same code the game uses. The blue square shows the size of a player."
+/>
+
+The rule that keeps them playable: every obstacle is an island. A pillar, a block, or a
+straight or L-shaped wall is placed only if it stays at least 1.2 units (two squares) away from
+the outer walls and from every other obstacle. So a square can always go around anything, there
+are no dead ends, and no part of the room is closed off. After placing them, a flood fill
+checks it again: it walks every spot where a square fits and fails the map if any spot can't be
+reached. In 7,500 generated maps it never failed. A test with a closed box confirms the check
+does catch one.
+
+A map comes from a seed. The browser and the training code run the same small random number
+generator, so map #42 is the same map in both, and a test checks that.
+
+## Seeing the walls
+
+In posts 3 and 4 the runner got 9 numbers: where it is, where the chaser is, and how both are
+moving. That's enough when the room never changes. Now it also gets 16 rays, one every 22.5°,
+each saying how far the nearest wall or obstacle is in that direction (up to 6 units).
+
+The scripted bots needed an upgrade too. In post 3 they steered around round pillars. Now they
+plan a path on a grid of half-unit cells and follow it, so they can get around walls and
+through mazes. Against a square that stands still or just runs away, they catch it on all
+1,000 test maps I tried.
+
+## Step 1: train against the bots
+
+Same recipe as post 3: PPO against a mix of scripted bots, 10 million steps, but on a new map
+every 4 episodes. Every number below is from 200 test maps (40 of each kind) that no network
+trained on, with the chaser at 90% speed.
+
+| Runner | Pursuit | Intercept | Keyboard | Old room |
+| --- | --- | --- | --- | --- |
+| Post 4's runner (one room, no sensors) | 14% | 3% | 6% | 94% |
+| No sensors, trained on random maps | 86% | 52% | 70% | 73% |
+| 16 sensors, three seeds | 86–92% | 60–80% | 70–82% | 78–88% |
+| 16 sensors, network 3.3× bigger | 86% | 63% | 68% | 78% |
+
+Escapes out of 200 episodes against each scripted bot, the runner picking moves with some
+randomness (as in the game). Keyboard is the bot that moves like a person on arrow keys. Old
+room is post 3's room against the intercept bot, with its own 200 starts.
+
+Three things stand out:
+
+- **Post 4's runner only knew its room.** It escapes the intercept bot 94% of the time in post
+  3's room and 3% of the time anywhere else.
+- **The sensors help most where it matters.** Against the simple pursuit bot, the runner
+  without sensors does as well as the others. Against the bots that aim ahead it falls
+  behind: 52% against the intercept bot, compared with 60–80%. My guess: it can't see a wall
+  coming, so it can't plan a loop around one.
+- **A bigger network didn't help.** Two hidden layers of 128 instead of 64 (21,001 numbers
+  instead of 6,409) scored the same as the same seed at the normal size, and took a bit longer
+  to train. The sensors made the difference, not the size.
+
+The runners also do fine in post 3's room, which none of them ever saw: 78–88% against the
+intercept bot, where post 4's runner, trained in that room, gets 94%.
+
+## Step 2: a learned chaser finds the holes
+
+Post 4 showed that scripted bots are a weak test. So I froze the best step 1 runner (seed 3)
+and trained a fresh chaser network against it on random maps, the same "exploiter" test as
+last time.
+
+It didn't last. At 90% speed the exploiter held it to 4% escapes after 500,000 steps and 2%
+after 2 million, catching it in 3.9 seconds on average. At 80% speed: 6%. Same story as post 3's
+runner: fine against scripts, easy for anything that learns.
+
+## Step 3: self-play on random maps
+
+Then the same self-play as post 4: a chaser network and the runner take turns training, 20
+rounds, three seeds, every round on random maps. Each seed started from its own step 1 runner.
+
+Two things were different from post 4. First, the chaser never ran away with it: in the last
+round it caught the runner 72–80% of the time while training, where in post 4 it was 98–100%.
+Random maps seem to make the chaser's job harder too. Second, all three seeds improved,
+not just one. Against the final chasers of all three seeds, the runners escaped 4–15% of the
+time at the start and 20–32% after 20 rounds. Against the scripted bots they stayed about
+the same, within 9 points either way.
+
+Then I ran 20 more rounds on top, to see if it was still improving. It was.
+
+## How long until it breaks
+
+The real test is the exploiter again: a fresh chaser trained against each final runner on random
+maps, then scored on the 200 test maps, at 90% speed unless noted.
+
+| Runner | Exploiter, 2M steps | Exploiter, 5M steps |
+| --- | --- | --- |
+| Step 1 (bots only), seed 3 | 2% (3.9 s) | |
+| Self-play, 20 rounds, three seeds | 22–52% | 8–13% (7.7–8.6 s) |
+| Self-play, 20 rounds, chaser at 80% | 34–64% | 19–36% |
+| **Self-play, 40 rounds, three seeds** | **42–54%** | **23–46% (11.2–13.0 s)** |
+
+Escapes, with the average time before being caught in brackets (20 seconds means never). The
+2M column for 20 rounds covers two exploiters per runner with different seeds.
+
+Three things I didn't expect:
+
+- **The exploiters needed far longer.** Against the step 1 runner, 500,000 steps were enough.
+  Against the self-play runners they hadn't caught it once at 250,000 steps, and most kept
+  improving all the way to 5 million. Post 3's runner lasted about 250,000.
+- **The 20-round runners weren't done.** With 20 more rounds, the best one (seed 1) went from
+  13% to 46% against a 5M-step exploiter, and the exploiter stopped improving after 2 million
+  steps.
+- **80% speed wasn't always easier than 90%.** Two exploiters with different seeds on the same
+  runner differed by up to 28 points, so read the ranges, not single numbers.
+
+<TagTraces
+  src="005-tag-maps/traces.json"
+  chaserLabel="Trained chaser"
+  caption="Each runner against a chaser trained to beat it: 2 million steps for step 1, 5 million for the 40-round runner. Both runners pick moves with randomness, so a replay differs between runs. On 90 of the 200 test maps, the step 1 runner was caught and the 40-round runner got away."
+/>
+
+The maze replay flatters the runner a little. It tucks into the corner of an L-shaped wall,
+and the chaser loses it: it goes back and forth on the other side of a wall until time runs
+out. Some of the escapes are the chaser getting stuck, not the runner outsmarting it. On the
+pillar map there's nothing to hide behind, and it's caught after 7.7 seconds.
+
+The kind of map matters most. Against its 5M-step exploiter, the 40-round runner escapes on
+68% of maze maps, 65% of wall maps and 48% of mixed ones, but only 40% of block maps and 12% of
+pillar maps. Walls and mazes make long loops that the chaser can't cut across. A few round
+pillars don't, and in open space a chaser at 90% speed on the inside track wins, as in post 4's
+lion-and-man argument.
+
+## How the AI runs on this page
+
+Same as post 4: no ML library and no server. The network is a JSON file of weights, and a
+small script runs it in plain JavaScript.
+
+- **Size:** the runner reads 25 numbers now instead of 9: the 16 sensors are new. That adds
+  16 × 64 weights to the first layer, so a network has 6,409 numbers instead of 5,385, 19%
+  more. In the JSON file that's 61 KB instead of 51 KB per network, 21 KB instead of 18 KB
+  gzipped. This page's file holds seven networks (five runners and two chasers): 407 KB, 140
+  KB gzipped.
+- **Speed:** one decision (sensors plus network) takes about 9 microseconds: about 1.2 for the
+  16 rays and 7.9 for the network, measured in Node on an M1 Pro. The game decides 20 times a
+  second, so that's under 0.02% of the time between steps.
+- **Maps:** the map generator and its walk-through check run in the browser too, from a seed,
+  so **New map** downloads nothing. The scripted bots plan paths on a grid, which takes about
+  40 ms to set up per map; the network runner doesn't need that.
+- **Same results as Python:** a test rebuilds 30 maps from their seeds, compares sensors, bot
+  paths, four episodes and the network's outputs with Python's, and runs on every push.
+
+## What I take from it
+
+- **Give it the senses the task needs.** Post 4's runner learned one room by heart. Trained on
+  random maps with sensors, a runner also handled a room it never saw, and the one without
+  sensors fell behind against the bots that aim ahead.
+- **Don't trust a single exploiter run.** Two exploiters on the same runner disagreed by up to
+  28 points, and most were still improving at 5 million steps.
+- **Self-play needed more rounds than I gave it.** Twenty rounds looked close to done;
+  forty were much better. I don't know yet where it stops.
+- **The map decides a lot.** Loops make the runner hard to catch; open space with a few
+  pillars doesn't.
+
+I still haven't tested any of this against a person. Try the pillar maps if you want to win.
+
+## Cost
+
+All on an M1 Pro, CPU only:
+
+- Step 1, five runs in parallel: 21–31 minutes each.
+- Self-play: 20 rounds took 52 minutes, 20 more took 45 (three seeds in parallel).
+- Exploiters: 17 runs, 6–8 minutes for 2 million steps and 13–15 minutes for 5 million, several
+  at a time.
+- Scoring on the test maps: a few minutes per pass.
+
+## Run it yourself
+
+```sh
+cd experiments/003-tag
+uv run train.py --maps random --rays 16 --steps 10000000 --seed 3 --name maps-s3
+uv run selfplay.py --seed 3 --rounds 20 --evader-init maps-s3/ckpt_10000000 \
+  --maps random --rays 16 --name msp-s3
+uv run exploit.py --evader msp-s3/evader_r20 --ratio 0.9 --sample \
+  --maps random --rays 16 --steps 5000000 --seed 12 --name mx90b-sp3
+uv run evaluate_maps.py            # scores every run, writes the site data
+uv run summarize_maps.py           # prints every number quoted here
+```

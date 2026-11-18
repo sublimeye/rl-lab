@@ -1,0 +1,102 @@
+---
+/**
+ * A few random tag maps per family, drawn at build time with the same generator the game and
+ * the training use (site/src/lib/tag-sim.js generateMap, a port of maps.py).
+ */
+import { FAMILIES, generateMap } from '../lib/tag-sim.js';
+
+interface Props {
+  /** map seeds to draw for every family */
+  seeds?: number[];
+  caption?: string;
+}
+const { seeds = [1, 2], caption } = Astro.props;
+const names: Record<string, string> = {
+  pillars: 'Pillars',
+  blocks: 'Blocks',
+  walls: 'Walls',
+  maze: 'Maze',
+  mixed: 'Mixed',
+};
+const rows = FAMILIES.map((f: string) => ({
+  family: f,
+  maps: seeds.map((s) => ({ seed: s, ...generateMap(s, f) })),
+}));
+---
+
+<figure class="gallery wide">
+  <div class="grid" style={`--cols: ${seeds.length}`}>
+    {
+      rows.map((row) => (
+        <div class="family">
+          <p class="name">{names[row.family]}</p>
+          <div class="maps">
+            {row.maps.map((m) => (
+              <svg
+                viewBox={`0 0 ${m.width} ${m.height}`}
+                role="img"
+                aria-label={`${names[row.family]} map, seed ${m.seed}`}>
+                <rect class="floor" width={m.width} height={m.height} />
+                {m.pillars.map(([cx, cy, r]: number[]) => (
+                  <circle class="ob" cx={cx} cy={m.height - cy} r={r} />
+                ))}
+                {m.blocks.map(([x0, y0, x1, y1]: number[]) => (
+                  <rect class="ob" x={x0} y={m.height - y1} width={x1 - x0} height={y1 - y0} rx="0.06" />
+                ))}
+                <rect class="sq" x="0.5" y="0.5" width="0.6" height="0.6" rx="0.08" />
+              </svg>
+            ))}
+          </div>
+        </div>
+      ))
+    }
+  </div>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .gallery {
+    margin-block: 1.75rem 2.25rem;
+  }
+  .grid {
+    display: grid;
+    gap: 0.9rem 1.25rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 40rem) {
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .name {
+    margin: 0 0 0.3rem;
+    font-weight: 650;
+    font-size: 0.95rem;
+  }
+  .maps {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+  }
+  .floor {
+    fill: var(--floor);
+  }
+  .ob {
+    fill: var(--wall);
+  }
+  .sq {
+    fill: var(--flag);
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>

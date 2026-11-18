@@ -1,6 +1,7 @@
 """Train PPO to run away from scripted chasers, saving checkpoints and a training log.
 
 uv run experiments/003-tag/train.py --chasers mixed --steps 3000000 --seed 1 --name mixed-s1
+uv run experiments/003-tag/train.py --maps random --rays 16 --steps 10000000 --name maps-s1
 """
 
 from __future__ import annotations
@@ -28,6 +29,8 @@ SAVE_AT = [
     3_000_000,
     5_000_000,
     7_500_000,
+    10_000_000,
+    15_000_000,
 ]
 
 
@@ -60,6 +63,9 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--name", required=True, help="run folder under runs/")
     ap.add_argument("--threads", type=int, default=2, help="torch threads")
+    ap.add_argument("--maps", help="post 005: random maps ('random' or one family)")
+    ap.add_argument("--rays", type=int, default=0, help="wall-distance sensors")
+    ap.add_argument("--arch", nargs="+", type=int, default=[64, 64], help="hidden layer sizes")
     args = ap.parse_args()
 
     os.environ["OMP_NUM_THREADS"] = str(args.threads)
@@ -71,7 +77,9 @@ def main() -> None:
     for old in out.glob("ckpt_*.zip"):
         old.unlink()
 
-    cfg = Config(rewards=REWARDS[args.rewards], chasers=args.chasers)
+    cfg = Config(
+        rewards=REWARDS[args.rewards], chasers=args.chasers, maps=args.maps, rays=args.rays
+    )
     env = make_vec_env(TagArena, n_envs=args.envs, seed=args.seed, env_kwargs={"config": cfg})
     model = PPO(
         "MlpPolicy",
@@ -84,6 +92,7 @@ def main() -> None:
         seed=args.seed,
         device="cpu",
         verbose=0,
+        policy_kwargs={"net_arch": args.arch},
     )
     save_at = [s for s in SAVE_AT if s < args.steps] + [args.steps]
     rec = Recorder(save_at, out)
@@ -94,6 +103,9 @@ def main() -> None:
     log = {
         "chasers": args.chasers,
         "rewards": args.rewards,
+        "maps": args.maps,
+        "rays": args.rays,
+        "arch": args.arch,
         "seed": args.seed,
         "total_steps": args.steps,
         "seconds": round(elapsed, 1),

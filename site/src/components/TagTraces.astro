@@ -1,7 +1,8 @@
 ---
 /**
- * Small multiples: the paths of the evader and a scripted chaser for one start position.
- * Data: experiments/003-tag/evaluate.py export_traces() → traces.json.
+ * Small multiples: the paths of the evader and a chaser for one start position.
+ * Data: experiments/003-tag/evaluate.py export_traces() → traces.json. A panel can carry its
+ * own `map` ({ pillars, blocks }) on random maps (post 005).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,16 +34,21 @@ const h = w.half;
         const last = p.track[p.track.length - 1];
         const first = p.track[0];
         const result = p.escaped ? 'Got away: 20 s without being caught' : `Caught after ${p.seconds.toFixed(1)} s`;
+        const m = p.map ?? w;
         return (
           <div class="panel">
             <p class="name">
               {p.model}, against the {p.chaser}
+              {p.mapLabel && <span class="maplabel">{p.mapLabel}</span>}
             </p>
             <p class={`result ${p.escaped ? '' : 'lost'}`}>{result}</p>
             <svg viewBox={`0 0 ${w.width} ${w.height}`} role="img" aria-label={`${p.model} against the ${p.chaser}: ${result}`}>
               <rect class="floor" x="0" y="0" width={w.width} height={w.height} />
-              {w.pillars.map(([cx, cy, r]: number[]) => (
+              {m.pillars.map(([cx, cy, r]: number[]) => (
                 <circle class="pillar" cx={cx} cy={Y(cy)} r={r} />
+              ))}
+              {(m.blocks ?? []).map(([x0, y0, x1, y1]: number[]) => (
+                <rect class="pillar" x={x0} y={Y(y1)} width={x1 - x0} height={y1 - y0} rx="0.06" />
               ))}
               <polyline class="path bot" points={pts(p.track, 2)} />
               <polyline class="path ai" points={pts(p.track, 0)} />
@@ -102,6 +108,12 @@ const h = w.half;
     font-weight: 650;
     margin: 0;
     font-size: 0.95rem;
+  }
+  .maplabel {
+    display: block;
+    font-weight: 400;
+    font-size: 0.86rem;
+    color: var(--muted);
   }
   .result {
     margin: 0 0 0.4rem;

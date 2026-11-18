@@ -2,6 +2,7 @@
 /**
  * Playable tag: you (or a scripted bot) chase a trained evader. The evader's network runs in
  * the browser (site/src/lib/tag-sim.js); data from experiments/003-tag/evaluate.py.
+ * With `maps`, every round can be on a new random map (post 005).
  */
 import { url } from '../lib';
 
@@ -15,8 +16,19 @@ interface Props {
   speed?: 0.8 | 0.9 | 1;
   /** Blue samples its moves from the network's probabilities instead of the top choice */
   sample?: boolean;
+  /** Random maps: a map menu and a "New map" button (post 005) */
+  maps?: boolean;
 }
-const { src, caption, model = '', speed = 0.9, sample = false } = Astro.props;
+const { src, caption, model = '', speed = 0.9, sample = false, maps = false } = Astro.props;
+const mapKinds = [
+  { v: 'any', label: 'Any kind' },
+  { v: 'pillars', label: 'Pillars' },
+  { v: 'blocks', label: 'Blocks' },
+  { v: 'walls', label: 'Walls' },
+  { v: 'maze', label: 'Maze' },
+  { v: 'mixed', label: 'Mixed' },
+  { v: 'classic', label: 'Room from posts 3 and 4' },
+];
 const speeds = [
   { v: 0.8, label: '80% of blue' },
   { v: 0.9, label: '90% of blue' },
@@ -25,16 +37,33 @@ const speeds = [
 ---
 
 <figure class="tag wide">
-  <rl-tag data-src={url(`data/${src}`)} data-model={model}>
+  <rl-tag data-src={url(`data/${src}`)} data-model={model} data-maps={maps ? '1' : undefined}>
     <div class="stage">
-      <canvas role="img" aria-label="Tag arena: an orange square chases a blue square around two pillars"
-      ></canvas>
+      <canvas
+        role="img"
+        aria-label={maps
+          ? 'Tag arena: an orange square chases a blue square around obstacles'
+          : 'Tag arena: an orange square chases a blue square around two pillars'}></canvas>
     </div>
     <div class="side">
       <p class="status" aria-live="polite">Loading the trained squares…</p>
       <p class="score muted" aria-live="polite"></p>
-      <button class="start" type="button" disabled>Start</button>
+      <div class="buttons">
+        <button class="start" type="button" disabled>Start</button>
+        {maps && <button class="newmap" type="button" disabled>New map</button>}
+      </div>
+      {maps && <p class="mapname muted" aria-live="polite"></p>}
       <div class="controls">
+        {
+          maps && (
+            <label>
+              Map
+              <select class="kind">
+                {mapKinds.map((o) => <option value={o.v}>{o.label}</option>)}
+              </select>
+            </label>
+          )
+        }
         <label>
           Blue square
           <select class="model"></select>
@@ -116,7 +145,14 @@ const speeds = [
     font-variant-numeric: tabular-nums;
     min-height: 3em;
   }
-  .start {
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .start,
+  .newmap {
     font: inherit;
     font-weight: 650;
     color: #fff;
@@ -125,13 +161,25 @@ const speeds = [
     border-radius: 6px;
     padding: 0.55rem 1.4rem;
     cursor: pointer;
-    margin-bottom: 1rem;
   }
-  .start:disabled {
+  .newmap {
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding-inline: 1rem;
+  }
+  .mapname {
+    font-size: 0.86rem;
+    margin: -0.5rem 0 0.9rem;
+    min-height: 1.3em;
+  }
+  .start:disabled,
+  .newmap:disabled {
     opacity: 0.5;
     cursor: default;
   }
   .start:focus-visible,
+  .newmap:focus-visible,
   select:focus-visible {
     outline: 2px solid var(--link);
     outline-offset: 2px;
@@ -180,8 +228,11 @@ const speeds = [
     body,
     caught,
     chaserDirection,
+    FAMILIES,
     freePoint,
+    generateMap,
     move,
+    NavGrid,
     observe,
     sampleAct,
   } from '../lib/tag-sim.js';
@@ -189,11 +240,20 @@ const speeds = [
   type Body = { x: number; y: number; vx: number; vy: number };
   type Net = { layers: { w: number[][]; b: number[] }[] };
   /** role 'evader' (default) drives the blue square; 'chaser' can drive the orange one. */
-  type Model = { id: string; label: string; steps: number; net: Net; role?: 'evader' | 'chaser' };
+  /** rays: how many wall-distance sensors the network reads (0 = none, posts 3 and 4). */
+  type Model = {
+    id: string;
+    label: string;
+    steps: number;
+    net: Net;
+    role?: 'evader' | 'chaser';
+    rays?: number;
+  };
   type World = {
     width: number;
     height: number;
     pillars: [number, number, number][];
+    blocks?: [number, number, number, number][];
     half: number;
     dt: number;
     accel: number;
@@ -226,8 +286,15 @@ const speeds = [
     speedSel!: HTMLSelectElement;
     whoSel!: HTMLSelectElement;
     pickSel!: HTMLSelectElement;
+    kindSel: HTMLSelectElement | null = null;
+    newMapBtn: HTMLButtonElement | null = null;
+    mapNameEl: HTMLElement | null = null;
 
     w!: World;
+    /** physics and arena size from models.json; the map is merged in */
+    base!: World;
+    nav: NavGrid | null = null;
+    mapLabel = '';
     models: Model[] = [];
     phase: Phase = 'loading';
     e: Body = body(0, 0);
@@ -259,6 +326,9 @@ const speeds = [
       this.speedSel = q('.speed');
       this.whoSel = q('.who');
       this.pickSel = q('.pick');
+      this.kindSel = this.querySelector('.kind');
+      this.newMapBtn = this.querySelector('.newmap');
+      this.mapNameEl = this.querySelector('.mapname');
 
       new ResizeObserver(() => this.resize()).observe(this.canvas);
       matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => this.resize());
@@ -266,6 +336,8 @@ const speeds = [
       for (const s of [this.modelSel, this.speedSel, this.whoSel, this.pickSel]) {
         s.addEventListener('change', () => this.settingsChanged());
       }
+      this.kindSel?.addEventListener('change', () => this.newMap());
+      this.newMapBtn?.addEventListener('click', () => this.newMap());
       window.addEventListener('keydown', (ev) => this.onKey(ev, true));
       window.addEventListener('keyup', (ev) => this.onKey(ev, false));
       window.addEventListener('blur', () => this.held.clear());
@@ -282,6 +354,7 @@ const speeds = [
         const res = await fetch(this.dataset.src!);
         const data = await res.json();
         this.w = data.world;
+        this.base = data.world;
         this.models = data.models;
       } catch {
         this.statusEl.textContent = 'Could not load the trained models. Reload the page to try again.';
@@ -292,9 +365,11 @@ const speeds = [
         else this.modelSel.add(new Option(m.label, m.id));
       }
       if (this.dataset.model) this.modelSel.value = this.dataset.model;
+      if (this.dataset.maps) this.newMap(false);
       this.placeSquares();
       this.phase = 'idle';
       this.startBtn.disabled = false;
+      if (this.newMapBtn) this.newMapBtn.disabled = false;
       this.statusEl.textContent = 'Catch the blue square within 20 seconds.';
       this.updateScore();
       this.resize();
@@ -317,6 +392,26 @@ const speeds = [
     }
     get comboKey() {
       return `${this.modelSel.value}|${this.speedSel.value}|${this.whoSel.value}|${this.pickSel.value}`;
+    }
+
+    /** A new random map of the chosen kind (or post 3's room); ends a round in progress. */
+    newMap(redraw = true) {
+      const kind = this.kindSel?.value ?? 'any';
+      if (kind === 'classic') {
+        this.w = { ...this.base, pillars: [[4, 4, 0.9], [8, 4, 0.9]], blocks: [] };
+        this.mapLabel = 'The room from posts 3 and 4';
+      } else {
+        const fam = kind === 'any' ? FAMILIES[Math.floor(Math.random() * FAMILIES.length)] : kind;
+        const seed = 1 + Math.floor(Math.random() * 999_999);
+        this.w = { ...this.base, ...generateMap(seed, fam, this.base.width, this.base.height) };
+        this.mapLabel = `${fam.charAt(0).toUpperCase()}${fam.slice(1)} map #${seed}`;
+      }
+      this.nav = new NavGrid(this.w);
+      if (this.mapNameEl) this.mapNameEl.textContent = this.mapLabel;
+      if (!redraw) return;
+      if (this.phase === 'countdown' || this.phase === 'play') this.endRound(null);
+      this.placeSquares();
+      this.draw(1);
     }
 
     settingsChanged() {
@@ -443,13 +538,14 @@ const speeds = [
       } else {
         if (this.who.startsWith('net:')) {
           const cm = this.models.find((m) => `net:${m.id}` === this.who)!;
-          dir = ACTIONS[act(cm.net, observe(this.c, this.e, w))] as [number, number];
+          const cobs = observe(this.c, this.e, w, cm.rays ?? 0);
+          dir = ACTIONS[act(cm.net, cobs)] as [number, number];
         } else {
           const spec = { kind: this.who, ratio: this.ratio, reaction: 1, dirs8: false, lead: 1 };
-          dir = chaserDirection(spec, this.c, this.e, w) as [number, number];
+          dir = chaserDirection(spec, this.c, this.e, w, this.nav) as [number, number];
         }
       }
-      const obs = observe(this.e, this.c, w);
+      const obs = observe(this.e, this.c, w, this.model.rays ?? 0);
       const a = this.pickSel.value === 'sample' ? sampleAct(this.model.net, obs) : act(this.model.net, obs);
       const [ax, ay] = ACTIONS[a];
       move(this.e, ax, ay, w.maxSpeed, w);
@@ -534,6 +630,11 @@ const speeds = [
       for (const [cx, cy, r] of w.pillars) {
         ctx.beginPath();
         ctx.arc(X(cx), Y(cy), r * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (const [x0, y0, x1, y1] of w.blocks ?? []) {
+        ctx.beginPath();
+        ctx.roundRect(X(x0), Y(y1), (x1 - x0) * s, (y1 - y0) * s, Math.min(3, s * 0.08));
         ctx.fill();
       }
 

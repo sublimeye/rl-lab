@@ -68,6 +68,9 @@ def main() -> None:
     ap.add_argument("--scripted", type=float, default=0.3, help="share of scripted chasers")
     ap.add_argument("--name", help="run folder (default sp-s<seed>)")
     ap.add_argument("--threads", type=int, default=2)
+    ap.add_argument("--maps", help="post 005: random maps ('random' or one family)")
+    ap.add_argument("--rays", type=int, default=0)
+    ap.add_argument("--chaser-arch", nargs="+", type=int, default=[64, 64])
     args = ap.parse_args()
 
     os.environ["OMP_NUM_THREADS"] = str(args.threads)
@@ -102,19 +105,34 @@ def main() -> None:
 
     # DummyVecEnv keeps the envs in this process, so they see the pools as they grow.
     e_env = make_vec_env(
-        TagArena, n_envs=8, seed=args.seed, env_kwargs={"config": Config(opponents=evader_opponent)}
+        TagArena,
+        n_envs=8,
+        seed=args.seed,
+        env_kwargs={"config": Config(opponents=evader_opponent, maps=args.maps, rays=args.rays)},
     )
     c_env = make_vec_env(
         ChaserArena,
         n_envs=8,
         seed=args.seed + 100,
-        env_kwargs={"config": Config(evaders=chaser_opponent, chaser_ratio=(lo, hi))},
+        env_kwargs={
+            "config": Config(
+                evaders=chaser_opponent, chaser_ratio=(lo, hi), maps=args.maps, rays=args.rays
+            )
+        },
     )
     evader = PPO.load(warm, env=e_env, device="cpu", **PPO_KW)
     if args.chaser_init:
         chaser = PPO.load(RUNS / f"{args.chaser_init}.zip", env=c_env, device="cpu", **PPO_KW)
     else:
-        chaser = PPO("MlpPolicy", c_env, seed=args.seed, device="cpu", verbose=0, **PPO_KW)
+        chaser = PPO(
+            "MlpPolicy",
+            c_env,
+            seed=args.seed,
+            device="cpu",
+            verbose=0,
+            policy_kwargs={"net_arch": args.chaser_arch},
+            **PPO_KW,
+        )
     if args.evader_init or args.chaser_init:
         # PPO.load re-seeds with the seed saved in the file; use this run's seed instead.
         # (Stage 1 runs skip this: their warm start was trained with the same seed.)
@@ -131,6 +149,8 @@ def main() -> None:
         "pool": args.pool,
         "ratio": [lo, hi],
         "scripted": args.scripted,
+        "maps": args.maps,
+        "rays": args.rays,
         "rounds": [],
     }
     t0 = time.time()

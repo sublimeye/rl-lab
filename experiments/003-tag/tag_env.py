@@ -19,6 +19,7 @@ import numpy as np
 from gymnasium import spaces
 
 Pillar = tuple[float, float, float]  # cx, cy, radius
+Block = tuple[float, float, float, float]  # x0, y0, x1, y1 (axis-aligned box)
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,7 @@ class Arena:
     width: float = 12.0
     height: float = 8.0
     pillars: tuple[Pillar, ...] = ((4.0, 4.0, 0.9), (8.0, 4.0, 0.9))
+    blocks: tuple[Block, ...] = ()  # blocks and walls (random maps, post 005)
 
 
 @dataclass(frozen=True)
@@ -133,6 +135,11 @@ class Config:
     opponents: Callable[[np.random.Generator], Chaser | NetChaser] | None = None
     evaders: Callable[[np.random.Generator], NetEvader] | None = None
     chaser_ratio: tuple[float, float] = (0.8, 1.0)  # ChaserArena: own speed, drawn per episode
+    # Post 005: a new random map every episode ("random" = any family, or one family name),
+    # and `rays` distance sensors added to the observation. Bots then plan paths on a grid.
+    maps: str | None = None
+    rays: int = 0
+    map_repeat: int = 4  # episodes on each map before drawing a new one
 
 
 # 0 = stand still, then 8 directions counter-clockwise from east.
@@ -195,6 +202,25 @@ def move(b: Body, ax: float, ay: float, max_speed: float, p: Physics, a: Arena) 
         if vn < 0:
             b.vx -= vn * nx
             b.vy -= vn * ny
+    h = p.half
+    for x0, y0, x1, y1 in a.blocks:
+        ox = min(b.x + h - x0, x1 - b.x + h)  # overlap along each axis
+        oy = min(b.y + h - y0, y1 - b.y + h)
+        if ox <= 0 or oy <= 0:
+            continue
+        if ox < oy:  # push out along the shallower axis, stop motion into the block
+            if b.x < (x0 + x1) / 2:
+                b.x = x0 - h
+                b.vx = min(b.vx, 0.0)
+            else:
+                b.x = x1 + h
+                b.vx = max(b.vx, 0.0)
+        elif b.y < (y0 + y1) / 2:
+            b.y = y0 - h
+            b.vy = min(b.vy, 0.0)
+        else:
+            b.y = y1 + h
+            b.vy = max(b.vy, 0.0)
     _edges(b, p.half, a)
 
 
@@ -242,14 +268,18 @@ def steer(fx: float, fy: float, tx: float, ty: float, a: Arena, clearance: float
     return right
 
 
-def chaser_direction(c: Chaser, me: Body, prey: Body, p: Physics, a: Arena):
+def chaser_direction(c: Chaser, me: Body, prey: Body, p: Physics, a: Arena, nav=None):
+    """nav: a maps.NavGrid to plan paths around any obstacles (random maps)."""
     tx, ty = prey.x, prey.y
     if c.kind == "intercept":
         dist = math.hypot(prey.x - me.x, prey.y - me.y)
         t = min(c.lead * dist / (p.max_speed * c.ratio), 1.5)
         tx = _clamp(prey.x + prey.vx * t, p.half, a.width - p.half)
         ty = _clamp(prey.y + prey.vy * t, p.half, a.height - p.half)
-    dx, dy = steer(me.x, me.y, tx, ty, a, clearance=p.half * 1.5)
+    if nav is not None:
+        dx, dy = nav.direction(me.x, me.y, tx, ty, cl=p.half * 1.2)
+    else:
+        dx, dy = steer(me.x, me.y, tx, ty, a, clearance=p.half * 1.5)
     if c.dirs8 and (dx or dy):
         ang = round(math.atan2(dy, dx) / (math.pi / 4)) * (math.pi / 4)
         dx, dy = math.cos(ang), math.sin(ang)
@@ -260,10 +290,10 @@ def caught(e: Body, c: Body, h: float) -> bool:
     return abs(e.x - c.x) < 2 * h and abs(e.y - c.y) < 2 * h
 
 
-def observe(e: Body, c: Body, p: Physics, a: Arena) -> list[float]:
-    """9 numbers, all roughly in [-1, 1]. Shared with the browser port."""
+def observe(e: Body, c: Body, p: Physics, a: Arena, rays: int = 0) -> list[float]:
+    """9 numbers, all roughly in [-1, 1], then `rays` wall distances. Same in the browser."""
     dx, dy = c.x - e.x, c.y - e.y
-    return [
+    out = [
         e.x / a.width * 2 - 1,
         e.y / a.height * 2 - 1,
         e.vx / p.max_speed,
@@ -274,6 +304,11 @@ def observe(e: Body, c: Body, p: Physics, a: Arena) -> list[float]:
         c.vy / p.max_speed,
         math.hypot(dx, dy) / math.hypot(a.width, a.height),
     ]
+    if rays:
+        from maps import rays as ray_sensors
+
+        out += ray_sensors(e.x, e.y, a, rays)
+    return out
 
 
 class TagArena(gym.Env):
@@ -281,21 +316,68 @@ class TagArena(gym.Env):
 
     def __init__(self, config: Config | None = None):
         self.cfg = config or Config()
-        self.observation_space = spaces.Box(-2.0, 2.0, shape=(9,), dtype=np.float32)
+        self.observation_space = spaces.Box(-2.0, 2.0, shape=(9 + self.cfg.rays,), dtype=np.float32)
         self.action_space = spaces.Discrete(len(ACTIONS))
         self.evader = Body(0, 0)
         self.chaser = Body(0, 0)
         self.opponent = Chaser()
+        self.arena = self.cfg.arena  # this episode's map
+        self.map_id: tuple[int, str] | None = None
+        self._nav = None
+        self._map_uses = 0
         self.steps = 0
         self._dir = (0.0, 0.0)
 
     def _free_point(self) -> tuple[float, float]:
-        a, h = self.cfg.arena, self.cfg.physics.half
+        a, h = self.arena, self.cfg.physics.half
         while True:
             x = float(self.np_random.uniform(h, a.width - h))
             y = float(self.np_random.uniform(h, a.height - h))
-            if all(math.hypot(x - cx, y - cy) > r + h * 1.5 for cx, cy, r in a.pillars):
+            if self.cfg.maps:
+                from maps import square_hits
+
+                if not square_hits(x, y, h + 0.15, a):
+                    return x, y
+            elif all(math.hypot(x - cx, y - cy) > r + h * 1.5 for cx, cy, r in a.pillars):
                 return x, y
+
+    def _pick_map(self, options: dict, fresh: bool = False) -> None:
+        """Random maps: options may pin one with "map": (seed, family) or "arena": Arena.
+
+        fresh: draw a new map now (reset with a seed must not depend on earlier episodes).
+        """
+        if "arena" in options:
+            self.arena, self.map_id = options["arena"], None
+        elif self.cfg.maps:
+            from maps import FAMILIES, generate
+
+            if "map" in options:
+                seed, fam = options["map"]
+            elif not fresh and self.map_id and self._map_uses < self.cfg.map_repeat:
+                seed, fam = self.map_id
+            else:
+                seed = int(self.np_random.integers(1_000_000, 2**31 - 1))
+                fam = self.cfg.maps
+                if fam == "random":
+                    fam = FAMILIES[int(self.np_random.integers(len(FAMILIES)))]
+            if (seed, fam) != self.map_id:
+                self._map_uses = 0
+                self._nav = None
+            self._map_uses += 1
+            self.arena, self.map_id = generate(seed, fam), (seed, fam)
+            return
+        self._nav = None
+
+    @property
+    def nav(self):
+        """Path planner for scripted bots on random maps (built on first use)."""
+        if not self.cfg.maps:
+            return None
+        if self._nav is None:
+            from maps import nav_for
+
+            self._nav = nav_for(self.arena)
+        return self._nav
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
@@ -305,6 +387,7 @@ class TagArena(gym.Env):
             if self.cfg.opponents
             else sample_chaser(self.cfg.chasers, self.np_random)
         )
+        self._pick_map(options, fresh=seed is not None)
         self._spawn(options)
         return self._obs(), {"chaser": self.opponent}
 
@@ -323,13 +406,13 @@ class TagArena(gym.Env):
         self._dir = (0.0, 0.0)
 
     def step(self, action: int):
-        p, a, rw = self.cfg.physics, self.cfg.arena, self.cfg.rewards
+        p, a, rw = self.cfg.physics, self.arena, self.cfg.rewards
         if isinstance(self.opponent, NetChaser):
-            obs_c = observe(self.chaser, self.evader, p, a)
+            obs_c = observe(self.chaser, self.evader, p, a, self.cfg.rays)
             rng = self.np_random if self.opponent.sample else None
             self._dir = ACTIONS[self.opponent.net.act(obs_c, rng)]
         elif self.steps % self.opponent.reaction == 0:
-            self._dir = chaser_direction(self.opponent, self.chaser, self.evader, p, a)
+            self._dir = chaser_direction(self.opponent, self.chaser, self.evader, p, a, self.nav)
         self.steps += 1
         ax, ay = ACTIONS[int(action)]
         move(self.evader, ax, ay, p.max_speed, p, a)
@@ -348,15 +431,17 @@ class TagArena(gym.Env):
 
     def _obs(self) -> np.ndarray:
         return np.array(
-            observe(self.evader, self.chaser, self.cfg.physics, self.cfg.arena), dtype=np.float32
+            observe(self.evader, self.chaser, self.cfg.physics, self.arena, self.cfg.rays),
+            dtype=np.float32,
         )
 
     def describe(self) -> dict:
-        a, p = self.cfg.arena, self.cfg.physics
+        a, p = self.arena, self.cfg.physics
         return {
             "width": a.width,
             "height": a.height,
             "pillars": [list(x) for x in a.pillars],
+            **({"blocks": [list(x) for x in a.blocks]} if a.blocks else {}),
             "half": p.half,
             "dt": p.dt,
             "accel": p.accel,
@@ -377,13 +462,14 @@ class ChaserArena(TagArena):
         options = options or {}
         self.prey = options.get("prey") or self.cfg.evaders(self.np_random)
         self.ratio = options.get("ratio") or float(self.np_random.uniform(*self.cfg.chaser_ratio))
+        self._pick_map(options, fresh=seed is not None)
         self._spawn(options)
         return self._obs(), {}
 
     def step(self, action: int):
-        p, a, rw = self.cfg.physics, self.cfg.arena, self.cfg.rewards
+        p, a, rw = self.cfg.physics, self.arena, self.cfg.rewards
         rng = self.np_random if self.prey.sample else None
-        ea = self.prey.net.act(observe(self.evader, self.chaser, p, a), rng)
+        ea = self.prey.net.act(observe(self.evader, self.chaser, p, a, self.cfg.rays), rng)
         self.steps += 1
         move(self.evader, *ACTIONS[ea], p.max_speed, p, a)
         cx, cy = ACTIONS[int(action)]
@@ -402,7 +488,8 @@ class ChaserArena(TagArena):
 
     def _obs(self) -> np.ndarray:
         return np.array(
-            observe(self.chaser, self.evader, self.cfg.physics, self.cfg.arena), dtype=np.float32
+            observe(self.chaser, self.evader, self.cfg.physics, self.arena, self.cfg.rays),
+            dtype=np.float32,
         )
 
 

@@ -10,6 +10,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [002 Does more training help?](https://sublimeye.github.io/rl-lab/posts/002-does-more-training-help/) | Same cube, 10M steps × 3 seeds, 200-episode evals per checkpoint; random starts vs more steps |
 | [003 Tag](https://sublimeye.github.io/rl-lab/posts/003-tag/) | A square learns to run away from scripted chasers; play against it in the browser |
 | [004 Tag, part 2](https://sublimeye.github.io/rl-lab/posts/004-tag-selfplay/) | Learned chasers expose the 003 runner; self-play, a league and PSRO; randomness + pillar orbit wins |
+| [005 Tag, part 3](https://sublimeye.github.io/rl-lab/posts/005-tag-maps/) | Random maps (pillars, blocks, walls, mazes) with 16 distance sensors; 40 rounds of self-play vs 5M-step exploiters |
 
 ## Layout
 
@@ -23,11 +24,13 @@ experiments/NNN-slug/     one folder per experiment
   summarize.py            prints the numbers quoted in the report
   selfplay.py, psro.py    003-tag: runner vs learned chasers (posts 004)
   exploit.py              003-tag: fresh chaser against a frozen runner (the robustness test)
+  maps.py                 003-tag: random maps, walk-through check, ray sensors, bot path planning (005)
+  evaluate_maps.py        003-tag: scores on 200 held-out maps, exports post 005 data + parity fixture
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
-  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame
-  src/lib/tag-sim.js      browser port of experiments/003-tag/tag_env.py + the policy network
-  test/                   node tests: the JS port must match a trajectory exported from Python
+  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery
+  src/lib/tag-sim.js      browser port of experiments/003-tag/tag_env.py, maps.py + the policy network
+  test/                   node tests: the JS port must match trajectories and maps exported from Python
   public/data/            exported replays (committed, small JSON)
 ```
 
