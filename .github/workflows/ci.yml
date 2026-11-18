@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3
       # Only the env + dev tools; training deps (torch) are not needed to test environments.
       - run: uv sync --locked --no-default-groups --group dev
       - run: uv run --no-sync ruff check .
