@@ -1,0 +1,592 @@
+---
+/**
+ * Playable tag: you (or a scripted bot) chase a trained evader. The evader's network runs in
+ * the browser (site/src/lib/tag-sim.js); data from experiments/003-tag/evaluate.py.
+ */
+import { url } from '../lib';
+
+interface Props {
+  /** Path under public/data, e.g. "003-tag/models.json" */
+  src: string;
+  caption?: string;
+  /** Model id selected at load */
+  model?: string;
+}
+const { src, caption, model = '' } = Astro.props;
+---
+
+<figure class="tag wide">
+  <rl-tag data-src={url(`data/${src}`)} data-model={model}>
+    <div class="stage">
+      <canvas role="img" aria-label="Tag arena: an orange square chases a blue square around two pillars"
+      ></canvas>
+    </div>
+    <div class="side">
+      <p class="status" aria-live="polite">Loading the trained squares…</p>
+      <p class="score muted" aria-live="polite"></p>
+      <button class="start" type="button" disabled>Start</button>
+      <div class="controls">
+        <label>
+          Blue square
+          <select class="model"></select>
+        </label>
+        <label>
+          Orange speed
+          <select class="speed">
+            <option value="0.8">80% of blue</option>
+            <option value="0.9" selected>90% of blue</option>
+            <option value="1">100% of blue</option>
+          </select>
+        </label>
+        <label>
+          Orange is
+          <select class="who">
+            <option value="you" selected>You</option>
+            <option value="pursuit">Pursuit bot</option>
+            <option value="intercept">Intercept bot</option>
+          </select>
+        </label>
+      </div>
+      <p class="help muted">
+        Steer with the arrow keys or WASD. On a phone, press anywhere on the arena and drag in the
+        direction you want to go.
+      </p>
+    </div>
+  </rl-tag>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .tag {
+    margin-block: 2rem 2.5rem;
+  }
+  rl-tag {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+  }
+  @media (min-width: 52rem) {
+    rl-tag {
+      grid-template-columns: minmax(0, 1fr) 16rem;
+      align-items: start;
+    }
+  }
+  .stage {
+    aspect-ratio: 3 / 2;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--floor);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  rl-tag:global(.playing) canvas {
+    touch-action: none;
+  }
+  .status {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+    min-height: 2.5em;
+  }
+  .score {
+    margin: 0.2rem 0 0.9rem;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    min-height: 3em;
+  }
+  .start {
+    font: inherit;
+    font-weight: 650;
+    color: #fff;
+    background: var(--lava);
+    border: 0;
+    border-radius: 6px;
+    padding: 0.55rem 1.4rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
+  }
+  .start:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .start:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  .controls {
+    display: grid;
+    gap: 0.6rem;
+  }
+  @media (min-width: 30rem) and (max-width: 51.99rem) {
+    .controls {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  label {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  select {
+    font: inherit;
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .help {
+    font-size: 0.86rem;
+    margin: 0.9rem 0 0;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  import {
+    ACTIONS,
+    act,
+    body,
+    caught,
+    chaserDirection,
+    freePoint,
+    move,
+    observe,
+  } from '../lib/tag-sim.js';
+
+  type Body = { x: number; y: number; vx: number; vy: number };
+  type Net = { layers: { w: number[][]; b: number[] }[] };
+  type Model = { id: string; label: string; steps: number; net: Net };
+  type World = {
+    width: number;
+    height: number;
+    pillars: [number, number, number][];
+    half: number;
+    dt: number;
+    accel: number;
+    drag: number;
+    maxSpeed: number;
+    maxSteps: number;
+  };
+  type Phase = 'loading' | 'idle' | 'countdown' | 'play' | 'over';
+
+  const KEYS: Record<string, [number, number]> = {
+    ArrowUp: [0, 1],
+    KeyW: [0, 1],
+    ArrowDown: [0, -1],
+    KeyS: [0, -1],
+    ArrowLeft: [-1, 0],
+    KeyA: [-1, 0],
+    ArrowRight: [1, 0],
+    KeyD: [1, 0],
+  };
+  const COUNTDOWN_MS = 1800;
+  const TRAIL = 24;
+
+  class RlTag extends HTMLElement {
+    canvas!: HTMLCanvasElement;
+    ctx!: CanvasRenderingContext2D;
+    statusEl!: HTMLElement;
+    scoreEl!: HTMLElement;
+    startBtn!: HTMLButtonElement;
+    modelSel!: HTMLSelectElement;
+    speedSel!: HTMLSelectElement;
+    whoSel!: HTMLSelectElement;
+
+    w!: World;
+    models: Model[] = [];
+    phase: Phase = 'loading';
+    e: Body = body(0, 0);
+    c: Body = body(0, 0);
+    pe: Body = body(0, 0);
+    pc: Body = body(0, 0);
+    trail: [number, number][] = [];
+    steps = 0;
+    acc = 0;
+    last = 0;
+    countdownEnd = 0;
+    botDir: [number, number] = [0, 0];
+    held = new Set<string>();
+    joy: { ox: number; oy: number; x: number; y: number; id: number } | null = null;
+    tally = new Map<string, { caught: number; rounds: number }>();
+    result = '';
+    colors: Record<string, string> = {};
+    scale = 1;
+    raf = 0;
+
+    connectedCallback() {
+      const q = <T extends Element>(s: string) => this.querySelector(s) as T;
+      this.canvas = q('canvas');
+      this.ctx = this.canvas.getContext('2d')!;
+      this.statusEl = q('.status');
+      this.scoreEl = q('.score');
+      this.startBtn = q('.start');
+      this.modelSel = q('.model');
+      this.speedSel = q('.speed');
+      this.whoSel = q('.who');
+
+      new ResizeObserver(() => this.resize()).observe(this.canvas);
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => this.resize());
+      this.startBtn.addEventListener('click', () => this.startRound());
+      for (const s of [this.modelSel, this.speedSel, this.whoSel]) {
+        s.addEventListener('change', () => this.settingsChanged());
+      }
+      window.addEventListener('keydown', (ev) => this.onKey(ev, true));
+      window.addEventListener('keyup', (ev) => this.onKey(ev, false));
+      window.addEventListener('blur', () => this.held.clear());
+      this.canvas.addEventListener('pointerdown', (ev) => this.onPointer(ev));
+      this.canvas.addEventListener('pointermove', (ev) => this.onPointer(ev));
+      for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+        this.canvas.addEventListener(t, () => (this.joy = null));
+      }
+      this.load();
+    }
+
+    async load() {
+      try {
+        const res = await fetch(this.dataset.src!);
+        const data = await res.json();
+        this.w = data.world;
+        this.models = data.models;
+      } catch {
+        this.statusEl.textContent = 'Could not load the trained models. Reload the page to try again.';
+        return;
+      }
+      for (const m of this.models) this.modelSel.add(new Option(m.label, m.id));
+      if (this.dataset.model) this.modelSel.value = this.dataset.model;
+      this.placeSquares();
+      this.phase = 'idle';
+      this.startBtn.disabled = false;
+      this.statusEl.textContent = 'Catch the blue square within 20 seconds.';
+      this.updateScore();
+      this.resize();
+    }
+
+    get model() {
+      return this.models.find((m) => m.id === this.modelSel.value) ?? this.models[0];
+    }
+    get ratio() {
+      return Number(this.speedSel.value);
+    }
+    get who() {
+      return this.whoSel.value as 'you' | 'pursuit' | 'intercept';
+    }
+    get comboKey() {
+      return `${this.modelSel.value}|${this.speedSel.value}|${this.whoSel.value}`;
+    }
+
+    settingsChanged() {
+      if (this.phase === 'countdown' || this.phase === 'play') this.endRound(null);
+      this.statusEl.textContent =
+        this.who === 'you'
+          ? 'Catch the blue square within 20 seconds.'
+          : `Watch the ${this.who} bot chase the blue square.`;
+      this.updateScore();
+    }
+
+    placeSquares() {
+      const w = this.w;
+      const [ex, ey] = freePoint(w, Math.random);
+      let cx = 0;
+      let cy = 0;
+      do {
+        [cx, cy] = freePoint(w, Math.random);
+      } while (Math.hypot(cx - ex, cy - ey) < 5);
+      this.e = body(ex, ey);
+      this.c = body(cx, cy);
+      this.pe = { ...this.e };
+      this.pc = { ...this.c };
+      this.trail = [];
+      this.steps = 0;
+    }
+
+    startRound() {
+      if (!this.w) return;
+      this.placeSquares();
+      this.result = '';
+      this.held.clear();
+      this.joy = null;
+      this.phase = 'countdown';
+      this.countdownEnd = performance.now() + COUNTDOWN_MS;
+      this.classList.add('playing');
+      this.startBtn.disabled = true;
+      this.statusEl.textContent = 'Get ready…';
+      cancelAnimationFrame(this.raf);
+      this.raf = requestAnimationFrame((t) => this.frame(t));
+    }
+
+    endRound(won: boolean | null) {
+      this.phase = won === null ? 'idle' : 'over';
+      this.classList.remove('playing');
+      this.startBtn.disabled = false;
+      this.startBtn.textContent = 'Play again';
+      if (won !== null) {
+        const secs = (this.steps * this.w.dt).toFixed(1);
+        const t = this.tally.get(this.comboKey) ?? { caught: 0, rounds: 0 };
+        t.rounds++;
+        if (won) t.caught++;
+        this.tally.set(this.comboKey, t);
+        const by = this.who === 'you' ? 'You caught' : `The ${this.who} bot caught`;
+        this.result = won ? `${by} it in ${secs} s` : 'It got away';
+        this.statusEl.textContent = won
+          ? `${by} it in ${secs} seconds.`
+          : 'It got away. 20 seconds without being caught.';
+        this.updateScore();
+        if (this.who === 'you') this.startBtn.focus({ preventScroll: true });
+      }
+      this.draw(1);
+    }
+
+    updateScore() {
+      const t = this.tally.get(this.comboKey);
+      if (!t) {
+        this.scoreEl.textContent = '';
+        return;
+      }
+      const times = (n: number) => (n === 1 ? '1 time' : `${n} times`);
+      this.scoreEl.textContent = `With these settings, caught ${times(t.caught)} in ${t.rounds} ${t.rounds === 1 ? 'round' : 'rounds'}.`;
+    }
+
+    onKey(ev: KeyboardEvent, down: boolean) {
+      if (!(ev.code in KEYS)) return;
+      if (this.phase !== 'countdown' && this.phase !== 'play') return;
+      if (this.who !== 'you') return;
+      ev.preventDefault();
+      if (down) this.held.add(ev.code);
+      else this.held.delete(ev.code);
+    }
+
+    onPointer(ev: PointerEvent) {
+      if (this.who !== 'you' || (this.phase !== 'countdown' && this.phase !== 'play')) return;
+      if (ev.type === 'pointerdown') {
+        this.canvas.setPointerCapture(ev.pointerId);
+        this.joy = { ox: ev.offsetX, oy: ev.offsetY, x: ev.offsetX, y: ev.offsetY, id: ev.pointerId };
+        ev.preventDefault();
+      } else if (this.joy && ev.pointerId === this.joy.id) {
+        this.joy.x = ev.offsetX;
+        this.joy.y = ev.offsetY;
+      }
+    }
+
+    /** The human's direction: keys (8 directions) or the drag joystick (any direction). */
+    inputDir(): [number, number] {
+      if (this.joy) {
+        const dx = this.joy.x - this.joy.ox;
+        const dy = -(this.joy.y - this.joy.oy);
+        const n = Math.hypot(dx, dy);
+        return n > 10 ? [dx / n, dy / n] : [0, 0];
+      }
+      let x = 0;
+      let y = 0;
+      for (const k of this.held) {
+        x += KEYS[k][0];
+        y += KEYS[k][1];
+      }
+      x = Math.sign(x);
+      y = Math.sign(y);
+      const n = Math.hypot(x, y);
+      return n ? [x / n, y / n] : [0, 0];
+    }
+
+    step() {
+      const w = this.w;
+      this.pe = { ...this.e };
+      this.pc = { ...this.c };
+      let dir: [number, number];
+      if (this.who === 'you') {
+        dir = this.inputDir();
+      } else {
+        const spec = { kind: this.who, ratio: this.ratio, reaction: 1, dirs8: false, lead: 1 };
+        dir = chaserDirection(spec, this.c, this.e, w) as [number, number];
+      }
+      const a = act(this.model.net, observe(this.e, this.c, w));
+      const [ax, ay] = ACTIONS[a];
+      move(this.e, ax, ay, w.maxSpeed, w);
+      move(this.c, dir[0], dir[1], w.maxSpeed * this.ratio, w);
+      this.steps++;
+      this.trail.push([this.e.x, this.e.y]);
+      if (this.trail.length > TRAIL) this.trail.shift();
+      if (caught(this.e, this.c, w)) this.endRound(true);
+      else if (this.steps >= w.maxSteps) this.endRound(false);
+    }
+
+    frame(t: number) {
+      if (this.phase === 'countdown') {
+        if (t >= this.countdownEnd) {
+          this.phase = 'play';
+          this.last = t;
+          this.acc = 0;
+        }
+        this.draw(1, Math.ceil((this.countdownEnd - t) / (COUNTDOWN_MS / 3)));
+      } else if (this.phase === 'play') {
+        this.acc += Math.min(t - this.last, 250) / 1000;
+        this.last = t;
+        while (this.acc >= this.w.dt && this.phase === 'play') {
+          this.acc -= this.w.dt;
+          this.step();
+        }
+        if (this.phase === 'play') {
+          const left = (this.w.maxSteps - this.steps) * this.w.dt;
+          this.statusEl.textContent =
+            this.who === 'you' ? `Catch it! ${left.toFixed(1)} s left` : `${left.toFixed(1)} s left`;
+          this.draw(this.acc / this.w.dt);
+        }
+      }
+      if (this.phase === 'countdown' || this.phase === 'play') {
+        this.raf = requestAnimationFrame((tt) => this.frame(tt));
+      }
+    }
+
+    resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const r = this.canvas.getBoundingClientRect();
+      if (!r.width) return;
+      this.canvas.width = Math.round(r.width * dpr);
+      this.canvas.height = Math.round(r.height * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cs = getComputedStyle(this);
+      for (const k of ['floor', 'grid', 'wall', 'flag', 'lava', 'ink', 'muted', 'paper']) {
+        this.colors[k] = cs.getPropertyValue(`--${k}`).trim();
+      }
+      if (this.w) {
+        this.scale = r.width / this.w.width;
+        this.draw(1);
+      }
+    }
+
+    draw(alpha: number, countdown = 0) {
+      const { ctx, w, colors: k } = this;
+      if (!w) return;
+      const s = this.scale;
+      const W = w.width * s;
+      const H = w.height * s;
+      const X = (x: number) => x * s;
+      const Y = (y: number) => (w.height - y) * s;
+      const lerp = (a: number, b: number) => a + (b - a) * alpha;
+
+      ctx.fillStyle = k.floor;
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = k.grid;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 1; x < w.width; x++) {
+        ctx.moveTo(Math.round(X(x)) + 0.5, 0);
+        ctx.lineTo(Math.round(X(x)) + 0.5, H);
+      }
+      for (let y = 1; y < w.height; y++) {
+        ctx.moveTo(0, Math.round(Y(y)) + 0.5);
+        ctx.lineTo(W, Math.round(Y(y)) + 0.5);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = k.wall;
+      for (const [cx, cy, r] of w.pillars) {
+        ctx.beginPath();
+        ctx.arc(X(cx), Y(cy), r * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Time left: a thin bar along the bottom edge.
+      if (this.phase === 'play' || this.phase === 'over') {
+        const frac = Math.max(0, 1 - this.steps / w.maxSteps);
+        ctx.fillStyle = k.muted;
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(0, H - 4, W * frac, 4);
+        ctx.globalAlpha = 1;
+      }
+
+      // The evader's recent path.
+      if (this.trail.length > 1) {
+        ctx.strokeStyle = k.flag;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        for (let i = 1; i < this.trail.length; i++) {
+          ctx.globalAlpha = (i / this.trail.length) * 0.7;
+          ctx.beginPath();
+          ctx.moveTo(X(this.trail[i - 1][0]), Y(this.trail[i - 1][1]));
+          ctx.lineTo(X(this.trail[i][0]), Y(this.trail[i][1]));
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      const h = w.half * s;
+      const square = (b0: Body, b1: Body, color: string) => {
+        const x = X(lerp(b0.x, b1.x));
+        const y = Y(lerp(b0.y, b1.y));
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x - h, y - h, h * 2, h * 2, Math.max(2, h * 0.2));
+        ctx.fill();
+        return [x, y];
+      };
+      const [cxp, cyp] = square(this.pc, this.c, k.lava);
+      const [exp, eyp] = square(this.pe, this.e, k.flag);
+
+      const fontPx = Math.max(12, Math.min(16, s * 0.42));
+      ctx.font = `600 ${fontPx}px ${getComputedStyle(this).fontFamily}`;
+      ctx.textAlign = 'center';
+      if (this.phase === 'idle' || this.phase === 'countdown') {
+        ctx.fillStyle = k.ink;
+        const label = (text: string, x: number, y: number) => {
+          const above = y - h - 4 - fontPx >= 0;
+          ctx.textBaseline = above ? 'bottom' : 'top';
+          ctx.fillText(text, x, above ? y - h - 4 : y + h + 4);
+        };
+        label('AI', exp, eyp);
+        label(this.who === 'you' ? 'you' : 'bot', cxp, cyp);
+      }
+
+      if (this.joy) {
+        ctx.strokeStyle = k.muted;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.joy.ox, this.joy.oy, 28, 0, Math.PI * 2);
+        ctx.stroke();
+        const dx = this.joy.x - this.joy.ox;
+        const dy = this.joy.y - this.joy.oy;
+        const n = Math.hypot(dx, dy) || 1;
+        const m = Math.min(n, 28);
+        ctx.fillStyle = k.muted;
+        ctx.beginPath();
+        ctx.arc(this.joy.ox + (dx / n) * m, this.joy.oy + (dy / n) * m, 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const banner = countdown ? String(countdown) : this.phase === 'over' ? this.result : '';
+      if (banner) {
+        const big = countdown ? Math.min(H * 0.3, 96) : Math.max(18, Math.min(H * 0.09, 34));
+        ctx.font = `750 ${big}px ${getComputedStyle(this).fontFamily}`;
+        ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(banner).width;
+        ctx.fillStyle = k.paper;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.roundRect(W / 2 - tw / 2 - big * 0.5, H / 2 - big * 0.8, tw + big, big * 1.6, 8);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = k.ink;
+        ctx.fillText(banner, W / 2, H / 2);
+      }
+    }
+  }
+
+  customElements.define('rl-tag', RlTag);
+</script>

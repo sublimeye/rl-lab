@@ -1,7 +1,7 @@
 ---
 /**
  * One evaluation metric over training (log-scale steps), from evaluate.py's long-eval.json.
- * Two series: "best action" and "sampled". Thin lines are individual seeds, the bold line is
+ * Two series: "best action" and "sampled" by default, or any two keys via `series`. Thin lines are individual seeds, the bold line is
  * their mean. Axis labels, direct labels and the tooltip are HTML so they stay readable.
  */
 import fs from 'node:fs';
@@ -12,7 +12,8 @@ type Metric = 'success' | 'secondsToFlag' | 'coins' | 'lava' | 'timeout';
 interface Props {
   src: string;
   metric: Metric;
-  start: 'usual' | 'anywhere';
+  /** checkpoint field prefix: data is read from checkpoint[`${start}_${series key}`][metric] */
+  start: string;
   title: string;
   caption?: string;
   /** y-axis range; defaults to 0..1 for rates */
@@ -21,6 +22,8 @@ interface Props {
   yTicks?: number[];
   /** hide checkpoints before this many steps (log axis can't show 0) */
   fromSteps?: number;
+  /** two series to compare (default: best action vs sampled actions) */
+  series?: [{ key: string; name: string }, { key: string; name: string }];
 }
 const { src, metric, start, title, caption, fromSteps = 25_000 } = Astro.props;
 const isRate = ['success', 'lava', 'timeout'].includes(metric);
@@ -34,10 +37,12 @@ const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', 
 const runs: { name: string; checkpoints: any[] }[] = data.runs;
 const steps: number[] = runs[0].checkpoints.map((c: any) => c.steps).filter((s: number) => s >= fromSteps);
 
-const SERIES = [
-  { key: 'best', name: 'Best action', cls: 's1' },
-  { key: 'sampled', name: 'Sampled actions', cls: 's2' },
-] as const;
+const SERIES = (
+  Astro.props.series ?? [
+    { key: 'best', name: 'Best action' },
+    { key: 'sampled', name: 'Sampled actions' },
+  ]
+).map((sr, i) => ({ ...sr, cls: `s${i + 1}` }));
 
 const W = 1000;
 const H = 300;

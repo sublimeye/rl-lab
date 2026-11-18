@@ -1,0 +1,200 @@
+---
+title: Tag
+number: 3
+date: 2026-11-17
+summary: A square learns to run away from a slower chaser. Trained against one simple bot, it gets caught by anything smarter. Trained against a mix of bots, it holds up much better, and you can try to catch it yourself.
+---
+
+import TagGame from '../../components/TagGame.astro';
+import EvalChart from '../../components/EvalChart.astro';
+import TagTraces from '../../components/TagTraces.astro';
+
+You're the orange square. The blue one is a small neural network trained to stay away from you
+for 20 seconds. By default you're 10% slower than it.
+
+<TagGame
+  src="003-tag/models.json"
+  model="mixed"
+  caption="The network runs in your browser and takes the action it rates highest, 20 times a second. Switch the blue square to an earlier version, or let a bot chase it instead of you."
+/>
+
+**Short answer:**
+
+- **It learned to run laps.** Once it gets clear, it circles the arena at full speed, two to
+  three laps in 17 seconds, and the test bots never catch it after that. Every catch happens in
+  the first few seconds.
+- **Who it trains against matters.** Trained against one simple chaser, it escapes that kind of
+  chaser 98% of the time, but escapes a chaser that aims ahead of it only 54% of the time.
+  Trained against a varied mix of chasers: 94% and 78%.
+- **The reward can be simple.** Points for staying alive, a big penalty for being caught. A
+  bonus for keeping distance didn't make it better.
+
+## The setup
+
+The arena is 12 by 8 units with two round pillars. Both squares have the same momentum
+physics as the cube in [the first post](../001-cube-to-flag/): pick a direction, accelerate,
+slow down by drag. The blue square tops out at 4 units per second; the chaser at a fraction of
+that.
+
+The network sees nine numbers, 20 times a second: its own position and velocity, where the
+chaser is relative to it, the chaser's velocity, and the distance between them. It picks one of
+nine actions: stand still, or accelerate in one of eight directions. It doesn't see the pillars;
+it has to learn where they are from its own position, like the walls in the first post.
+
+## Rewards
+
+Every step it isn't caught, it gets **+0.01**. Being caught costs **−5** and ends the
+episode. Surviving 20 seconds (400 steps) earns +4 at most.
+
+The reasoning:
+
+- **Why not just "+1 if you survive"?** Early on, nearly every episode ends in a catch within a
+  couple of seconds, so a reward only at the end almost never arrives. A reward every step
+  says "longer is better" from the very first episode.
+- **Why a big penalty?** With only the per-step reward, getting caught one second before the end
+  costs a hundredth of a point. The penalty makes any catch clearly worse than running out the
+  clock.
+- **Distance bonus:** I also added up to +0.01 per step for keeping distance (the full bonus at 6
+  units or more), expecting it to help. A run without it did at least as well: 85% escapes
+  against the chaser that aims ahead, compared with 74–82% for the three seeds with the bonus.
+  That's one seed, so I won't claim the bonus hurts, but it wasn't needed.
+
+## Who it trains against
+
+The chaser during training is a script, not a person. I wrote two kinds:
+
+- **Pursuit bot:** runs straight at where the blue square is now, going around pillars.
+- **Intercept bot:** runs at where the blue square will be, based on its current velocity.
+
+I trained two versions, three seeds each, 5 million steps:
+
+- **One simple chaser:** always the pursuit bot at 85% speed, reacting instantly.
+- **Mixed chasers:** every episode draws a new chaser. Pursuit or intercept, 75–100% speed,
+  0.05–0.25 seconds reaction time, half of them limited to eight directions like a keyboard,
+  and how far ahead the intercept bot aims varies too.
+
+Then I tested every saved version against fixed chasers: 200 start positions each, the same
+starts for every model. One test chaser is meant to behave a bit like a person on a keyboard:
+it aims ahead, moves in eight directions and only changes direction every 0.2 seconds.
+
+<EvalChart
+  src="003-tag/curves.json"
+  metric="success"
+  start="pursuit90"
+  series={[
+    { key: 'simple', name: 'One simple chaser' },
+    { key: 'mixed', name: 'Mixed chasers' },
+  ]}
+  title="Escapes against the pursuit bot at 90% speed"
+  caption="Share of 200 episodes where it isn't caught for 20 seconds. Mean of three seeds (bold) and each seed (thin). The x-axis is logarithmic. This bot is close to what the simple version trained on."
+/>
+
+<EvalChart
+  src="003-tag/curves.json"
+  metric="success"
+  start="intercept90"
+  series={[
+    { key: 'simple', name: 'One simple chaser' },
+    { key: 'mixed', name: 'Mixed chasers' },
+  ]}
+  title="Escapes against the intercept bot at 90% speed"
+  caption="Same models, a chaser that aims ahead. The version trained on one simple chaser never saw this."
+/>
+
+Final versions, after 5 million steps. Mean of three seeds, worst seed in brackets:
+
+| Test chaser | One simple chaser | Mixed chasers |
+| --- | --- | --- |
+| Pursuit, 80% speed | 99% (98%) | 96% (92%) |
+| Pursuit, 90% speed | 98% (97%) | 94% (92%) |
+| Pursuit, 100% speed | 97% (96%) | 93% (91%) |
+| Intercept, 80% speed | 53% (48%) | 80% (76%) |
+| Intercept, 90% speed | 54% (44%) | 78% (74%) |
+| Intercept, 100% speed | 53% (42%) | 76% (73%) |
+| Keyboard-like, 90% speed | 64% (55%) | 84% (82%) |
+
+The simple version is a specialist: nearly perfect against the bot it knows, close to a coin flip
+against one that thinks a step ahead. The mixed version gives up 3–4 points against the pursuit
+bot and gains 20–27 points against everything else.
+
+For scale: standing still gets caught in about 2 seconds, and running straight away from the
+chaser in about 3. Both lose all 200 episodes against every test chaser, because running
+straight away ends against a wall.
+
+## What it learned
+
+<TagTraces
+  src="003-tag/traces.json"
+  caption="One start position (the first of the 200 test starts), played by both final versions against two chasers at 90% speed. In 55 of the 200 starts the outcome is the same as here: only the simple version against the intercept bot gets caught."
+/>
+
+After the first few seconds, the final versions I measured (five of the seven) all do the same
+thing: run laps around the arena at close to full speed, two to three laps in the 17 seconds
+after the opening. Against the pursuit bot they hug the walls (the mixed versions spend 70–79% of
+that time within half a unit of the edge), and the bot just follows. Against the intercept bot,
+the mixed versions run a tighter loop away from the walls (6–37% of the time near the edge),
+staying about 1.8 units ahead of it.
+
+In the example above, the simple version heads for the top-left corner and then down the left
+wall, the way it would against the pursuit bot. The intercept bot doesn't follow; it cuts
+across the middle and meets it in the bottom-left corner.
+
+It mostly ignores the pillars. I expected it to learn to circle one and keep it between itself
+and the chaser. The versions I checked spend 5% of their time near a pillar or less. Laps of the
+whole arena are simpler and work against these bots.
+
+Every catch happens early. Across the three final mixed versions and all seven test chasers,
+87% of catches came in the first 3 seconds, and the latest was at 6.25 seconds. That also
+explains why chaser speed barely matters in the table: in the first couple of seconds, a slower
+chaser hasn't fallen behind yet. When the chaser starts more than 6 units away, the seed 1 mixed
+version escapes the intercept bot 89% of the time; from under 5 units, 71%. (The game always
+starts you at least 5 units apart.)
+
+## Versions you can play
+
+The **Blue square** menu in the game switches between these, all seed 1, all scored against bots
+at 90% speed:
+
+| Version | vs pursuit bot | vs intercept bot | vs keyboard-like bot |
+| --- | --- | --- | --- |
+| Untrained | 0% | 0% | 0% |
+| 250k steps, mixed chasers | 73% | 45% | 49% |
+| 5M steps, mixed chasers | 94% | 83% | 85% |
+| 5M steps, one simple chaser | 98% | 57% | 64% |
+
+The untrained network moves more or less at random and gets caught in about 2.5 seconds. Against
+the final versions, try cutting across the middle of its lap instead of following it.
+
+## What I take from it
+
+- **The opponent is part of the environment.** Training against one script taught it to beat
+  that script. Varying the opponent did here what varying the start position did in
+  [post 2](../002-does-more-training-help/).
+- **Simple rewards were enough.** Alive +0.01, caught −5. The distance bonus I added to help
+  made no measurable difference.
+- **It found a strategy I didn't expect.** I thought it would use the pillars. It runs laps
+  instead, because that's enough against these chasers.
+- **The obvious next step is to train the chaser too** (self-play), so each side keeps finding the
+  other's weak spots, instead of me writing better scripts.
+
+## Cost
+
+All seven 5M-step runs (two setups × three seeds, plus the one without the distance bonus)
+trained in parallel in 8.4 minutes on an M1 Pro, CPU only. Evaluating every checkpoint against
+the seven test chasers took under two minutes.
+
+## Run it yourself
+
+```sh
+for s in 1 2 3; do
+  uv run experiments/003-tag/train.py --chasers simple --steps 5000000 --seed $s --name simple-s$s &
+  uv run experiments/003-tag/train.py --chasers mixed --steps 5000000 --seed $s --name mixed-s$s &
+done
+uv run experiments/003-tag/train.py --chasers mixed --rewards nodistance --steps 5000000 \
+  --seed 1 --name nodist-s1 &
+wait
+uv run experiments/003-tag/evaluate.py simple-s1 simple-s2 simple-s3 mixed-s1 mixed-s2 mixed-s3 nodist-s1
+uv run python -c "import sys; sys.path.insert(0, 'experiments/003-tag'); import evaluate; evaluate.export_report(0)"
+uv run experiments/003-tag/summarize.py
+cd site && npm test   # the browser simulation must match Python
+```

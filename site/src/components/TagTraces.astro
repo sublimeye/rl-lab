@@ -1,0 +1,163 @@
+---
+/**
+ * Small multiples: the paths of the evader and a scripted chaser for one start position.
+ * Data: experiments/003-tag/evaluate.py export_traces() → traces.json.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+
+interface Props {
+  src: string;
+  caption?: string;
+}
+const { src, caption } = Astro.props;
+const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
+const w = data.world;
+const Y = (y: number) => w.height - y;
+const pts = (track: number[][], i: number) =>
+  track.map((s) => `${s[i].toFixed(2)},${Y(s[i + 1]).toFixed(2)}`).join(' ');
+const h = w.half;
+---
+
+<figure class="traces wide">
+  <p class="legend">
+    <span><i class="sw ai"></i>Trained square</span>
+    <span><i class="sw bot"></i>Scripted chaser</span>
+    <span><i class="sw start"></i>Start (hollow)</span>
+  </p>
+  <div class="grid">
+    {
+      data.panels.map((p: any) => {
+        const last = p.track[p.track.length - 1];
+        const first = p.track[0];
+        const result = p.escaped ? 'Got away: 20 s without being caught' : `Caught after ${p.seconds.toFixed(1)} s`;
+        return (
+          <div class="panel">
+            <p class="name">
+              {p.model}, against the {p.chaser}
+            </p>
+            <p class={`result ${p.escaped ? '' : 'lost'}`}>{result}</p>
+            <svg viewBox={`0 0 ${w.width} ${w.height}`} role="img" aria-label={`${p.model} against the ${p.chaser}: ${result}`}>
+              <rect class="floor" x="0" y="0" width={w.width} height={w.height} />
+              {w.pillars.map(([cx, cy, r]: number[]) => (
+                <circle class="pillar" cx={cx} cy={Y(cy)} r={r} />
+              ))}
+              <polyline class="path bot" points={pts(p.track, 2)} />
+              <polyline class="path ai" points={pts(p.track, 0)} />
+              <rect class="mark start bot" x={first[2] - h} y={Y(first[3]) - h} width={h * 2} height={h * 2} />
+              <rect class="mark start ai" x={first[0] - h} y={Y(first[1]) - h} width={h * 2} height={h * 2} />
+              <rect class="mark bot" x={last[2] - h} y={Y(last[3]) - h} width={h * 2} height={h * 2} />
+              <rect class="mark ai" x={last[0] - h} y={Y(last[1]) - h} width={h * 2} height={h * 2} />
+            </svg>
+          </div>
+        );
+      })
+    }
+  </div>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .traces {
+    margin-block: 1.75rem 2.25rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin: 0 0 0.75rem;
+  }
+  .sw {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 0.35rem;
+    vertical-align: -0.05em;
+  }
+  .sw.ai {
+    background: var(--flag);
+  }
+  .sw.bot {
+    background: var(--lava);
+  }
+  .sw.start {
+    border: 2px solid var(--muted);
+  }
+  .grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 40rem) {
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .name {
+    font-weight: 650;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .result {
+    margin: 0 0 0.4rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .result.lost {
+    color: var(--ink);
+    font-weight: 650;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+  }
+  .floor {
+    fill: var(--floor);
+  }
+  .pillar {
+    fill: var(--wall);
+  }
+  .path {
+    fill: none;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+  .path.ai {
+    stroke: var(--flag);
+    stroke-width: 2;
+  }
+  .path.bot {
+    stroke: var(--lava);
+    stroke-width: 1.5;
+    opacity: 0.75;
+  }
+  .mark.ai {
+    fill: var(--flag);
+  }
+  .mark.bot {
+    fill: var(--lava);
+  }
+  .mark.start {
+    fill: var(--floor);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+  .mark.start.ai {
+    stroke: var(--flag);
+  }
+  .mark.start.bot {
+    stroke: var(--lava);
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
