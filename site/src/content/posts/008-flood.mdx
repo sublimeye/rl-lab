@@ -1,0 +1,251 @@
+---
+title: "Flood defence: a digger learns to build a dam"
+number: 8
+date: 2026-11-19
+summary: A side view of a beach with sand and water physics. The tide comes in, a house stands on the hill, and a small digger can move sand one grain at a time. It's only rewarded for keeping the house dry. It learned to build a wall, and in two of three runs the wall it found leaned on the house itself.
+---
+
+import FloodGame from '../../components/FloodGame.astro';
+import FloodReplay from '../../components/FloodReplay.astro';
+import FloodChart from '../../components/FloodChart.astro';
+
+Posts 1 to 7 were about moving: getting to a flag, running away, chasing. This time the agent
+has to change its world. The tide comes in from the left, the house is on the right, and the
+sea always ends up higher than the house's floor. If nothing is done, the house floods every
+time.
+
+The digger can walk, dig a grain of sand and drop it. Its reward says nothing about sand or
+walls: it gets a little for every moment the house is dry and a penalty if it floods. Whatever
+it builds, it had to work out for itself.
+
+<FloodGame
+  models={[
+    { src: '008-flood/model-round2.json', label: 'Round 2 network' },
+    { src: '008-flood/model-round1.json', label: 'Round 1, leans on house' },
+    { src: '008-flood/model-s1.json', label: 'Round 1, own dam' },
+  ]}
+  worlds={[
+    { label: 'Round 2: house with a roof', short: 'round 2', houseWall: 2 },
+    { label: 'Round 1: house holds any pile', short: 'round 1', houseWall: null },
+  ]}
+  caption="The darker sand is sand the digger has moved; the dashed line is how high this tide will rise. Under Who digs you can swap in a round 1 network (seed 2, which leans on the house, or seed 1, which builds its own dam; try both in the round 2 world), the scripted builder, nobody, or yourself."
+/>
+
+**Short answer:**
+
+- **It learns to build a wall.** In round 1, after 2 million steps (3 to 5 minutes of
+  training), it keeps the house dry on 185–198 of 200 maps it has never seen. Doing nothing
+  floods all of them; random digging saves 9.
+- **Its first wall leaned on the house.** In round 1, two of three training runs piled sand
+  straight against the house's seaward wall, which in that world could hold a pile of any
+  height. When I made sand spill over the roof instead, those two saved only 81 and 101 houses
+  out of 200. The third run had built a free-standing dam far out and still saved 195.
+- **Round 2 builds a real bank.** Trained with the roof rule, all three runs build a mound 2–5
+  columns in front of the house and keep 197–199 houses out of 200 dry.
+- **It builds high, not to the forecast.** It's told how high the tide will rise, but it mostly
+  ignores that: its walls are about the same height whatever the tide. It beats a hand-written
+  builder that builds to the forecast on 14–15 maps, and holds up much better than it on tides
+  higher than any it trained on.
+
+## The world
+
+Everything is a grid of 40 columns by 20 rows, and both sand and water are just a height per
+column.
+
+| | Rule |
+| --- | --- |
+| Sand | Grains stack. A column more than 2 cells higher than its neighbour sheds a grain onto it, so piles have sides no steeper than 2 cells per column. The bottom row is bedrock. |
+| Water | Water flows from a column to a lower neighbour through "virtual pipes": a difference in level pushes water through, and the flow keeps some momentum, so the tide arrives as a wave. A column never gives away more than it holds, so dry sand above the water stops it completely. |
+| Tide | The sea, off the left edge, rises for the first 70% of the episode (350 of 500 steps) and then stays at its peak: 1 to 3 cells above the house's floor. |
+| Map | Random every episode: a flat beach, a few bumps and dips, a hill up to the house. The ground in front of the house is always below the peak tide. |
+| House | The last 5 columns. It floods when water on its floor gets 0.05 cells deep. |
+| Digger | Walks one column per step, climbs steps up to 2 cells, can wade. It digs a grain from the column to its left or right, carries up to 3, and drops them left or right. It can't dig, drop or walk on the house. |
+| Reward | 1/500 for every step the house is dry (a dry episode adds up to 1), and −1 when it floods. |
+
+Each step the network sees 124 numbers: the sand height and the water depth of every column,
+where it stands, how many grains it carries, the sea level now, the peak it will reach, and the
+time.
+
+## Training
+
+PPO from Stable-Baselines3, a network with two layers of 128, 16 copies of the world at once, 20
+million steps. That's 33–46 minutes per run on a laptop CPU, three runs per round with different
+random seeds. Every saved checkpoint plays the same 200 test maps, which training never uses.
+It picks its moves at random in proportion to how much it likes each one, the way it did in
+training (more on that below).
+
+To know what a decent strategy scores, I wrote a **scripted builder**. It picks the spot that
+needs the least sand to stand above the peak tide, digs a few columns away and piles sand there
+until the top is above the peak. It keeps the house dry on 185 of the 200 maps, moving about 10
+grains. It has almost nothing to spare: on the other 15 the water gets there first. On map 1
+of the replays below, its wall tops out just under the high-tide line.
+
+## Round 1
+
+<FloodChart
+  src="008-flood/eval-round1.json"
+  title="Round 1: houses kept dry on 200 test maps"
+  caption="The thin lines are the three training runs. The dashed lines are the scripted builder, random actions and doing nothing on the same maps."
+/>
+
+Learning is fast and then flat. Seed 1 already keeps 185 of the 200 houses dry after 1 million
+steps; seeds 2 and 3 get to 185 and 198 by 2 million. After 20 million steps the three keep
+195, 200 and 198 houses out of 200 dry, more than the scripted builder's 185. They are dry on
+14–15 maps where the builder floods.
+
+Here's one run (seed 2) on the same four test maps at every checkpoint. The thumbnails show how
+each episode ended; click one to play it.
+
+<FloodReplay
+  src="008-flood/replays-round1.json"
+  caption="Seed 2, round 1. Map 1 is one the scripted builder loses. Up to 1 million steps the sea walks in on all four maps; at 2 million the digger keeps three of them dry, and from 4 million all four."
+/>
+
+What the runs build isn't the same:
+
+- **Seeds 2 and 3 pile sand against the house.** On every test map they keep dry, the top of
+  the pile is in the column right next to it. In this world the house is a solid block, and
+  sand can't slide onto it. Sand against it can stack as high as the digger likes, so the house
+  props up one side of the wall and only the seaward side needs a slope. It's cheap, and it
+  works.
+- **Seed 1 builds a free-standing dam far out**, its top 14 or 15 columns from the house, and
+  gets the sand by digging a pit behind it, on the house side; on the maps I watched, down to
+  bedrock. The pit stays dry because the dam holds.
+
+All three move far more sand than they need: 31–72 grains per episode, against the scripted
+builder's 10.
+
+## Round 2: a house with a roof
+
+Real sand piled against a wall can only go as high as the wall; any more and it falls onto the
+roof. So for round 2 the house's wall is 2 cells tall, and a grain that would stand above it,
+against the house, spills over and is gone. Since the tide rises 1–3 cells above the floor,
+a pile against the house now only works while the tide stays below the top of its wall.
+
+The round 1 networks, dropped into this world without retraining:
+
+| Round 1 network | What it built | Houses dry in the round 2 world |
+| --- | --- | --- |
+| Seed 1 | free-standing dam | 195 of 200 |
+| Seed 2 | against the house | 81 of 200 |
+| Seed 3 | against the house | 101 of 200 |
+
+Then three fresh runs, trained in round 2 from scratch:
+
+<FloodChart
+  src="008-flood/eval-round2.json"
+  title="Round 2: houses kept dry on 200 test maps"
+  caption="Seed 3 took longer: it kept fewer than half the houses dry up to 4 million steps, then 185 of 200 by 7 million."
+/>
+
+They end at 199, 197 and 197 out of 200, again dry on 14–15 maps the scripted builder loses.
+They all build a free-standing bank, its top 2–5 columns in front of the house, and take the
+sand from the seaward side, in front of the bank: on the test maps none of them dig between
+the bank and the house. Seeds 1 and 2 never spill a grain over the roof; seed 3 spills 78
+grains across the 200 maps.
+
+<FloodReplay
+  src="008-flood/replays-round2.json"
+  caption="Seed 1, round 2: the network that plays at the top of the page."
+/>
+
+## Does it read the forecast?
+
+The network is told how high this tide will rise; the dashed line shows it. The scripted
+builder uses that number: it builds to the first whole cell above it. To see whether the network
+uses it too, I ran the final networks on tides lower and higher than any in training. Training
+tides peak 1 to 3 cells above the house floor.
+
+| Peak above the house floor | 0.3–1 | 1–3 (trained) | 3–4.5 | 4.5–6 |
+| --- | --- | --- | --- | --- |
+| Round 1 networks, houses dry | 198–200 | 195–200 | 177–198 | 80–176 |
+| Round 2 networks, houses dry | 199–200 | 197–199 | 182–188 | 100–139 |
+| Scripted builder, round 1 world | 200 | 185 | 119 | 64 |
+| Scripted builder, round 2 world | 200 | 185 | 119 | 54 |
+| Average peak above the floor | 0.65 | 1.99 | 3.74 | 5.24 |
+| Round 2 seed 1's wall top above the floor | 5.04 | 5.41 | 5.67 | 5.68 |
+
+Houses dry out of 200 test maps; the wall top is the highest column the digger built up,
+averaged over the maps.
+
+From the lowest tides to the highest the sea rises 4.6 cells more, but the top of round 2 seed
+1's wall rises 0.6 cells. The other five networks are the same: their walls rise 0.25 to 1.2
+cells. Mostly they build to a fixed height above the house, between 3.7 and 6.9 cells
+depending on the run, with plenty of room to spare for the tides they trained on. The builder's
+wall follows the forecast (1.6 cells above the floor at the lowest tides, 4.5 at the highest),
+but on the trained tides its top is only 0.75 cells above the water on average.
+
+So the network's habit of overbuilding, which looks wasteful on easy maps, is what saves it on
+tides it has never seen.
+
+## Its top choice isn't enough
+
+The networks pick each move at random, in proportion to how much they like it. Take away the
+randomness and always play the top choice, and they get worse, sometimes much worse:
+
+| | Picks with randomness | Always its top choice |
+| --- | --- | --- |
+| Round 1, seeds 1, 2, 3 | 195, 200, 198 | 160, 189, 188 |
+| Round 2, seeds 1, 2, 3 | 199, 197, 197 | 151, 134, 170 |
+
+Houses dry out of 200, final checkpoints. The top-choice score also jumps around between
+checkpoints: round 1 seed 1 falls to 14 of 200 at 4 million steps, while picking at random it
+saves 170. In the top-choice episodes that flood, the digger usually ends up repeating a dig or
+a drop that can't do anything any more (its hands are already full, or empty) until the water
+arrives. Sometimes it loops instead, digging on one side and dropping on the other, over and
+over. The randomness it was trained with breaks it out of both, so the game on this page plays
+with randomness by default.
+
+## How the AI runs on this page
+
+Plain JavaScript, no ML library, no server.
+
+- **Size:** 124 inputs, two layers of 128, 7 outputs: 33,415 numbers, 275 KB of JSON per
+  network (95 KB gzipped). The page loads a network when you pick it.
+- **Speed:** one step takes about 40 microseconds in Node on an M1 Pro, 35 of them for the
+  network and under 3 for the sand and water.
+- **Same results as Python:** a test rebuilds random maps from their seeds and replays five
+  exported episodes in the round 2 world: random moves, the scripted builder, doing nothing and
+  a round 1 network on two maps, where it spills sand over the roof. It checks the sand, water,
+  position, spilled grains, inputs and reward every 10 steps, and the network's outputs against
+  PyTorch's, on every push.
+
+## What didn't work at first
+
+- **Water that crept.** My first water spread a fixed share of each level difference to its
+  neighbours. It moved like syrup and stayed about 3 cells behind the tide, so the house never
+  flooded: doing nothing kept all 200 houses I tried dry. Water that keeps momentum keeps up
+  with the tide.
+- **Walls too expensive to build.** With piles only 1 cell steep and 2 grains per trip, a wall
+  4 cells high needs long slopes on both sides, and even my scripted builder saved only 19 of
+  the 200 houses I tried. With 2-cell slopes and 3 grains per trip it saves 185 of the 200 test
+  houses in the final world.
+
+## What I take from it
+
+- **It finds the cheapest thing that works, not the thing I had in mind.** I expected a dam.
+  Two of three runs found that the house itself was the best wall. That was a flaw in my world,
+  not in the agent, and it took a rule change to get the dam I'd pictured.
+- **Different runs, different solutions.** Same world, same settings, different seeds: one
+  built a dam out in front and two leaned on the house. Both kept the house dry, so the reward
+  couldn't tell them apart. The roof rule could.
+- **Overbuilding is a strategy.** It's told the forecast and mostly ignores it. With no reward
+  for saving sand, building high every time costs it nothing, and it holds when the forecast is
+  higher than anything it has seen.
+
+## Cost
+
+All on an M1 Pro, CPU only. Training: 20 million steps per run, 33–46 minutes each, with three
+or four runs going at once.
+
+## Run it yourself
+
+```sh
+cd experiments/008-flood
+uv run train.py --seed 1 --name s1                         # round 1
+uv run train.py --seed 1 --house-wall 2 --name wall-s1     # round 2
+uv run evaluate.py s1 s2 s3 --export round1 --live s2 --model s1
+uv run evaluate.py wall-s1 wall-s2 wall-s3 --export round2 --live wall-s1 --transfer s1 s2 s3
+uv run evaluate.py s2 --parity                             # the JS test fixture
+uv run summarize.py round1 && uv run summarize.py round2   # every number quoted here
+```

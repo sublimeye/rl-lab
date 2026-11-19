@@ -13,6 +13,12 @@
   --timeout: #1baf7a;
   --link: #1f5fae;
   --code-bg: #e8ecef;
+  /* Flood world (post 8): scene colours, not chart series. */
+  --sand: #e3c992;
+  --sand-built: #c58b3c;
+  --bedrock: #a99f93;
+  --water: #3d8bd4;
+  --sky: #eef4f8;
 
   --font: 'Schibsted Grotesk', system-ui, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -36,6 +42,11 @@
     --timeout: #199e70;
     --link: #79b0f0;
     --code-bg: #23282d;
+  --sand: #7d6a4a;
+  --sand-built: #c08a3e;
+  --bedrock: #45403a;
+  --water: #2f72b8;
+  --sky: #1c2126;
   }
 }
 :root[data-theme='dark'] {
@@ -53,6 +64,11 @@
   --timeout: #199e70;
   --link: #79b0f0;
   --code-bg: #23282d;
+  --sand: #7d6a4a;
+  --sand-built: #c08a3e;
+  --bedrock: #45403a;
+  --water: #2f72b8;
+  --sky: #1c2126;
 }
 
 *,

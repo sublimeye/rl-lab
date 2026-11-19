@@ -1,0 +1,365 @@
+---
+/**
+ * What the digger does at each point in training, on the same few test maps. Thumbnails show
+ * how each checkpoint's episode ended; click one to play it. The browser re-simulates the
+ * recorded actions (site/src/lib/flood-sim.js); data from experiments/008-flood/evaluate.py.
+ */
+import { url } from '../lib';
+
+interface Props {
+  /** Path under public/data, e.g. "008-flood/replays.json" */
+  src: string;
+  caption?: string;
+}
+const { src, caption } = Astro.props;
+---
+
+<figure class="freplay wide">
+  <rl-flood-replay data-src={url(`data/${src}`)}>
+    <div class="top">
+      <div class="maps" role="group" aria-label="Test map"></div>
+      <p class="now muted" aria-live="polite">Loading replays…</p>
+    </div>
+    <div class="stage">
+      <canvas role="img" aria-label="Replay of one episode: the tide rises and the digger moves sand"></canvas>
+    </div>
+    <div class="bar">
+      <button class="play" type="button" disabled>Play</button>
+      <input class="scrub" type="range" min="0" max="0" value="0" aria-label="Step" disabled />
+      <span class="clock muted"></span>
+    </div>
+    <div class="thumbs"></div>
+  </rl-flood-replay>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .freplay {
+    margin-block: 2rem 2.5rem;
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.6rem;
+  }
+  .maps {
+    display: flex;
+    gap: 0.35rem;
+  }
+  .maps :global(button),
+  .play {
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 650;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+  }
+  .maps :global(button[aria-pressed='true']) {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .maps :global(button):focus-visible,
+  .play:focus-visible,
+  .scrub:focus-visible,
+  .thumbs :global(button):focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  .now {
+    margin: 0;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .stage {
+    aspect-ratio: 2 / 1;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--sky);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.6rem 0 1rem;
+  }
+  .scrub {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--ink);
+  }
+  .clock {
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 6.5em;
+    text-align: right;
+  }
+  .thumbs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: 0.6rem;
+  }
+  .thumbs :global(button) {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.3rem;
+    font: inherit;
+    text-align: left;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .thumbs :global(button[aria-pressed='true']) {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 1px var(--ink);
+  }
+  .thumbs :global(canvas) {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    height: auto;
+    border-radius: 3px;
+  }
+  .thumbs :global(.lab) {
+    font-size: 0.8rem;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+  }
+  .thumbs :global(.lab b) {
+    font-weight: 700;
+  }
+  .thumbs :global(.dry) {
+    color: var(--timeout);
+  }
+  .thumbs :global(.flooded) {
+    color: var(--lava);
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  import { makeMap, newState, step } from '../lib/flood-sim.js';
+  import { drawWorld, fitCanvas, readColors } from '../lib/flood-draw.js';
+  import { formatSteps } from '../lib';
+
+  type Run = { seed: number; outcome: string; t: number; actions: number[] };
+  type Data = {
+    world: any;
+    seeds: number[];
+    checkpoints: { steps: number; runs: Run[] }[];
+    builder: { outcome: string; t: number }[];
+  };
+
+  /** Every state of one episode (sand, water, x, carrying), for scrubbing. */
+  function simulate(world: any, seed: number, actions: number[]) {
+    const s = newState(makeMap(seed, world), world);
+    const frames = [snap(s)];
+    for (const a of actions) {
+      step(s, a);
+      frames.push(snap(s));
+    }
+    return { s, frames };
+  }
+  function snap(s: any) {
+    return { sand: Int32Array.from(s.sand), water: Float64Array.from(s.water), x: s.x, carrying: s.carrying, t: s.t };
+  }
+
+  class RlFloodReplay extends HTMLElement {
+    data!: Data;
+    canvas!: HTMLCanvasElement;
+    ctx!: CanvasRenderingContext2D;
+    mapsEl!: HTMLElement;
+    nowEl!: HTMLElement;
+    playBtn!: HTMLButtonElement;
+    scrub!: HTMLInputElement;
+    clock!: HTMLElement;
+    thumbsEl!: HTMLElement;
+    map = 0;
+    ck = 0;
+    frames: any[] = [];
+    base: any = null;
+    t = 0;
+    playing = false;
+    last = 0;
+    acc = 0;
+    raf = 0;
+    colors: any = null;
+    thumbs: { canvas: HTMLCanvasElement; state: any }[] = [];
+
+    connectedCallback() {
+      const q = <T extends Element>(sel: string) => this.querySelector(sel) as T;
+      this.canvas = q('.stage canvas');
+      this.ctx = this.canvas.getContext('2d')!;
+      this.mapsEl = q('.maps');
+      this.nowEl = q('.now');
+      this.playBtn = q('.play');
+      this.scrub = q('.scrub');
+      this.clock = q('.clock');
+      this.thumbsEl = q('.thumbs');
+      this.playBtn.addEventListener('click', () => (this.playing ? this.pause() : this.play()));
+      this.scrub.addEventListener('input', () => {
+        this.pause();
+        this.t = Number(this.scrub.value);
+        this.draw();
+      });
+      new ResizeObserver(() => this.redrawAll()).observe(this);
+      const recolor = () => {
+        this.colors = null;
+        this.redrawAll();
+      };
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+      new MutationObserver(recolor).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme'],
+      });
+      this.load();
+    }
+
+    async load() {
+      try {
+        this.data = await (await fetch(this.dataset.src!)).json();
+      } catch {
+        this.nowEl.textContent = 'Could not load the replays.';
+        return;
+      }
+      this.data.seeds.forEach((_, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = `Map ${i + 1}`;
+        b.addEventListener('click', () => this.selectMap(i));
+        this.mapsEl.append(b);
+      });
+      this.playBtn.disabled = false;
+      this.scrub.disabled = false;
+      this.selectMap(0);
+    }
+
+    selectMap(i: number) {
+      this.map = i;
+      this.mapsEl.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+      const world = this.data.world;
+      this.thumbsEl.replaceChildren();
+      this.thumbs = this.data.checkpoints.map((c, k) => {
+        const run = c.runs[i];
+        const { s } = simulate(world, run.seed, run.actions);
+        const b = document.createElement('button');
+        b.type = 'button';
+        const cv = document.createElement('canvas');
+        const lab = document.createElement('span');
+        lab.className = 'lab';
+        const ok = run.outcome === 'dry';
+        lab.innerHTML = `<b>${formatSteps(c.steps)}</b> steps<br><span class="${ok ? 'dry' : 'flooded'}">${
+          ok ? 'dry' : `flooded at ${run.t}`
+        }</span> · ${s.dropped} grains`;
+        b.append(cv, lab);
+        b.addEventListener('click', () => {
+          this.selectCk(k);
+          this.play();
+        });
+        this.thumbsEl.append(b);
+        return { canvas: cv, state: s };
+      });
+      this.selectCk(this.data.checkpoints.length - 1);
+      this.redrawAll();
+    }
+
+    selectCk(k: number) {
+      this.pause();
+      this.ck = k;
+      this.thumbsEl.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === k)));
+      const c = this.data.checkpoints[k];
+      const run = c.runs[this.map];
+      const { s, frames } = simulate(this.data.world, run.seed, run.actions);
+      this.base = s;
+      this.frames = frames;
+      this.t = 0;
+      this.scrub.max = String(frames.length - 1);
+      const b = this.data.builder[this.map];
+      this.nowEl.textContent = `After ${formatSteps(c.steps)} training steps. Scripted builder on this map: ${
+        b.outcome === 'dry' ? 'dry' : `flooded at ${b.t}`
+      }.`;
+      this.draw();
+    }
+
+    play() {
+      if (this.t >= this.frames.length - 1) this.t = 0;
+      this.playing = true;
+      this.playBtn.textContent = 'Pause';
+      this.last = performance.now();
+      this.acc = 0;
+      this.raf = requestAnimationFrame((n) => this.frame(n));
+    }
+
+    pause() {
+      this.playing = false;
+      this.playBtn.textContent = 'Play';
+      cancelAnimationFrame(this.raf);
+    }
+
+    frame(now: number) {
+      if (!this.playing) return;
+      this.acc += Math.min(now - this.last, 250);
+      this.last = now;
+      const dt = 1000 / 40;
+      while (this.acc >= dt && this.t < this.frames.length - 1) {
+        this.acc -= dt;
+        this.t += 1;
+      }
+      this.draw();
+      if (this.t >= this.frames.length - 1) {
+        this.pause();
+        return;
+      }
+      this.raf = requestAnimationFrame((n) => this.frame(n));
+    }
+
+    stateAt(t: number) {
+      const f = this.frames[t];
+      return { ...this.base, ...f, sand: f.sand, water: f.water };
+    }
+
+    draw() {
+      if (!this.frames.length) return;
+      fitCanvas(this.canvas);
+      if (!this.colors) this.colors = readColors(this);
+      drawWorld(this.ctx, this.stateAt(this.t), this.colors);
+      this.scrub.value = String(this.t);
+      const last = this.t === this.frames.length - 1;
+      const run = this.data.checkpoints[this.ck].runs[this.map];
+      this.clock.textContent = last
+        ? run.outcome === 'dry'
+          ? `${this.t}: dry`
+          : `${this.t}: flooded`
+        : `step ${this.t}`;
+    }
+
+    redrawAll() {
+      if (!this.data) return;
+      if (!this.colors) this.colors = readColors(this);
+      for (const th of this.thumbs) {
+        fitCanvas(th.canvas);
+        drawWorld(th.canvas.getContext('2d')!, th.state, this.colors, { labels: false });
+      }
+      this.draw();
+    }
+  }
+  customElements.define('rl-flood-replay', RlFloodReplay);
+</script>

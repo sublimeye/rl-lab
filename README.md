@@ -13,6 +13,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [005 Tag, part 3](https://sublimeye.github.io/rl-lab/posts/005-tag-maps/) | Random maps (pillars, blocks, walls, mazes) with 16 distance sensors; 40 rounds of self-play vs 5M-step exploiters |
 | [006 Tag, part 4](https://sublimeye.github.io/rl-lab/posts/006-tag-seek/) | Hide and seek: a chaser that only sees along lines of sight, with a memory and a map of where you could be |
 | [007 Tag, part 5](https://sublimeye.github.io/rl-lab/posts/007-tag-cone/) | A field of view: the seeker sees only in front, turns its head at a limited speed, reacts with a delay; one network for any settings |
+| [008 Flood defence](https://sublimeye.github.io/rl-lab/posts/008-flood/) | Sand and water physics: a digger rewarded only for keeping a house dry learns to build a dam against the rising tide; play it in the browser |
 
 ## Layout
 
@@ -32,12 +33,18 @@ experiments/NNN-slug/     one folder per experiment
   evaluate_seek.py        003-tag: scores the seekers, exports post 006 data + parity fixture
   cone.py, seek_cone.py   003-tag: field of view, head turning, reaction time; training (007)
   evaluate_cone.py        003-tag: scores the field-of-view seekers, exports post 007 data + parity fixture
+experiments/008-flood/
+  flood_env.py            sand + water height fields, the tide, the digger; scripted builder baseline
+  train.py                PPO, 16 envs in subprocesses
+  evaluate.py             200 held-out maps per checkpoint, tide tests, exports post 008 data + parity fixture
+  summarize.py            prints the numbers quoted in the post
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
-  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame
+  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart
   src/lib/tag-sim.js      browser port of experiments/003-tag/tag_env.py, maps.py + the policy network
   src/lib/tag-sight.js    browser port of experiments/003-tag/sight.py (006)
   src/lib/tag-cone.js     browser port of experiments/003-tag/cone.py (007)
+  src/lib/flood-sim.js    browser port of experiments/008-flood/flood_env.py; flood-draw.js draws it
   test/                   node tests: the JS port must match trajectories and maps exported from Python
   public/data/            exported replays (committed, small JSON)
 ```

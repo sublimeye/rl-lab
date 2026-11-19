@@ -1,0 +1,511 @@
+---
+/**
+ * The flood world, live: the trained network (or the scripted builder, nobody, or you) digs
+ * while the tide comes in. The network runs in the browser (site/src/lib/flood-sim.js); data
+ * from experiments/008-flood/evaluate.py.
+ */
+import { url } from '../lib';
+
+interface Props {
+  /** Trained networks: path under public/data (e.g. "008-flood/model-round2.json") and a label */
+  models: { src: string; label: string }[];
+  /** The worlds to choose from; houseWall null = round 1 (the house holds any amount of sand) */
+  worlds: { label: string; short: string; houseWall: number | null }[];
+  caption?: string;
+}
+const { models, worlds, caption } = Astro.props;
+const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }));
+---
+
+<figure class="flood wide">
+  <rl-flood data-models={JSON.stringify(sources)} data-worlds={JSON.stringify(worlds)}>
+    <div class="stage">
+      <canvas
+        role="img"
+        aria-label="Side view of a coast: the tide rises from the left, a house stands on the right, and a small digger moves sand in between"
+      ></canvas>
+    </div>
+    <div class="side">
+      <p class="status" aria-live="polite">Loading the trained digger…</p>
+      <p class="score muted" aria-live="polite"></p>
+      <div class="buttons">
+        <button class="start" type="button" disabled>Start</button>
+        <button class="newmap" type="button" disabled>New map</button>
+      </div>
+      <div class="controls">
+        <label>
+          World
+          <select class="world">
+            {worlds.map((w, i) => <option value={i}>{w.label}</option>)}
+          </select>
+        </label>
+        <label>
+          Who digs
+          <select class="who">
+            {models.map((m, i) => <option value={`net:${i}`}>{m.label}</option>)}
+            <option value="builder">Scripted builder</option>
+            <option value="nobody">Nobody</option>
+            <option value="you">You</option>
+          </select>
+        </label>
+        <label class="pickrow">
+          The network picks moves
+          <select class="pick">
+            <option value="sample" selected>With some randomness</option>
+            <option value="best">Always its top choice</option>
+          </select>
+        </label>
+        <label>
+          Speed
+          <select class="speed">
+            <option value="8">Slow</option>
+            <option value="25" selected>Normal</option>
+            <option value="70">Fast</option>
+          </select>
+        </label>
+      </div>
+      <div class="pad" hidden>
+        <button type="button" data-a="left" aria-label="Walk left">◀</button>
+        <button type="button" data-a="dig">Dig</button>
+        <button type="button" data-a="drop">Drop</button>
+        <button type="button" data-a="right" aria-label="Walk right">▶</button>
+      </div>
+      <p class="help muted" hidden>
+        ← → walk (and turn), ↓ dig the sand in front of you, ↑ drop a grain in front. You carry
+        up to three grains.
+      </p>
+    </div>
+  </rl-flood>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .flood {
+    margin-block: 2rem 2.5rem;
+  }
+  rl-flood {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+  }
+  @media (min-width: 52rem) {
+    rl-flood {
+      grid-template-columns: minmax(0, 1fr) 15rem;
+      align-items: start;
+    }
+  }
+  .stage {
+    aspect-ratio: 2 / 1;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--sky);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .status {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+    min-height: 2.5em;
+  }
+  .score {
+    white-space: pre-line;
+    margin: 0.2rem 0 0.9rem;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    min-height: 3em;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .start,
+  .newmap,
+  .pad button {
+    font: inherit;
+    font-weight: 650;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .start {
+    color: #fff;
+    background: var(--lava);
+    border: 0;
+    padding: 0.55rem 1.4rem;
+  }
+  .newmap,
+  .pad button {
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 0.55rem 1rem;
+  }
+  .start:disabled,
+  .newmap:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .start:focus-visible,
+  .newmap:focus-visible,
+  .pad button:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  .controls {
+    display: grid;
+    gap: 0.6rem;
+  }
+  @media (min-width: 30rem) and (max-width: 51.99rem) {
+    .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  label[hidden] {
+    display: none;
+  }
+  label {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  select {
+    font: inherit;
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .pad {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin-top: 1rem;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .pad[hidden],
+  .help[hidden] {
+    display: none;
+  }
+  .pad button {
+    padding: 0.6rem 0;
+  }
+  .pad button.held {
+    background: var(--code-bg);
+  }
+  .help {
+    font-size: 0.86rem;
+    margin: 0.9rem 0 0;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  import {
+    act,
+    builderAction,
+    DIG_L,
+    DIG_R,
+    DROP_L,
+    DROP_R,
+    LEFT,
+    makeMap,
+    newState,
+    observe,
+    RIGHT,
+    sampleAct,
+    step,
+    WAIT,
+    wallSite,
+  } from '../lib/flood-sim.js';
+  import { drawWorld, fitCanvas, readColors } from '../lib/flood-draw.js';
+
+  type Who = string; // 'net:<i>', 'builder', 'nobody' or 'you'
+  type WorldOpt = { label: string; short: string; houseWall: number | null };
+  type Intent = 'left' | 'right' | 'dig' | 'drop';
+  const KEYS: Record<string, Intent> = {
+    ArrowLeft: 'left',
+    KeyA: 'left',
+    ArrowRight: 'right',
+    KeyD: 'right',
+    ArrowDown: 'dig',
+    KeyS: 'dig',
+    ArrowUp: 'drop',
+    KeyW: 'drop',
+  };
+  const WHO_LABEL: Record<string, string> = {
+    builder: 'Scripted builder',
+    nobody: 'Nobody',
+    you: 'You',
+  };
+
+  class RlFlood extends HTMLElement {
+    canvas!: HTMLCanvasElement;
+    ctx!: CanvasRenderingContext2D;
+    statusEl!: HTMLElement;
+    scoreEl!: HTMLElement;
+    startBtn!: HTMLButtonElement;
+    newMapBtn!: HTMLButtonElement;
+    whoSel!: HTMLSelectElement;
+    speedSel!: HTMLSelectElement;
+    pickSel!: HTMLSelectElement;
+    pickRow!: HTMLElement;
+    worldSel!: HTMLSelectElement;
+    sources: { src: string; label: string }[] = [];
+    worlds: WorldOpt[] = [];
+    cache = new Map<number, any>();
+    pad!: HTMLElement;
+    help!: HTMLElement;
+
+    world: any;
+    net: any;
+    seed = 0;
+    s: any = null;
+    wall = 0;
+    running = false;
+    facing = 1;
+    held: Intent | null = null;
+    queued: Intent | null = null;
+    acc = 0;
+    last = 0;
+    raf = 0;
+    tally = new Map<string, { dry: number; rounds: number }>();
+    colors: any = null;
+
+    connectedCallback() {
+      const q = <T extends Element>(sel: string) => this.querySelector(sel) as T;
+      this.canvas = q('canvas');
+      this.ctx = this.canvas.getContext('2d')!;
+      this.statusEl = q('.status');
+      this.scoreEl = q('.score');
+      this.startBtn = q('.start');
+      this.newMapBtn = q('.newmap');
+      this.whoSel = q('.who');
+      this.speedSel = q('.speed');
+      this.pickSel = q('.pick');
+      this.pickRow = q('.pickrow');
+      this.pickSel.addEventListener('change', () => this.reset());
+      this.worldSel = q('.world');
+      this.worldSel.addEventListener('change', () => this.load());
+      this.sources = JSON.parse(this.dataset.models!);
+      this.worlds = JSON.parse(this.dataset.worlds!);
+      this.pad = q('.pad');
+      this.help = q('.help');
+
+      this.startBtn.addEventListener('click', () => this.start());
+      this.newMapBtn.addEventListener('click', () => {
+        this.seed = this.randomSeed();
+        this.reset();
+      });
+      this.whoSel.addEventListener('change', () => {
+        const you = this.who() === 'you';
+        this.pickRow.hidden = !this.who().startsWith('net:');
+        this.pad.hidden = !you;
+        this.help.hidden = !you;
+        if (you) this.speedSel.value = '8';
+        this.load();
+      });
+      this.speedSel.addEventListener('change', () => this.speedSel.blur());
+      window.addEventListener('keydown', (e) => this.key(e, true));
+      window.addEventListener('keyup', (e) => this.key(e, false));
+      this.pad.querySelectorAll('button').forEach((b) => {
+        const intent = b.dataset.a as Intent;
+        b.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          this.held = intent;
+          this.queued = intent;
+          b.classList.add('held');
+        });
+        const up = () => {
+          if (this.held === intent) this.held = null;
+          b.classList.remove('held');
+        };
+        b.addEventListener('pointerup', up);
+        b.addEventListener('pointerleave', up);
+        b.addEventListener('pointercancel', up);
+      });
+
+      new ResizeObserver(() => this.draw()).observe(this.canvas);
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        this.colors = null;
+        this.draw();
+      });
+      new MutationObserver(() => {
+        this.colors = null;
+        this.draw();
+      }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      this.seed = 3_000_000_000 + 5; // a held-out test map the scripted builder loses
+      this.load();
+    }
+
+    /** Loads the chosen network (or the first one, for the world settings) and resets. */
+    async load() {
+      cancelAnimationFrame(this.raf);
+      this.running = false;
+      this.startBtn.disabled = true;
+      this.newMapBtn.disabled = true;
+      const who = this.who();
+      const i = who.startsWith('net:') ? Number(who.slice(4)) : 0;
+      try {
+        if (!this.cache.has(i)) this.cache.set(i, await (await fetch(this.sources[i].src)).json());
+      } catch {
+        this.statusEl.textContent = 'Could not load the network.';
+        return;
+      }
+      const data = this.cache.get(i);
+      const opt = this.worlds[Number(this.worldSel.value)];
+      this.world = { ...data.world, houseWall: opt.houseWall };
+      this.net = data.net;
+      this.startBtn.disabled = false;
+      this.newMapBtn.disabled = false;
+      this.reset();
+    }
+
+    who(): Who {
+      return this.whoSel.value as Who;
+    }
+
+    randomSeed() {
+      return Math.floor(Math.random() * 2 ** 31);
+    }
+
+    reset() {
+      if (!this.world) return;
+      cancelAnimationFrame(this.raf);
+      this.running = false;
+      this.s = newState(makeMap(this.seed, this.world), this.world);
+      this.wall = wallSite(this.s);
+      this.facing = 1;
+      this.queued = null;
+      this.startBtn.textContent = 'Start';
+      this.statusEl.textContent = 'The tide is coming in.';
+      this.updateScore();
+      this.draw();
+    }
+
+    start() {
+      if (this.s?.done || this.running) this.reset();
+      this.running = true;
+      this.startBtn.textContent = 'Restart';
+      this.last = performance.now();
+      this.acc = 0;
+      if (this.who() === 'you') this.canvas.focus?.();
+      this.raf = requestAnimationFrame((t) => this.frame(t));
+    }
+
+    key(e: KeyboardEvent, down: boolean) {
+      const intent = KEYS[e.code];
+      if (!intent || this.who() !== 'you') return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'SELECT' || tag === 'INPUT') return;
+      if (!this.isConnected || !this.running) return;
+      e.preventDefault();
+      if (down) {
+        this.held = intent;
+        if (!e.repeat) this.queued = intent;
+      } else if (this.held === intent) {
+        this.held = null;
+      }
+    }
+
+    humanAction(): number {
+      const intent = this.queued ?? this.held;
+      this.queued = null;
+      if (intent === 'left') {
+        this.facing = -1;
+        return LEFT;
+      }
+      if (intent === 'right') {
+        this.facing = 1;
+        return RIGHT;
+      }
+      if (intent === 'dig') return this.facing < 0 ? DIG_L : DIG_R;
+      if (intent === 'drop') return this.facing < 0 ? DROP_L : DROP_R;
+      return WAIT;
+    }
+
+    action(): number {
+      const who = this.who();
+      if (who.startsWith('net:')) {
+        const obs = observe(this.s);
+        return this.pickSel.value === 'best' ? act(this.net, obs) : sampleAct(this.net, obs);
+      }
+      if (who === 'builder') return builderAction(this.s, this.wall);
+      if (who === 'you') return this.humanAction();
+      return WAIT;
+    }
+
+    frame(now: number) {
+      if (!this.running) return;
+      const rate = Number(this.speedSel.value);
+      this.acc += Math.min(now - this.last, 250);
+      this.last = now;
+      while (this.acc >= 1000 / rate && !this.s.done) {
+        this.acc -= 1000 / rate;
+        step(this.s, this.action());
+      }
+      this.draw();
+      if (this.s.done) {
+        this.finish();
+        return;
+      }
+      this.statusEl.textContent = `Dry: step ${this.s.t} of ${this.world.maxSteps}`;
+      this.updateScore();
+      this.raf = requestAnimationFrame((t) => this.frame(t));
+    }
+
+    finish() {
+      this.running = false;
+      this.startBtn.textContent = 'Again';
+      const dry = this.s.outcome === 'dry';
+      this.statusEl.textContent = dry
+        ? 'Still dry when the tide turned.'
+        : `Flooded at step ${this.s.t} of ${this.world.maxSteps}.`;
+      const pick = this.pickSel.value === 'best' ? ', top choice' : '';
+      const world = this.worlds[Number(this.worldSel.value)].short;
+      const who = this.who().startsWith('net:')
+        ? `${this.sources[Number(this.who().slice(4))].label}${pick} (${world} world)`
+        : `${WHO_LABEL[this.who()]} (${world} world)`;
+      const t = this.tally.get(who) ?? { dry: 0, rounds: 0 };
+      t.rounds += 1;
+      t.dry += dry ? 1 : 0;
+      this.tally.set(who, t);
+      this.updateScore();
+    }
+
+    updateScore() {
+      const parts = [...this.tally.entries()].map(([who, t]) => `${who}: ${t.dry} dry of ${t.rounds}`);
+      const moved = this.s ? `Grains moved this round: ${this.s.dropped}.` : '';
+      this.scoreEl.textContent = [moved, ...parts].filter(Boolean).join('\n');
+    }
+
+    draw() {
+      if (!this.s) return;
+      fitCanvas(this.canvas);
+      if (!this.colors) this.colors = readColors(this);
+      drawWorld(this.ctx, this.s, this.colors);
+    }
+  }
+  customElements.define('rl-flood', RlFlood);
+</script>
