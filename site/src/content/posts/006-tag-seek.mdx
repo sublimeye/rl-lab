@@ -170,6 +170,8 @@ Same as before: plain JavaScript, no ML library, no server.
 - **Speed:** one decision takes about 60 microseconds in Node on an M1 Pro: 47 for the line of
   sight to about 1,900 spots and the map update, 4 for the inputs, 9 for the network. Post 5's
   runner takes about 9. At 20 decisions a second, that's 0.12% of the time between steps.
+- **Loading:** in three fresh loads of this page, the models file had arrived 0.36–0.53
+  seconds after navigation, so the game was ready in about half a second.
 - **New map:** about 40 ms to set up the path grid the map and bots use.
 - **Same results as Python:** a test replays six exported episodes (bots, the hider, the
   trained seeker) and checks every position, every input, the map's size and weight, and the
