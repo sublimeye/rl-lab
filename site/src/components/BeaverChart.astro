@@ -1,0 +1,326 @@
+---
+/**
+ * Post 9: how often the trained beaver keeps its den dry against the scripted rivers on the
+ * 200 test boards (all three styles pooled), per checkpoint (log-scale steps), with the
+ * scripted beaver, a random one and doing nothing as flat reference lines.
+ * Data: experiments/009-beaver/evaluate.py → eval-<tag>.json.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { formatSteps } from '../lib';
+
+interface Props {
+  src: string;
+  title: string;
+  caption?: string;
+}
+const { src, title, caption } = Astro.props;
+const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
+const runNames = Object.keys(data.curves);
+const pool = (vs: Record<string, { dry: number; n: number }>) =>
+  Object.values(vs).reduce((a, v) => ({ dry: a.dry + v.dry, n: a.n + v.n }), { dry: 0, n: 0 });
+const runs = runNames.map((n) =>
+  (data.curves[n] as { steps: number; vs: any }[]).map((c) => ({ steps: c.steps, ...pool(c.vs) })),
+);
+const bots = Object.keys(data.curves[runNames[0]][0].vs);
+const steps: number[] = runs[0].map((c) => c.steps).filter((s) => s > 0);
+const rate = (c: { dry: number; n: number }) => c.dry / c.n;
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+const refs = [
+  { key: 'warden', name: 'Scripted beaver' },
+  { key: 'random', name: 'Random moves' },
+  { key: 'nothing', name: 'Doing nothing' },
+].map((r) => {
+  const row: Record<string, { dry: number; n: number }> = {};
+  for (const b of bots) row[b] = data.table[r.key][b];
+  return { ...r, v: rate(pool(row)) };
+});
+
+const W = 1000;
+const H = 300;
+const lx = Math.log10;
+const x0 = lx(steps[0]);
+const x1 = lx(steps[steps.length - 1]);
+const X = (s: number) => ((lx(s) - x0) / (x1 - x0)) * W;
+const Y = (v: number) => H - v * H;
+const pctX = (s: number) => (X(s) / W) * 100;
+const pctY = (v: number) => (Y(v) / H) * 100;
+
+const perSeed = runs.map((r) => steps.map((s) => rate(r.find((c) => c.steps === s)!)));
+const avg = steps.map((_, i) => perSeed.reduce((a, p) => a + p[i], 0) / perSeed.length);
+const line = (vs: number[]) => vs.map((v, i) => `${i ? 'L' : 'M'}${X(steps[i]).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+
+// Direct labels at the right, nudged apart if they collide.
+const ends = [{ name: 'Trained beaver', y: pctY(avg[avg.length - 1]), cls: 'net' }, ...refs.map((r) => ({ name: r.name, y: pctY(r.v), cls: 'ref' }))].sort(
+  (a, b) => a.y - b.y,
+);
+for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 8) ends[i].y = ends[i - 1].y + 8;
+// keep the bottom label inside the plot, pushing the ones above it up
+ends[ends.length - 1].y = Math.min(ends[ends.length - 1].y, 99);
+for (let i = ends.length - 2; i >= 0; i--) if (ends[i + 1].y - ends[i].y < 8) ends[i].y = ends[i + 1].y - 8;
+
+const xTicks = [300_000, 1_000_000, 3_000_000, 10_000_000, 20_000_000].filter(
+  (t) => t >= steps[0] && t <= steps[steps.length - 1],
+);
+const yTicks = [0, 0.25, 0.5, 0.75, 1];
+const tipData = steps.map((s, i) => {
+  const vals = perSeed.map((p) => p[i]);
+  const range = vals.length > 1 ? ` (seeds ${pct(Math.min(...vals))}–${pct(Math.max(...vals))})` : '';
+  return { x: pctX(s), y: pctY(avg[i]), head: `${formatSteps(s)} steps`, text: `Den dry: ${pct(avg[i])}${range}` };
+});
+---
+
+<figure class="beaverchart wide">
+  <p class="title">{title}</p>
+  <p class="legend">
+    <span><i class="sw net"></i>Trained beaver (thin lines: each of {runs.length} seeds; bold: their mean)</span>
+    <span><i class="sw ref"></i>Scripted references, same games</span>
+  </p>
+  <div class="plot" data-tips={JSON.stringify(tipData)}>
+    <div class="y-axis" aria-hidden="true">
+      {yTicks.map((t) => <span style={`top:${pctY(t)}%`}>{pct(t)}</span>)}
+    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${title}. See the table below for values.`}>
+      {yTicks.map((t) => <line class="grid" x1="0" x2={W} y1={Y(t)} y2={Y(t)} vector-effect="non-scaling-stroke" />)}
+      {refs.map((r) => <line class="refline" x1="0" x2={W} y1={Y(r.v)} y2={Y(r.v)} vector-effect="non-scaling-stroke" />)}
+      {perSeed.map((p) => <path class="seed" d={line(p)} vector-effect="non-scaling-stroke" />)}
+      <path class="avg" d={line(avg)} vector-effect="non-scaling-stroke" />
+    </svg>
+    <div class="ends" aria-hidden="true">
+      {ends.map((e) => <span class={e.cls} style={`top:${e.y}%`}>{e.name}</span>)}
+    </div>
+    <div class="x-axis" aria-hidden="true">
+      {xTicks.map((t) => <span style={`left:${pctX(t)}%`}>{formatSteps(t)}</span>)}
+    </div>
+    <div class="cross" hidden></div>
+    <i class="dot" hidden></i>
+    <div class="tip" hidden></div>
+  </div>
+  <p class="reflegend">
+    {`Dashed lines, top to bottom: ${refs.map((r) => `${r.name.toLowerCase()} ${pct(r.v)}`).join(', ')}. `}
+    {`Trained beaver after ${formatSteps(steps[steps.length - 1])} steps: ${pct(avg[avg.length - 1])}.`}
+  </p>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+  <details>
+    <summary>Show the numbers as a table</summary>
+    <table>
+      <thead>
+        <tr>
+          <th>Training steps</th>
+          {runNames.map((n) => <th>Seed {n.replace(/^s/, '')}</th>)}
+          <th>Mean</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          steps.map((st, i) => (
+            <tr>
+              <td>{formatSteps(st)}</td>
+              {perSeed.map((p) => (
+                <td>{pct(p[i])}</td>
+              ))}
+              <td>{pct(avg[i])}</td>
+            </tr>
+          ))
+        }
+        {
+          refs.map((r) => (
+            <tr>
+              <td>{r.name}</td>
+              <td colspan={runs.length + 1}>{pct(r.v)}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </details>
+</figure>
+
+<style>
+  .beaverchart {
+    margin-block: 1.75rem 2.25rem;
+  }
+  .title {
+    font-weight: 650;
+    margin: 0 0 0.3rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin: 0 0 0.75rem;
+  }
+  .sw {
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    margin-right: 0.4rem;
+    vertical-align: 0.25em;
+  }
+  .sw.net {
+    background: var(--flag);
+  }
+  .sw.ref {
+    background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px);
+  }
+  .plot {
+    position: relative;
+    margin: 0 8.5rem 0 2.8rem;
+    padding-bottom: 1.4rem;
+  }
+  .reflegend {
+    display: none;
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin: 0.5rem 0 0;
+  }
+  @media (max-width: 40rem) {
+    .plot {
+      margin-right: 0;
+    }
+    .ends {
+      display: none;
+    }
+    .reflegend {
+      display: block;
+    }
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: 13rem;
+    overflow: visible;
+  }
+  .grid {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  .refline {
+    stroke: var(--muted);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+  }
+  path {
+    fill: none;
+    stroke: var(--flag);
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .seed {
+    stroke-width: 1;
+    opacity: 0.4;
+  }
+  .avg {
+    stroke-width: 2;
+  }
+  .y-axis,
+  .ends {
+    position: absolute;
+    inset: 0 0 1.4rem 0;
+    pointer-events: none;
+  }
+  .y-axis span,
+  .x-axis span,
+  .ends span {
+    position: absolute;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .y-axis span {
+    right: calc(100% + 0.4rem);
+    transform: translateY(-50%);
+  }
+  .ends span {
+    left: calc(100% + 0.5rem);
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+  }
+  .ends span.net {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .x-axis span {
+    bottom: 0;
+    transform: translateX(-50%);
+  }
+  .cross {
+    position: absolute;
+    top: 0;
+    bottom: 1.4rem;
+    width: 1px;
+    background: var(--muted);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--flag);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 2px var(--paper);
+    pointer-events: none;
+  }
+  .tip {
+    position: absolute;
+    top: -0.5rem;
+    pointer-events: none;
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    z-index: 2;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+  details {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+  }
+  summary {
+    cursor: pointer;
+    color: var(--link);
+  }
+</style>
+
+<script>
+  type Tip = { x: number; y: number; head: string; text: string };
+  document.querySelectorAll<HTMLElement>('figure.beaverchart .plot').forEach((plot) => {
+    const tips: Tip[] = JSON.parse(plot.dataset.tips!);
+    const cross = plot.querySelector<HTMLElement>('.cross')!;
+    const dot = plot.querySelector<HTMLElement>('.dot')!;
+    const tip = plot.querySelector<HTMLElement>('.tip')!;
+    const svg = plot.querySelector('svg')!;
+    const hide = () => (cross.hidden = dot.hidden = tip.hidden = true);
+    svg.addEventListener('pointerleave', hide);
+    svg.addEventListener('pointermove', (e) => {
+      const box = svg.getBoundingClientRect();
+      const px = ((e.clientX - box.left) / box.width) * 100;
+      const t = tips.reduce((a, b) => (Math.abs(b.x - px) < Math.abs(a.x - px) ? b : a));
+      cross.hidden = dot.hidden = tip.hidden = false;
+      cross.style.left = `${t.x}%`;
+      dot.style.left = `${t.x}%`;
+      dot.style.top = `${(t.y / 100) * box.height}px`;
+      tip.innerHTML = `<strong>${t.head}</strong><br>${t.text}`;
+      const w = tip.offsetWidth;
+      const left = (t.x / 100) * box.width;
+      tip.style.left = `${left + 12 + w > box.width ? left - w - 12 : left + 12}px`;
+    });
+  });
+</script>

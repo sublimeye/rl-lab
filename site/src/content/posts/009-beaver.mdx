@@ -1,0 +1,244 @@
+---
+title: "Beaver vs river: a board game against a trained network"
+number: 9
+date: 2026-11-19
+summary: Post 8's flood, turned into a small turn-based game. You play the river and dig channels for the water; a network trained with PPO plays a beaver that drops logs to keep its den dry.
+draft: false
+---
+
+import BeaverGame from '../../components/BeaverGame.astro';
+import BeaverChart from '../../components/BeaverChart.astro';
+
+Post 8 was water against a defender, with the defender trained and the water just physics.
+This time the water has a player too, and that player is you. It's a small board game: a spring,
+a beaver's den, a few rocks and trees, and 24 rounds. Each round you dig one tile for the
+water; then the beaver, a network trained with PPO, takes one step or drops one log. If water
+reaches the den, you win.
+
+<BeaverGame
+  models={[
+    { src: '009-beaver/model-round1.json', label: 'Round 1 network' },
+    { src: '009-beaver/model-round2.json', label: 'Round 2 network' },
+  ]}
+  rivers={[{ src: '009-beaver/model-river.json', label: 'Trained river network' }]}
+  caption="Click a dashed tile to dig it (or use the arrow keys and Enter). The beaver answers, then the water moves one tile. Under The river you can hand your side to the scripted river or the trained river network and watch."
+/>
+
+**Short answer:**
+
+- **It learns a real defence.** After 20 million steps of PPO, the beaver keeps its den dry in
+  87–88% of games against scripted rivers on boards it has never seen. A hand-written beaver
+  manages 41%, and doing nothing 0%.
+- **It cuts the water near the source, and late.** Almost all its logs go onto water that's
+  already flowing, a few tiles from the spring, around round 13 of 24. Each one drains about 4
+  tiles of channel the river spent rounds digging.
+- **You can beat it.** A river that plans ahead, trying each dig against the real beaver,
+  floods its den on about 60% of boards. Rivers trained with PPO flood it on up to about a
+  third.
+- **Training against a learned river helped against learned rivers only.** Round 2 beat the
+  river it trained with more often and was a little harder for a fresh one to exploit, but it
+  did no better against the planner.
+
+## The rules
+
+| | |
+| --- | --- |
+| Board | 9 × 9 tiles, new every game: grass (soil), clay, low ground (old dry streambeds), rocks and trees, a spring and the beaver's den. The spring's own stream is already full when the game starts. |
+| A round | You dig, then the beaver moves, then the water moves. 24 rounds. |
+| Digging | One tile per round, and only next to the water: soil opens in one dig, clay in two. You can also pass. |
+| Water | Spreads one tile per round into open low ground. It never gets more than 16 tiles from the spring, counted along open ground: that's its strength. Water cut off from the spring drains away at once. |
+| Beaver | One step to a neighbouring tile, or one log onto a neighbouring low tile, wet or dry. A log blocks water on that tile for good. 4 logs per game. |
+| No dams | Closer than 3 tiles to the spring (the current is too fast) and on the tiles touching the den (its way in). |
+| Winning | Water in the den: the river wins. Dry after round 24: the beaver wins. |
+
+So both sides are short of something. The river gets one dig per round, and the water moves only
+one tile per round into what's dug, so opening two fronts takes twice as long as pushing one. The
+beaver is short of logs and of legs: it can only plug a tile it's standing next to.
+
+The no-dam tiles are there because of the first pilot. With no limits, it was learning to sit on
+its den and plug each tile next to it as soon as it was dug: a den has at most four sides and
+the beaver has four logs, so done properly that can't lose. That's no fun to play against. Banning dams on the
+den's neighbours makes the beaver cut the water off further out. The ring round the spring is
+for the same reason: three logs there and the river never gets going.
+
+## Training
+
+The beaver is a network with two layers of 128 trained with PPO. Moves it can't make are masked
+out (MaskablePPO from sb3-contrib). It sees the board as 12 layers of 9 × 9 numbers: what each
+tile is, where the water is, where the den and the beaver are, where the river dug last and
+where its own last log went, the no-dam tiles, and, for every tile, the fewest digs the river
+would need to get water there. It also sees how many logs and rounds are left. The reward is +1
+if the den is dry at the end and −1 if it floods. Nothing for logs or for where they go.
+
+It trains against **scripted rivers**. Each one plans the cheapest route from the water to the
+den (fewest digs, then shortest) and digs the first tile on it that's next to the water. Each
+training game draws a variant: some add random costs to tiles so the route changes from game
+to game, some steer away from the beaver, and some dig a random tile now and then.
+
+For tests there are 200 boards that training never sees, played against three fixed styles:
+**route** (straight for the den), **dodge** (avoids digging near the beaver) and **wander**
+(random detours, a random dig 30% of the time). That's 600 games per beaver. To know what a
+sensible defence scores, I also wrote a **scripted beaver**. It predicts the scripted river's
+route, dams low tiles on it when it can, and otherwise walks next to where the river
+will dig next. It keeps the den dry in 245 of the 600 games (41%). Doing nothing keeps it dry in
+none, and random moves in 22.
+
+## Round 1
+
+<BeaverChart
+  src="009-beaver/eval-round1.json"
+  title="Round 1: dens kept dry against the scripted rivers, 200 test boards × 3 styles"
+  caption="The thin lines are the three training runs (seeds), the bold line their mean. The dashed lines are the scripted beaver, random moves and doing nothing in the same 600 games."
+/>
+
+It gets there slowly but steadily: level with or past the scripted beaver by 2 million steps, then
+on to **522–530 dry dens out of 600 (87–88%)** after 20 million steps. That's about two hours
+per run on the laptop CPU, three runs side by side.
+
+How it plays is nothing like the scripted beaver:
+
+- **It cuts the water, not the dig.** 98–99% of its logs go onto water that's already flowing,
+  and almost never onto the tile the river has just dug (1% or less). The scripted beaver plugs
+  fresh digs in a fifth to a third of its dams.
+- **It cuts near the source.** Its logs land 4.5–4.8 tiles from the spring, just past the
+  no-dam ring, and about 6 tiles from its den. Each one drains about 4 tiles of water below it.
+  The scripted beaver defends close to the den (about 3 tiles away) and drains next to nothing.
+- **It waits.** Its logs go down, on average, in round 13 of 24; the scripted beaver's in round
+  8\. Cutting late means the river has spent half its rounds on a channel that's now dry, and
+  has to dig a way round the log with fewer rounds left.
+
+## Can a river beat it?
+
+The scripted rivers are simple: they head for the den and don't think about the beaver much.
+You will. So I tried two harder rivers on the same 200 boards.
+
+**A learned river.** Same network shape, trained with PPO for the other side: its actions are
+the tiles it can dig, plus passing. I trained it for 10 million steps against an earlier beaver
+(a 10-million-step run under the same rules), and it ended up winning 37% of its training
+games. It wins by grinding: it digs in almost every round (about 22 digs a game) and floods
+late, around round 19, after the beaver has used most of its logs (3.2–3.3 of 4). It's also narrow: against a beaver
+that does nothing at all, it still leaves 16 of the 200 dens dry.
+
+**A planning river.** No training. On each turn it tries every dig it could make. For each one it
+plays the rest of the game out four times, with the real beaver network answering and the
+scripted river digging after that first move, and it picks the dig that floods the den most
+often. That's more than a person can do in their head, since it can run the beaver forward.
+But it's a fair picture of someone who has played a few games and knows how the beaver tends
+to react.
+
+| Dens dry out of 200 | Scripted beaver | Round 1, seeds 1–3 |
+| --- | --- | --- |
+| Route river | 62 | 175–180 |
+| Learned river | 113 | 129–134 |
+| Planning river | 4 | 77–81 |
+
+The planning river floods the trained beaver's den on about 60% of the boards, and the scripted
+beaver's on 98%. Against it the beaver uses only 2.6–2.8 of its 4 logs. The planner usually
+wins while the beaver still has logs to spare.
+
+The beaver also needs its randomness here. It picks each move at random, in proportion to how
+much it likes it, the way it trained. Always taking its top choice barely matters against the
+scripted rivers, but against the planner it keeps only 45–53 dens dry instead of 77–81. A beaver
+that always does the same thing in the same spot is easy to plan against.
+
+## Round 2: training against the learned river
+
+For round 2, three new beavers trained from scratch for 20 million steps. In each game the
+river was drawn at random: 40% of games against the scripted mix, 60% against the learned
+river, at one of three points in its training (2, 5 or 10 million steps).
+
+<BeaverChart
+  src="009-beaver/eval-round2.json"
+  title="Round 2: dens kept dry against the scripted rivers, 200 test boards × 3 styles"
+  caption="Trained with the learned river in the mix. Same 600 test games and the same references as round 1."
+/>
+
+| Dens dry out of 200 | Round 1, seeds 1–3 | Round 2, seeds 1–3 |
+| --- | --- | --- |
+| Scripted rivers (out of 600) | 522–530 | 482–501 |
+| Learned river (the one round 2 trained against) | 129–134 | 155–170 |
+| Planning river | 77–81 | 70–85 |
+
+It learned to beat the river it trained against, gave up a little against the scripted ones,
+and didn't get any better against the planner. Its play shifted a little: logs about a tile
+further from the spring (5.2–5.5 tiles out instead of 4.5–4.8), each draining about 3 tiles
+instead of 4.
+
+The real test is a river it has never met. I trained two fresh rivers from scratch for 5
+million steps each, one against round 1 (seed 1) and one against round 2 (seed 1), then played
+both against all six beavers:
+
+| Dens dry out of 200 | River trained vs round 1, seed 1 | River trained vs round 2, seed 1 |
+| --- | --- | --- |
+| Round 1, seed 1 | **133** | 156 |
+| Round 1, seeds 2 and 3 | 145–151 | 152–155 |
+| Round 2, seed 1 | 165 | **151** |
+| Round 2, seeds 2 and 3 | 176 | 161–165 |
+| Scripted beaver | 127 | 128 |
+
+Each fresh river does best against the beaver it trained against (in bold), but it doesn't
+find much more than the general grind: it floods its own target 67 or 49 times, and the other
+beavers 24–55 times. The river trained against round 2 found less to work with: 49 floods
+against its target, compared with 67 for round 1. So round 2 is a bit harder for a learner to
+exploit, though no harder for the planner.
+
+The game at the top starts with the round 1 network (seed 1). The round 2 network (seed 1) is
+in the menu, and you can set the trained river or the scripted river against either of them
+to watch.
+
+## How the AI runs on this page
+
+Plain JavaScript, no ML library, no server.
+
+- **Size:** 974 inputs, two layers of 128, 9 outputs (82 for the river): 142,473 numbers for the
+  beaver. Stored as 16-bit floats in base64, the file is 380 KB (about 285 KB gzipped). The
+  scores in this post are measured with those 16-bit weights, so they're the browser
+  network's scores.
+- **Speed:** a beaver move (building its inputs plus the network) takes about 0.15
+  milliseconds in Node on an M1 Pro; the rest of a round (digging, logs, water) takes a few
+  microseconds. The pauses you see in the game are animation.
+- **Same results as Python:** a test rebuilds 25 random boards from their seeds and replays
+  eight exported games. It checks every tile and every wet tile after every round, the scripted
+  river's and scripted beaver's moves, a checksum of the network's inputs, its outputs and
+  moves, and a trained river's moves, on every push.
+
+## What didn't work at first
+
+- **A beaver that couldn't lose.** The first pilot, with no ban on dams by the den, learned to
+  stand on its den and plug each neighbouring tile as soon as it was dug. That's the rule
+  change described above.
+- **A convolutional network.** Convolutions should suit a board game. On this laptop's CPU, a
+  small one trained at about 750 steps a second, against about 6,700 for the plain network
+  running alongside it, so I dropped it after a short test and went with the plain network.
+
+## What I take from it
+
+- **The cheapest defence is upstream.** Nobody told it where to put logs. It found that one log
+  on the water near the spring, put down after the river has invested in a channel, undoes
+  several rounds of digging at once.
+- **Beating your sparring partner isn't the same as getting stronger.** Round 2 learned to beat
+  the river it trained against and got no better against the one that plans. A learned
+  opponent that grinds isn't a stand-in for one that thinks ahead.
+- **For a game against people, randomness is a feature.** Its top-choice play is fine against
+  bots that ignore it, and much worse against an opponent that predicts it.
+
+## Cost
+
+All on an M1 Pro, CPU only. Round 1: 20 million steps per beaver, about two hours each with
+three or four runs going at once. Round 2: about two and a half hours each. The learned rivers:
+78 minutes for 10 million steps, about 50 minutes for 5 million. The planning river takes a
+couple of seconds per game, so it's only used for testing.
+
+## Run it yourself
+
+```sh
+cd experiments/009-beaver
+uv run train.py --side beaver --seed 1 --name b-s1                       # round 1
+uv run train.py --side beaver --steps 10000000 --name mlp-a              # the earlier beaver
+uv run train.py --side river --vs mlp-a/ckpt_10000000 --steps 10000000 --name x-mlp-a
+uv run train.py --side beaver --seed 1 --name b2-s1 --vs bots bots \
+  x-mlp-a/ckpt_02000000 x-mlp-a/ckpt_05000000 x-mlp-a/ckpt_10000000      # round 2
+uv run evaluate.py --beavers b-s1 b-s2 b-s3 --best --lookahead --rivers learned=x-mlp-a --curves --export round1
+uv run evaluate.py --parity b-s1 --parity-river x-mlp-a/ckpt_10000000    # the JS test fixture
+uv run summarize.py                                                      # every number quoted here
+```

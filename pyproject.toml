@@ -11,7 +11,12 @@ dependencies = [
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6"]
-train = ["stable-baselines3>=2.4", "tqdm", "rich"]
+train = [
+    "stable-baselines3>=2.4",
+    "tqdm",
+    "rich",
+    "sb3-contrib>=2.9.2",
+]
 
 [tool.uv]
 default-groups = ["dev", "train"]
@@ -28,4 +33,4 @@ pythonpath = ["."]
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["cube_env", "train", "export", "tag_env", "evaluate", "selfplay", "psro", "maps", "sight", "seek", "evaluate_maps", "evaluate_seek", "cone", "seek_cone", "evaluate_cone", "flood_env"]
+known-first-party = ["cube_env", "train", "export", "tag_env", "evaluate", "selfplay", "psro", "maps", "sight", "seek", "evaluate_maps", "evaluate_seek", "cone", "seek_cone", "evaluate_cone", "flood_env", "beaver_env"]

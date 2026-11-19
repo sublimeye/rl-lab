@@ -19,6 +19,15 @@
   --bedrock: #a99f93;
   --water: #3d8bd4;
   --sky: #eef4f8;
+  /* Beaver board (post 9): scene colours, not chart series. */
+  --grass: #b5cf8e;
+  --dirt: #9c7b55;
+  --clay: #d4a684;
+  --bed: #c9b896;
+  --stone: #a3a8ad;
+  --leaf: #5c9a52;
+  --wood: #8a5a32;
+  --beaver: #7a4a26;
 
   --font: 'Schibsted Grotesk', system-ui, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -47,6 +56,14 @@
   --bedrock: #45403a;
   --water: #2f72b8;
   --sky: #1c2126;
+  --grass: #4f6a3f;
+  --dirt: #5a4632;
+  --clay: #8a6046;
+  --bed: #6d6150;
+  --stone: #6f757b;
+  --leaf: #3f7a3a;
+  --wood: #8f5e36;
+  --beaver: #9a6236;
   }
 }
 :root[data-theme='dark'] {
@@ -69,6 +86,14 @@
   --bedrock: #45403a;
   --water: #2f72b8;
   --sky: #1c2126;
+  --grass: #4f6a3f;
+  --dirt: #5a4632;
+  --clay: #8a6046;
+  --bed: #6d6150;
+  --stone: #6f757b;
+  --leaf: #3f7a3a;
+  --wood: #8f5e36;
+  --beaver: #9a6236;
 }
 
 *,

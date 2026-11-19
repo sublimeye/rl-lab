@@ -1,0 +1,526 @@
+---
+/**
+ * Beaver vs river, live: you (or the scripted river) dig channels for the water; the trained
+ * beaver (or the scripted one) dams them. The network runs in the browser
+ * (site/src/lib/beaver-sim.js); data from experiments/009-beaver/evaluate.py.
+ */
+import { url } from '../lib';
+
+interface Props {
+  /** Trained beavers: path under public/data (e.g. "009-beaver/model-round2.json") and a label */
+  models: { src: string; label: string }[];
+  /** Trained rivers, same format, to watch against the beaver */
+  rivers?: { src: string; label: string }[];
+  /** First map (a board seed) */
+  seed?: number;
+  caption?: string;
+}
+const { models, rivers = [], seed = 3_000_000_000, caption } = Astro.props;
+const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }));
+const riverSources = rivers.map((m) => ({ src: url(`data/${m.src}`), label: m.label }));
+---
+
+<figure class="beaver wide">
+  <rl-beaver data-models={JSON.stringify(sources)} data-rivers={JSON.stringify(riverSources)} data-seed={seed}>
+    <div class="stage">
+      <canvas
+        tabindex="0"
+        aria-label="Game board seen from above at an angle: a spring, low channels, soil, clay, rocks and trees, the beaver and its den. Arrow keys move the cursor, Enter digs."
+      ></canvas>
+    </div>
+    <div class="side">
+      <p class="status" aria-live="polite">Loading the trained beaver…</p>
+      <p class="score muted" aria-live="polite"></p>
+      <div class="buttons">
+        <button class="pass" type="button" disabled>Pass</button>
+        <button class="restart" type="button" disabled>Restart</button>
+        <button class="newmap" type="button" disabled>New map</button>
+      </div>
+      <div class="controls">
+        <label>
+          The beaver
+          <select class="who">
+            {models.map((m, i) => <option value={`net:${i}`}>{m.label}</option>)}
+            <option value="warden">Scripted beaver</option>
+            <option value="idle">A beaver that does nothing</option>
+          </select>
+        </label>
+        <label>
+          The river
+          <select class="river">
+            <option value="you" selected>You</option>
+            <option value="bot">Scripted river</option>
+            {rivers.map((m, i) => <option value={`net:${i}`}>{m.label}</option>)}
+          </select>
+        </label>
+        <label class="pickrow">
+          The network picks moves
+          <select class="pick">
+            <option value="sample" selected>With some randomness</option>
+            <option value="best">Always its top choice</option>
+          </select>
+        </label>
+      </div>
+      <p class="tally muted" aria-live="polite"></p>
+    </div>
+  </rl-beaver>
+  <p class="legend muted">
+    <span><i class="key opt"></i>Dashed: tiles you can dig (next to water with strength left)</span>
+    <span><i class="key clay"></i>Clay takes two digs</span>
+    <span><i class="key log"></i>Logs block water for good</span>
+    <span><i class="key nodam"></i>Hatched: the beaver can't dam there</span>
+    <span>Water fades as it runs out of strength</span>
+  </p>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .beaver {
+    margin-block: 2rem 2.5rem;
+  }
+  rl-beaver {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+  }
+  @media (min-width: 52rem) {
+    rl-beaver {
+      grid-template-columns: minmax(0, 1fr) 15rem;
+      align-items: start;
+    }
+  }
+  .stage {
+    aspect-ratio: 1.75 / 1;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--sky);
+  }
+  @media (max-width: 40rem) {
+    .stage {
+      aspect-ratio: 1.45 / 1;
+    }
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: manipulation;
+    cursor: default;
+  }
+  canvas:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: -2px;
+  }
+  .status {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    min-height: 2.5em;
+  }
+  .score {
+    white-space: pre-line;
+    margin: 0.2rem 0 0.9rem;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    min-height: 3em;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  button {
+    font: inherit;
+    font-weight: 650;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 0.55rem 1rem;
+  }
+  .pass {
+    color: #fff;
+    background: var(--flag);
+    border-color: var(--flag);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  button:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  .controls {
+    display: grid;
+    gap: 0.6rem;
+  }
+  @media (min-width: 30rem) and (max-width: 51.99rem) {
+    .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  label[hidden] {
+    display: none;
+  }
+  label {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  select {
+    font: inherit;
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .tally {
+    white-space: pre-line;
+    font-size: 0.86rem;
+    margin: 0.9rem 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    margin: 0.6rem 0 0;
+  }
+  .key {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.9rem;
+    margin-right: 0.35rem;
+    vertical-align: -0.12em;
+    border-radius: 2px;
+  }
+  .key.opt {
+    border: 2px dashed var(--flag);
+  }
+  .key.clay {
+    background: var(--clay);
+  }
+  .key.log {
+    background: var(--wood);
+  }
+  .key.nodam {
+    background: repeating-linear-gradient(45deg, var(--muted) 0 1px, transparent 1px 4px);
+    opacity: 0.7;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  import {
+    beaver,
+    beaverLegal,
+    bestOf,
+    dig,
+    diggable,
+    flow,
+    makeBoard,
+    maskedLogits,
+    netRiver,
+    newGame,
+    observe,
+    riverBot,
+    sampleOf,
+    strength,
+    unpackNet,
+    wardenAction,
+  } from '../lib/beaver-sim.js';
+  import { drawBoard, fitCanvas, layout, readColors, tileAt } from '../lib/beaver-draw.js';
+
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  class RlBeaver extends HTMLElement {
+    canvas!: HTMLCanvasElement;
+    ctx!: CanvasRenderingContext2D;
+    q = <T extends Element>(sel: string) => this.querySelector(sel) as T;
+    sources: { src: string; label: string }[] = [];
+    riverSources: { src: string; label: string }[] = [];
+    cache = new Map<string, any>();
+    riverNet: any = null;
+    rules: any = null;
+    net: any = null;
+    seed = 0;
+    g: any = null;
+    options = new Set<number>();
+    hover = -1;
+    cursor = -1;
+    phase: 'you' | 'busy' | 'over' = 'busy';
+    anim: any = { t: 1 };
+    marks: any = {};
+    colors: any = null;
+    gen = 0; // bumps on every reset so stale async turns stop
+    tally = new Map<string, { floods: number; games: number }>();
+
+    connectedCallback() {
+      this.canvas = this.q('canvas');
+      this.ctx = this.canvas.getContext('2d')!;
+      this.sources = JSON.parse(this.dataset.models!);
+      this.riverSources = JSON.parse(this.dataset.rivers!);
+      this.seed = Number(this.dataset.seed);
+      this.q<HTMLButtonElement>('.pass').addEventListener('click', () => this.play(-1));
+      this.q<HTMLButtonElement>('.restart').addEventListener('click', () => this.reset());
+      this.q<HTMLButtonElement>('.newmap').addEventListener('click', () => {
+        this.seed = Math.floor(Math.random() * 2 ** 31);
+        this.reset();
+      });
+      this.q<HTMLSelectElement>('.who').addEventListener('change', () => this.load());
+      this.q<HTMLSelectElement>('.river').addEventListener('change', () => this.load());
+      this.q<HTMLSelectElement>('.pick').addEventListener('change', () => this.reset());
+      this.canvas.addEventListener('pointermove', (e) => {
+        const i = this.pick(e);
+        if (i !== this.hover) {
+          this.hover = i;
+          this.canvas.style.cursor = this.phase === 'you' && this.options.has(i) ? 'pointer' : 'default';
+          this.draw();
+        }
+      });
+      this.canvas.addEventListener('pointerleave', () => {
+        this.hover = -1;
+        this.draw();
+      });
+      this.canvas.addEventListener('click', (e) => {
+        const i = this.pick(e);
+        if (this.phase === 'you' && this.options.has(i)) this.play(i);
+      });
+      this.canvas.addEventListener('keydown', (e) => this.key(e));
+      new ResizeObserver(() => this.draw()).observe(this.canvas);
+      const recolor = () => {
+        this.colors = null;
+        this.draw();
+      };
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+      new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      this.load();
+    }
+
+    who() {
+      return this.q<HTMLSelectElement>('.who').value;
+    }
+    human() {
+      return this.q<HTMLSelectElement>('.river').value === 'you';
+    }
+
+    async fetchJson(src: string) {
+      if (!this.cache.has(src)) this.cache.set(src, await (await fetch(src)).json());
+      return this.cache.get(src);
+    }
+
+    async load() {
+      const who = this.who();
+      this.q<HTMLElement>('.pickrow').hidden = !who.startsWith('net:');
+      const i = who.startsWith('net:') ? Number(who.slice(4)) : 0;
+      const river = this.q<HTMLSelectElement>('.river').value;
+      this.gen++;
+      this.setButtons(false);
+      try {
+        const data = await this.fetchJson(this.sources[i].src);
+        this.rules = data.rules;
+        this.net = unpackNet(data.net);
+        this.riverNet = river.startsWith('net:') ? unpackNet((await this.fetchJson(this.riverSources[Number(river.slice(4))].src)).net) : null;
+      } catch {
+        this.status('Could not load the network.');
+        return;
+      }
+      this.reset();
+    }
+
+    setButtons(on: boolean) {
+      this.q<HTMLButtonElement>('.restart').disabled = !on;
+      this.q<HTMLButtonElement>('.newmap').disabled = !on;
+      this.q<HTMLButtonElement>('.pass').disabled = !(on && this.phase === 'you');
+    }
+
+    status(text: string) {
+      this.q<HTMLElement>('.status').textContent = text;
+    }
+
+    reset() {
+      if (!this.rules) return;
+      this.gen++;
+      this.g = newGame(makeBoard(this.seed, this.rules), this.rules);
+      this.marks = {};
+      this.anim = { t: 1 };
+      this.cursor = -1;
+      this.turn();
+    }
+
+    /** Start of a river turn: the human's (wait for input) or the bot's. */
+    turn() {
+      const g = this.g;
+      this.options = new Set(diggable(g));
+      this.score();
+      if (this.human()) {
+        this.phase = 'you';
+        this.status(this.options.size ? 'Your move: dig a tile next to the water.' : 'Nothing left to dig: pass.');
+      } else {
+        this.phase = 'busy';
+        this.status('The river digs…');
+        const gen = this.gen;
+        sleep(450).then(() => gen === this.gen && this.play(this.riverNet ? netRiver(this.riverNet, g) : riverBot(g)));
+      }
+      this.setButtons(true);
+      this.draw();
+    }
+
+    /** One round: the river's dig, then the beaver, then the water. */
+    async play(tile: number) {
+      const g = this.g;
+      if (g.done) return;
+      const gen = this.gen;
+      this.phase = 'busy';
+      this.setButtons(true);
+      dig(g, tile);
+      this.marks = { dig: g.lastDig };
+      this.options = new Set();
+      this.status('The beaver moves…');
+      this.draw();
+      await sleep(260);
+      if (gen !== this.gen) return;
+      const from = g.beaverAt;
+      beaver(g, this.beaverMove());
+      this.marks.log = g.lastLog;
+      await this.animate(260, { beaverFrom: from }, gen);
+      if (gen !== this.gen) return;
+      const before = g.wet.slice();
+      flow(g);
+      const fresh = new Set<number>();
+      g.wet.forEach((w: boolean, i: number) => w && !before[i] && fresh.add(i));
+      await this.animate(320, { fresh }, gen);
+      if (gen !== this.gen) return;
+      if (g.done) this.finish();
+      else this.turn();
+    }
+
+    beaverMove() {
+      const g = this.g;
+      const who = this.who();
+      if (who === 'warden') return wardenAction(g);
+      if (who === 'idle') return 0;
+      const z = maskedLogits(this.net, observe(g), beaverLegal(g));
+      return this.q<HTMLSelectElement>('.pick').value === 'best' ? bestOf(z) : sampleOf(z);
+    }
+
+    animate(ms: number, extra: any, gen: number) {
+      return new Promise<void>((done) => {
+        const t0 = performance.now();
+        const frame = (now: number) => {
+          if (gen !== this.gen) return done();
+          const t = Math.min(1, (now - t0) / ms);
+          this.anim = { ...extra, t };
+          this.draw();
+          if (t < 1) requestAnimationFrame(frame);
+          else {
+            this.anim = { t: 1 };
+            done();
+          }
+        };
+        requestAnimationFrame(frame);
+      });
+    }
+
+    finish() {
+      const g = this.g;
+      this.phase = 'over';
+      const key = `${this.human() ? 'You' : this.q<HTMLSelectElement>('.river').selectedOptions[0].text} vs ${this.q<HTMLSelectElement>('.who').selectedOptions[0].text.toLowerCase()}`;
+      const row = this.tally.get(key) ?? { floods: 0, games: 0 };
+      row.games++;
+      if (g.flooded) row.floods++;
+      this.tally.set(key, row);
+      if (g.flooded) this.status(this.human() ? `Flooded in round ${g.round}. You win.` : `The river floods the den in round ${g.round}.`);
+      else this.status(this.human() ? 'The den stayed dry. The beaver wins.' : 'The beaver holds: the den stayed dry.');
+      this.score();
+      this.q<HTMLElement>('.tally').textContent = [...this.tally].map(([k, v]) => `${k}: flooded ${v.floods} of ${v.games}`).join('\n');
+      this.setButtons(true);
+      this.draw();
+    }
+
+    score() {
+      const g = this.g;
+      const r = g.r;
+      this.q<HTMLElement>('.score').textContent =
+        `Round ${Math.min(g.round + 1, r.rounds)} of ${r.rounds}\n` +
+        `Beaver's logs: ${g.logs} of ${r.logs}\n` +
+        `${this.human() ? "You've" : 'The river has'} dug ${g.dug} ${g.dug === 1 ? 'time' : 'times'}`;
+    }
+
+    key(e: KeyboardEvent) {
+      if (this.phase !== 'you') return;
+      const n = this.g.n;
+      const opts = [...this.options];
+      if (!opts.length) return;
+      if (this.cursor < 0 || !this.options.has(this.cursor)) this.cursor = opts[0];
+      const dirs: Record<string, [number, number]> = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+      if (e.key in dirs) {
+        e.preventDefault();
+        const [dx, dy] = dirs[e.key];
+        const cx = this.cursor % n;
+        const cy = Math.floor(this.cursor / n);
+        // nearest option roughly in that direction
+        let best = -1;
+        let bestD = Infinity;
+        for (const o of opts) {
+          const ox = (o % n) - cx;
+          const oy = Math.floor(o / n) - cy;
+          const along = ox * dx + oy * dy;
+          if (along <= 0) continue;
+          const d = along + 2 * Math.abs(ox * dy + oy * dx);
+          if (d < bestD) {
+            bestD = d;
+            best = o;
+          }
+        }
+        if (best >= 0) this.cursor = best;
+        this.draw();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.play(this.cursor);
+      }
+    }
+
+    pick(e: PointerEvent | MouseEvent) {
+      if (!this.g) return -1;
+      const r = this.canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const L = layout(this.canvas.width, this.canvas.height, this.g.n);
+      return tileAt(L, this.g, (e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr);
+    }
+
+    draw() {
+      if (!this.g) return;
+      fitCanvas(this.canvas);
+      this.colors ??= readColors(this);
+      const L = layout(this.canvas.width, this.canvas.height, this.g.n);
+      const focus = this.phase === 'you' ? (this.hover >= 0 ? this.hover : document.activeElement === this.canvas ? this.cursor : -1) : -1;
+      drawBoard(this.ctx, this.g, this.colors, L, {
+        options: this.phase === 'you' ? this.options : null,
+        hover: focus,
+        strength: strength(this.g),
+        marks: this.marks,
+        ...this.anim,
+      });
+    }
+  }
+  customElements.define('rl-beaver', RlBeaver);
+</script>
