@@ -202,11 +202,16 @@ export class Tracker {
     this.look(me, prey);
   }
 
+  /** Sets vis (cells checked now), los (cells in line of sight) and seen. */
+  view(me, prey) {
+    this.vis = this.los = this.g.visible(me.x, me.y);
+    this.seen = sees(me.x, me.y, prey.x, prey.y, this.g.nav.w);
+  }
+
   look(me, prey) {
     const g = this.g;
-    this.vis = g.visible(me.x, me.y);
+    this.view(me, prey);
     for (let k = 0; k < g.n; k++) if (this.vis[k]) this.age[k] = 0;
-    this.seen = sees(me.x, me.y, prey.x, prey.y, g.nav.w);
     if (this.seen) {
       this.ever = true;
       this.since = 0;
@@ -331,7 +336,7 @@ export function hiderDirection(st, steps, grid, tr, e, c, replan = 10) {
     const hk = nav.cellOf(e.x, e.y);
     let bs = -Infinity;
     for (let t = 0; t < n; t++) {
-      if (!grid.main[t] || tr.vis[t]) continue;
+      if (!grid.main[t] || tr.los[t]) continue; // out of line of sight
       const dc = nav.dist[t * n + ck];
       const dh = nav.dist[t * n + hk];
       const s = (dc - dh) * 1000 + dc;
@@ -358,7 +363,13 @@ export function hiderDirection(st, steps, grid, tr, e, c, replan = 10) {
 /** Scripted chasers (sight.seekbot_direction): 'xray', 'lastseen' or 'search'. */
 export function seekbotDirection(kind, ratio, grid, tr, c, e, w) {
   if (kind === 'xray' || tr.seen) {
-    const spec = { kind: 'intercept', ratio, reaction: 1, dirs8: false, lead: 1 };
+    const spec = {
+      kind: 'intercept',
+      ratio,
+      reaction: 1,
+      dirs8: false,
+      lead: 1,
+    };
     return chaserDirection(spec, c, e, w, grid.nav);
   }
   const nav = grid.nav;

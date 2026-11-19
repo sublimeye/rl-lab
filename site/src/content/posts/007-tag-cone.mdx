@@ -1,0 +1,254 @@
+---
+title: "Tag, part 5: eyes in front"
+number: 7
+date: 2026-11-18
+summary: Post 6's seeker saw all around itself, so it was very hard to escape. This one sees only what's in front of it, has to turn its head to look around, and takes a moment to notice you. Every one of those senses is a slider.
+---
+
+import ConeGame from '../../components/ConeGame.astro';
+import SeekFrames from '../../components/SeekFrames.astro';
+
+Post 6's seeker only saw you along clear lines of sight, but it saw in every direction at once.
+Walk around a block and it had already looked behind you. That's not how people see, and it
+was very hard to beat.
+
+So this seeker has a front. It sees only inside a cone, 100° wide by default. It turns its head
+at a limited speed, so looking behind takes a moment. It notices you only after you've been in
+view for a short reaction time, and it's slower walking backwards than forwards. All four are
+settings, and one network handles any mix of them.
+
+You play the runner again. The lit wedge is what orange sees, and the notch on its square shows
+where it faces. A **?** over it means it has glimpsed you but not noticed you yet; **!** means
+it has.
+
+<ConeGame
+  src="007-tag-cone/models.json"
+  chaser="net:any"
+  caption="Change orange's senses with the presets or the sliders; each change starts a new round. Under Orange you can switch to the seeker trained only on the default senses, to post 6's seeker (here it looks where it walks), or to the scripted search bot."
+/>
+
+**Short answer:**
+
+- **It's much easier to escape.** With the default human-like senses, the new seeker catches
+  post 5's runner on 34–44% of the 200 test maps. Post 6's seeker, seeing all around, caught
+  69%.
+- **It learned to keep looking around.** It turns its head almost as fast as it can, most of
+  the time, sweeping its view across the map instead of looking where it walks.
+- **Training with the cone helps most when you hide.** Post 6's seeker given the same cone
+  catches post 5's runner about as often (38%), but it finds a runner hiding out of sight less
+  often: 78% against 87–89%.
+- **Field of view and reaction time matter most.** Narrow the view to 60° and it catches post
+  5's runner 14–17% of the time; widen it to 200° and it's 49–55%. A head faster than 300°/s
+  makes it worse, not better.
+
+## Its senses
+
+| Setting | Default | What it does | Trained on |
+| --- | --- | --- | --- |
+| Field of view | 100° | how wide the cone it sees in is | 60–200°, or all around |
+| Head speed | 300°/s | how fast it turns to face another way; turning right round takes 0.6 s | 90–1,080°/s |
+| Reaction time | 0.25 s | how long you have to be in view before it notices you | 0–0.4 s |
+| Walking backwards | 50% | its top speed when moving straight away from where it faces | 40–100% |
+
+The defaults are rough human numbers. Our eyes cover close to 200°, but we notice detail in a
+much narrower cone; a quick head turn reaches a few hundred degrees a second; simple reactions
+take about a quarter of a second. Moving sideways costs half as much as moving backwards (75%
+speed with the defaults).
+
+Post 6's seeker is the same thing set to see all around, turn instantly, react instantly and
+walk backwards at full speed.
+
+## Head and legs
+
+Each step the network now makes two choices: one of 9 moves (8 directions or stop) and one of 9
+looks (keep facing the same way, or turn toward one of 8 directions). The head turns toward the
+chosen direction at the head speed, so turning far takes several steps.
+
+The reaction time applies twice. You count as noticed only after you've been in the cone for
+0.25 seconds, unless it saw you a moment ago. And a spot on its map of where you could be
+counts as checked only after it's been in view that long, so a quick glance across a room
+doesn't clear it.
+
+Anything within three quarters of a body length always counts as in view, like hearing someone
+right next to you. Without that, the scripted search bot couldn't even find a runner standing
+at its feet.
+
+## One network for any senses
+
+Every training episode draws new senses: the field of view is all around 15% of the time and
+otherwise 60–200°, the head speed 90–1,080°/s, the reaction time 0–0.4 s, and the backwards
+speed 40–100%. The network gets them as inputs, so the sliders in the game work without
+retraining.
+
+On top of post 6's 49 inputs it gets 14 new ones: which way it faces, the four settings, and
+for each of 8 directions, how much of its map of where you could be it could check by turning
+that way (the parts it has a clear line of sight to). That last one is what makes turning the
+head worth learning: it says where looking would pay off.
+
+## Training
+
+Same setup as post 6: PPO, random maps, the seeker at 85–100% of the runner's speed, and the
+same mix of runners (post 5's runners 55%, the scripted hider 30%, a runner standing still out
+of sight 15%). The runners still see everything, and they don't know where the seeker faces.
+
+The network is the same shape as before, 64 by 64. I trained two seeds for 20 million steps,
+twice post 6's length, because it was still improving at 10 million. For comparison I also
+trained a wider network (128 by 128, one seed) and two seeds on the default senses only.
+
+## Results
+
+All with the default senses, at 90% of the runner's speed, on the same tests as post 6: post 5's
+200 test maps against post 5's best runner and the scripted hider, and 200 starts with a runner
+standing still out of sight.
+
+| Seeker | Post 5's runner | Hider | Still runner | First sight of the still runner |
+| --- | --- | --- | --- | --- |
+| **Trained with any senses** | **34–44%** | **41–47%** | **87–89%** | **5.6–6.5 s** |
+| Same, wider network (1 seed) | 40% | 38% | 94% | 4.9 s |
+| Trained on the defaults only, seed 1 | 40% | 49% | 90% | 4.8 s |
+| Trained on the defaults only, seed 2 | 26% | 30% | 64% | 9.2 s |
+| Post 6's seeker, looking where it walks | 38% | 34% | 78% | 7.7 s |
+| Search bot (scripted), same head rule | 18% | 20% | 96% | 5.8 s |
+| *For reference: post 6's seeker seeing all around* | *69%* | *56%* | *94%* | *2.5 s* |
+
+Catch rate within 20 seconds; ranges are over the two seeds. First sight counts 20 s when it
+never sees the runner. Post 6's seeker and the search bot get a scripted head: it looks at the
+runner while it sees it, otherwise where it's going (the search bot: at the spot it's heading
+for).
+
+What I read from it:
+
+- **The cone takes away almost half the catches.** Post 6's seeker on the same tests: 69% with
+  all-round sight, 38% with the cone. A runner it can't see is a runner it can't chase.
+- **Training with the cone helps it search, not chase.** Against post 5's runner, which keeps
+  moving, the new seeker is no better than post 6's (34–44% against 38%). Against runners that
+  hide, it is: 41–47% against 34% for the hider, and it finds the still runner sooner (5.6–6.5
+  s against 7.7 s).
+- **It looks around.** A third of the time it's moving, it faces more than 45° away from where
+  it's going; post 6's seeker with the scripted head, 13%. It turns its head at 247°/s on
+  average, most of the 300°/s it's allowed.
+- **The search bot isn't the better searcher anymore.** With all-round sight it found the still
+  runner in 1.6 s; with the cone it takes 5.8 s, about as long as the trained seeker, and it
+  still catches runners that move half as often.
+- **Training only on the defaults isn't clearly better.** One seed did about as well as the
+  seeker trained on any senses. The other got stuck at around 26% from 5 million steps on and
+  never recovered. With two seeds I can't say more than that.
+
+## What each sense does
+
+The seeker trained with any senses, with one setting changed at a time from the defaults:
+
+| Setting | Post 5's runner | Hider | Still runner | First sight |
+| --- | --- | --- | --- | --- |
+| **Defaults** | **34–44%** | **41–47%** | **87–89%** | **5.6–6.5 s** |
+| View 60° | 14–17% | 33–40% | 80–86% | 7.9–8.6 s |
+| View 140° | 40–52% | 41–42% | 89–91% | 5.1–5.5 s |
+| View 200° | 49–55% | 36–43% | 90% | 4.4–4.9 s |
+| View all around | 38–40% | 32–36% | 66–77% | 3.5–4.9 s |
+| Head 90°/s | 34–36% | 42–44% | 86–90% | 5.8–7.0 s |
+| Head 180°/s | 35–45% | 44–46% | 87–89% | 5.4–6.2 s |
+| Head 600°/s | 26–41% | 36–46% | 87–88% | 6.1 s |
+| Head 1,080°/s | 22–24% | 34–35% | 85–86% | 7.3–7.5 s |
+| Reaction 0 s | 44–50% | 32–38% | 89–90% | 4.4–4.6 s |
+| Reaction 0.1 s | 40–48% | 40–44% | 88–90% | 4.9–5.1 s |
+| Reaction 0.4 s | 20–37% | 38–45% | 85–86% | 6.8–7.3 s |
+| Backwards 40% | 32–45% | 38–47% | 84–88% | 6.1–6.6 s |
+| Backwards 75% | 32–46% | 44–52% | 84–89% | 5.8–5.9 s |
+| Backwards 100% | 34–52% | 44–60% | 85–88% | 5.6–6.4 s |
+| Post 6's: all around, instant | 48–55% | 35–36% | 74–76% | 4.3–4.4 s |
+
+- **Field of view matters most.** From 60° to 200°, catches against post 5's runner go from
+  14–17% to 49–55%, and it finds the still runner in about half the time.
+- **Reaction time is next.** No delay: 44–50%. Four tenths of a second: 20–37%.
+- **A faster head doesn't help.** Between 90 and 300°/s it makes little difference. Beyond that
+  it gets worse: at 1,080°/s it catches post 5's runner only 22–24% of the time. It turns its
+  head at about 820°/s there, nearly flat out, and at that speed a 100° cone sweeps past a spot
+  in about a tenth of a second, less than the reaction time, so what it sweeps past doesn't get
+  noticed or checked. With no reaction delay, the same fast head catches 32–39%. It isn't the
+  slower walking backwards: with that switched off too, the fast head catches 27–38%, against
+  34–52% for the normal head.
+- **Walking backwards slowly barely matters.** The differences are within the spread between
+  seeds.
+- **Against the hider there's no clear pattern.** The scripted hider hides from the seeker's
+  line of sight, not its cone, and doesn't use where it faces.
+
+One weak spot: with all-round sight this seeker catches the still runner less often than with
+any cone. It finds it as often as with the defaults (86–88%) but catches it less (74–76%
+against 87–89%). Watching those games, it gets within about a body length and then circles without
+touching. All-round sight was only 15% of its training, and nothing between 200° and all
+around ever came up, so my guess is it never learned that case properly. For all-round sight,
+post 6's seeker is still the one to use.
+
+## Turning to look
+
+The seeker looking for a runner that stands still, with the default senses. The white wedge is
+what it sees in that frame; lighter orange cells are spots it checked recently.
+
+<SeekFrames
+  src="007-tag-cone/frames.json"
+  episode={0}
+  caption="Walls map #11 from the test set. It starts at the top facing the wall, walks down the gap beside the tall middle wall looking ahead, then at the bottom turns its head up and to the right and sees the runner behind the last wall at 3.3 seconds."
+/>
+
+<SeekFrames
+  src="007-tag-cone/frames.json"
+  episode={1}
+  caption="Maze map #3. It walks down between the middle wall and the big L looking right, into the open area. Nothing there, so at the bottom it swings its head round to the left and sees the runner at 3.2 seconds."
+/>
+
+In both, the head does real work: it looks one way while walking another, and when one side
+turns up empty it turns to the other.
+
+The kind of map still matters most. With the defaults it catches post 5's runner on 66% of
+pillar maps, 48% of block maps, 43% of mixed, 22% of wall maps and 16% of mazes.
+
+## How the AI runs on this page
+
+Same as before: plain JavaScript, no ML library, no server.
+
+- **Size:** 63 inputs instead of 49, and 18 outputs (9 moves, 9 looks) instead of 9, so 9,426
+  numbers instead of post 6's 7,945, 19% more. That's 91 KB of JSON per network. This page's
+  file holds three seekers and post 5's runner: 321 KB, 113 KB gzipped.
+- **Speed:** one decision takes about 95 microseconds in Node on an M1 Pro: 62 for the line of
+  sight and the map, 21 for the inputs (the 8 "worth looking" numbers go over every cell), 11
+  for the network. Post 6's seeker, timed the same way, takes about 70. At 20 decisions a
+  second that's 0.2% of the time between steps.
+- **Memory:** besides the network, each seeker keeps its own map of where you could be, when
+  it last looked at each spot and how long each spot has been in view: about 7 KB on these
+  384-cell maps.
+- **Same results as Python:** a test replays six exported episodes (the trained seeker, the
+  bots, the hider) and checks every position, the facing, what it has noticed, the map, every
+  input and the network's outputs, on every push.
+
+## What I take from it
+
+- **What it sees matters more than how it was trained.** The same network goes from 14% to 55%
+  against post 5's runner just by widening its view. The cone cost post 6's seeker almost half
+  its catches, and training with the cone won back searching, not chasing.
+- **Senses as inputs work.** One network handles any mix, and the sliders change its behaviour
+  without retraining. The weak spot is at the edges: the case it saw least, all-round sight, is
+  where it does worst.
+- **A sense can be too good.** A head faster than its reaction time made it worse, because what
+  it learned, sweep all the time, stops working when the sweep is too fast to notice anything.
+  More training at those settings might fix it; I haven't tried.
+
+The runners are the weak part of this test. Post 5's runner and the scripted hider don't know
+where the seeker faces, so neither sneaks around behind it. You can. A runner trained against
+this seeker, one that uses its blind spot, is the obvious next step.
+
+## Cost
+
+All on an M1 Pro, CPU only:
+
+- Training: 5 runs in parallel, 146–151 minutes each for 20 million steps.
+- Scoring every final seeker at 18 settings, the checkpoints, post 6's seeker and the bot: 8
+  minutes.
+
+## Run it yourself
+
+```sh
+cd experiments/003-tag
+uv run seek_cone.py --seed 1 --name cone-any-s1   # --human: only the default senses
+uv run evaluate_cone.py --export   # scores every run, writes the site data
+uv run summarize_cone.py           # prints every number quoted here
+```

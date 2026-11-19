@@ -12,6 +12,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [004 Tag, part 2](https://sublimeye.github.io/rl-lab/posts/004-tag-selfplay/) | Learned chasers expose the 003 runner; self-play, a league and PSRO; randomness + pillar orbit wins |
 | [005 Tag, part 3](https://sublimeye.github.io/rl-lab/posts/005-tag-maps/) | Random maps (pillars, blocks, walls, mazes) with 16 distance sensors; 40 rounds of self-play vs 5M-step exploiters |
 | [006 Tag, part 4](https://sublimeye.github.io/rl-lab/posts/006-tag-seek/) | Hide and seek: a chaser that only sees along lines of sight, with a memory and a map of where you could be |
+| [007 Tag, part 5](https://sublimeye.github.io/rl-lab/posts/007-tag-cone/) | A field of view: the seeker sees only in front, turns its head at a limited speed, reacts with a delay; one network for any settings |
 
 ## Layout
 
@@ -29,11 +30,14 @@ experiments/NNN-slug/     one folder per experiment
   evaluate_maps.py        003-tag: scores on 200 held-out maps, exports post 005 data + parity fixture
   sight.py, seek.py       003-tag: line of sight, the possibility map, hider/search bots; seeker training (006)
   evaluate_seek.py        003-tag: scores the seekers, exports post 006 data + parity fixture
+  cone.py, seek_cone.py   003-tag: field of view, head turning, reaction time; training (007)
+  evaluate_cone.py        003-tag: scores the field-of-view seekers, exports post 007 data + parity fixture
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
-  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames
+  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame
   src/lib/tag-sim.js      browser port of experiments/003-tag/tag_env.py, maps.py + the policy network
   src/lib/tag-sight.js    browser port of experiments/003-tag/sight.py (006)
+  src/lib/tag-cone.js     browser port of experiments/003-tag/cone.py (007)
   test/                   node tests: the JS port must match trajectories and maps exported from Python
   public/data/            exported replays (committed, small JSON)
 ```

@@ -220,9 +220,8 @@ class Tracker:
         self._look(me, prey)
 
     def _look(self, me: Body, prey: Body) -> None:
-        self.vis = self.g.visible(me.x, me.y)
+        self._view(me, prey)
         self.age[self.vis] = 0
-        self.seen = sees(me.x, me.y, prey.x, prey.y, self.g.nav.a)
         if self.seen:
             self.ever, self.since = True, 0
             self.last = (prey.x, prey.y, prey.vx, prey.vy)
@@ -237,6 +236,11 @@ class Tracker:
                 self.possible = self.g.main & ~self.vis
         f = np.exp(-self.age * (self.dt / FORGET))
         self.weight = np.where(self.possible, 1.0 - f, 0.0)
+
+    def _view(self, me: Body, prey: Body) -> None:
+        """Sets vis (cells checked now), los (cells in line of sight) and seen."""
+        self.vis = self.los = self.g.visible(me.x, me.y)
+        self.seen = sees(me.x, me.y, prey.x, prey.y, self.g.nav.a)
 
     def by_direction(self, me: Body) -> tuple[list[float], list[float]]:
         """For each first step (8 directions, ACTIONS order): the share of the weight best
@@ -320,7 +324,7 @@ def hider_direction(env: SeekArena) -> tuple[float, float]:
     nav = g.nav
     st = env._hide
     if tr.seen or st["target"] is None or (not st["arrived"] and env.steps % env.prey.replan == 0):
-        hidden = np.flatnonzero(g.main & ~tr.vis)
+        hidden = np.flatnonzero(g.main & ~tr.los)  # out of line of sight
         st["arrived"] = False
         if len(hidden):
             ck, hk = nav.cell_of(c.x, c.y), nav.cell_of(e.x, e.y)
