@@ -1,0 +1,770 @@
+---
+/**
+ * Hide and seek (post 006): you play the blue square; an orange chaser that only sees along
+ * clear lines of sight hunts you. Its network runs in the browser (site/src/lib/tag-sight.js
+ * for what it knows, tag-sim.js for the physics); data from experiments/003-tag/evaluate_seek.py.
+ */
+import { url } from '../lib';
+
+interface Props {
+  /** Path under public/data, e.g. "006-tag-seek/models.json" */
+  src: string;
+  caption?: string;
+  /** Orange chaser selected at load: "net:<id>" or "bot:search" / "bot:xray" */
+  chaser?: string;
+}
+const { src, caption, chaser = '' } = Astro.props;
+const mapKinds = [
+  { v: 'any', label: 'Any kind' },
+  { v: 'pillars', label: 'Pillars' },
+  { v: 'blocks', label: 'Blocks' },
+  { v: 'walls', label: 'Walls' },
+  { v: 'maze', label: 'Maze' },
+  { v: 'mixed', label: 'Mixed' },
+];
+---
+
+<figure class="seek wide">
+  <rl-seek data-src={url(`data/${src}`)} data-chaser={chaser}>
+    <div class="stage">
+      <canvas
+        role="img"
+        aria-label="Hide and seek: an orange square hunts a blue square around obstacles. Shaded areas are out of its sight."
+      ></canvas>
+    </div>
+    <div class="side">
+      <p class="status" aria-live="polite">Loading the trained chaser…</p>
+      <p class="sight muted" aria-live="off"></p>
+      <p class="score muted" aria-live="polite"></p>
+      <div class="buttons">
+        <button class="start" type="button" disabled>Start</button>
+        <button class="newmap" type="button" disabled>New map</button>
+      </div>
+      <p class="mapname muted" aria-live="polite"></p>
+      <div class="controls">
+        <label>
+          Map
+          <select class="kind">
+            {mapKinds.map((o) => <option value={o.v}>{o.label}</option>)}
+          </select>
+        </label>
+        <label>
+          Orange is
+          <select class="who"></select>
+        </label>
+        <label>
+          Orange speed
+          <select class="speed">
+            <option value="0.9" selected>90% of blue</option>
+            <option value="1">100% of blue</option>
+          </select>
+        </label>
+        <label>
+          Blue is
+          <select class="blue">
+            <option value="you" selected>You</option>
+            <option value="bot:hider">Hider bot</option>
+          </select>
+        </label>
+        <label class="check">
+          <input class="show" type="checkbox" checked />
+          Show what orange knows
+        </label>
+      </div>
+      <p class="help muted">
+        Steer with the arrow keys or WASD. On a phone, press anywhere on the arena and drag in the
+        direction you want to go. Shaded areas are out of orange's sight; orange spots are where
+        it thinks you could be.
+      </p>
+    </div>
+  </rl-seek>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .seek {
+    margin-block: 2rem 2.5rem;
+  }
+  rl-seek {
+    --shade: rgb(27 34 40 / 0.1);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+  }
+  @media (min-width: 52rem) {
+    rl-seek {
+      grid-template-columns: minmax(0, 1fr) 16rem;
+      align-items: start;
+    }
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) rl-seek {
+      --shade: rgb(0 0 0 / 0.42);
+    }
+  }
+  :global(:root[data-theme='dark']) rl-seek {
+    --shade: rgb(0 0 0 / 0.42);
+  }
+  .stage {
+    aspect-ratio: 3 / 2;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--floor);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  rl-seek:global(.playing) canvas {
+    touch-action: none;
+  }
+  .status {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+    min-height: 2.5em;
+  }
+  .sight {
+    margin: 0.2rem 0 0;
+    font-size: 0.9rem;
+    min-height: 1.4em;
+    font-variant-numeric: tabular-nums;
+  }
+  .score {
+    margin: 0.2rem 0 0.9rem;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    min-height: 3em;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .start,
+  .newmap {
+    font: inherit;
+    font-weight: 650;
+    color: #fff;
+    background: var(--lava);
+    border: 0;
+    border-radius: 6px;
+    padding: 0.55rem 1.4rem;
+    cursor: pointer;
+  }
+  .newmap {
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding-inline: 1rem;
+  }
+  .mapname {
+    font-size: 0.86rem;
+    margin: -0.5rem 0 0.9rem;
+    min-height: 1.3em;
+  }
+  .start:disabled,
+  .newmap:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .start:focus-visible,
+  .newmap:focus-visible,
+  select:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  .controls {
+    display: grid;
+    gap: 0.6rem;
+  }
+  @media (min-width: 30rem) and (max-width: 51.99rem) {
+    .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  label {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  label.check {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .check input {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--lava);
+    margin: 0;
+  }
+  select {
+    font: inherit;
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .help {
+    font-size: 0.86rem;
+    margin: 0.9rem 0 0;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  import {
+    ACTIONS,
+    act,
+    body,
+    caught,
+    FAMILIES,
+    freePoint,
+    generateMap,
+    move,
+    NavGrid,
+    observe,
+    rays,
+    sampleAct,
+  } from '../lib/tag-sim.js';
+  import { Grid, hiderDirection, seekbotDirection, seekObserve, Tracker } from '../lib/tag-sight.js';
+
+  type Body = { x: number; y: number; vx: number; vy: number };
+  type Net = { layers: { w: number[][]; b: number[] }[] };
+  type Seeker = { id: string; label: string; sight: string; net: Net };
+  type Runner = { id: string; label: string; net: Net; rays: number };
+  type World = {
+    width: number;
+    height: number;
+    pillars: [number, number, number][];
+    blocks?: [number, number, number, number][];
+    half: number;
+    dt: number;
+    accel: number;
+    drag: number;
+    maxSpeed: number;
+    maxSteps: number;
+  };
+  type Phase = 'loading' | 'idle' | 'countdown' | 'play' | 'over';
+
+  const KEYS: Record<string, [number, number]> = {
+    ArrowUp: [0, 1],
+    KeyW: [0, 1],
+    ArrowDown: [0, -1],
+    KeyS: [0, -1],
+    ArrowLeft: [-1, 0],
+    KeyA: [-1, 0],
+    ArrowRight: [1, 0],
+    KeyD: [1, 0],
+  };
+  const COUNTDOWN_MS = 1800;
+  const VIEW_RAYS = 360;
+
+  class RlSeek extends HTMLElement {
+    canvas!: HTMLCanvasElement;
+    ctx!: CanvasRenderingContext2D;
+    statusEl!: HTMLElement;
+    sightEl!: HTMLElement;
+    scoreEl!: HTMLElement;
+    startBtn!: HTMLButtonElement;
+    newMapBtn!: HTMLButtonElement;
+    mapNameEl!: HTMLElement;
+    kindSel!: HTMLSelectElement;
+    whoSel!: HTMLSelectElement;
+    speedSel!: HTMLSelectElement;
+    blueSel!: HTMLSelectElement;
+    showBox!: HTMLInputElement;
+
+    base!: World;
+    w!: World;
+    grid!: Grid;
+    tracker!: Tracker;
+    hide = { target: null as number | null, arrived: false };
+    seekers: Seeker[] = [];
+    runners: Runner[] = [];
+    phase: Phase = 'loading';
+    e: Body = body(0, 0);
+    c: Body = body(0, 0);
+    pe: Body = body(0, 0);
+    pc: Body = body(0, 0);
+    steps = 0;
+    acc = 0;
+    last = 0;
+    countdownEnd = 0;
+    held = new Set<string>();
+    joy: { ox: number; oy: number; x: number; y: number; id: number } | null = null;
+    tally = new Map<string, { caught: number; rounds: number }>();
+    result = '';
+    colors: Record<string, string> = {};
+    scale = 1;
+    raf = 0;
+
+    connectedCallback() {
+      const q = <T extends Element>(s: string) => this.querySelector(s) as T;
+      this.canvas = q('canvas');
+      this.ctx = this.canvas.getContext('2d')!;
+      this.statusEl = q('.status');
+      this.sightEl = q('.sight');
+      this.scoreEl = q('.score');
+      this.startBtn = q('.start');
+      this.newMapBtn = q('.newmap');
+      this.mapNameEl = q('.mapname');
+      this.kindSel = q('.kind');
+      this.whoSel = q('.who');
+      this.speedSel = q('.speed');
+      this.blueSel = q('.blue');
+      this.showBox = q('.show');
+
+      new ResizeObserver(() => this.resize()).observe(this.canvas);
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => this.resize());
+      this.startBtn.addEventListener('click', () => this.startRound());
+      this.newMapBtn.addEventListener('click', () => this.newMap());
+      this.kindSel.addEventListener('change', () => this.newMap());
+      for (const s of [this.whoSel, this.speedSel, this.blueSel]) {
+        s.addEventListener('change', () => this.settingsChanged());
+      }
+      this.showBox.addEventListener('change', () => this.draw(1));
+      window.addEventListener('keydown', (ev) => this.onKey(ev, true));
+      window.addEventListener('keyup', (ev) => this.onKey(ev, false));
+      window.addEventListener('blur', () => this.held.clear());
+      this.canvas.addEventListener('pointerdown', (ev) => this.onPointer(ev));
+      this.canvas.addEventListener('pointermove', (ev) => this.onPointer(ev));
+      for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+        this.canvas.addEventListener(t, () => (this.joy = null));
+      }
+      this.load();
+    }
+
+    async load() {
+      try {
+        const res = await fetch(this.dataset.src!);
+        const data = await res.json();
+        this.base = data.world;
+        this.seekers = data.seekers;
+        this.runners = data.runners;
+      } catch {
+        this.statusEl.textContent = 'Could not load the trained chaser. Reload the page to try again.';
+        return;
+      }
+      for (const m of this.seekers) this.whoSel.add(new Option(m.label, `net:${m.id}`));
+      this.whoSel.add(new Option('Search bot (scripted)', 'bot:search'));
+      this.whoSel.add(new Option('X-ray bot (sees through walls)', 'bot:xray'));
+      for (const r of this.runners) this.blueSel.add(new Option(r.label, `net:${r.id}`));
+      if (this.dataset.chaser) this.whoSel.value = this.dataset.chaser;
+      this.newMap(false);
+      this.placeSquares();
+      this.phase = 'idle';
+      this.startBtn.disabled = false;
+      this.newMapBtn.disabled = false;
+      this.settingsChanged();
+      this.resize();
+    }
+
+    get ratio() {
+      return Number(this.speedSel.value);
+    }
+    get you() {
+      return this.blueSel.value === 'you';
+    }
+    get seeker() {
+      return this.seekers.find((m) => `net:${m.id}` === this.whoSel.value) ?? null;
+    }
+    get comboKey() {
+      return `${this.whoSel.value}|${this.speedSel.value}|${this.blueSel.value}`;
+    }
+
+    newMap(redraw = true) {
+      const kind = this.kindSel.value;
+      const fam = kind === 'any' ? FAMILIES[Math.floor(Math.random() * FAMILIES.length)] : kind;
+      const seed = 1 + Math.floor(Math.random() * 999_999);
+      this.w = { ...this.base, ...generateMap(seed, fam, this.base.width, this.base.height) };
+      this.grid = new Grid(new NavGrid(this.w));
+      this.mapNameEl.textContent = `${fam.charAt(0).toUpperCase()}${fam.slice(1)} map #${seed}`;
+      if (!redraw) return;
+      if (this.phase === 'countdown' || this.phase === 'play') this.endRound(null);
+      this.placeSquares();
+      this.draw(1);
+    }
+
+    settingsChanged() {
+      if (this.phase === 'countdown' || this.phase === 'play') this.endRound(null);
+      this.statusEl.textContent = this.you
+        ? 'Stay away from orange for 20 seconds.'
+        : 'Watch orange hunt the blue square.';
+      this.updateScore();
+    }
+
+    placeSquares() {
+      const w = this.w;
+      const [ex, ey] = freePoint(w, Math.random);
+      let cx = 0;
+      let cy = 0;
+      do {
+        [cx, cy] = freePoint(w, Math.random);
+      } while (Math.hypot(cx - ex, cy - ey) < 5);
+      this.e = body(ex, ey);
+      this.c = body(cx, cy);
+      this.pe = { ...this.e };
+      this.pc = { ...this.c };
+      this.steps = 0;
+      this.hide = { target: null, arrived: false };
+      this.tracker = new Tracker(this.grid, w.maxSpeed, w.dt);
+      this.tracker.reset(this.c, this.e);
+      this.sightEl.textContent = '';
+    }
+
+    startRound() {
+      if (!this.w) return;
+      this.placeSquares();
+      this.result = '';
+      this.held.clear();
+      this.joy = null;
+      this.phase = 'countdown';
+      this.countdownEnd = performance.now() + COUNTDOWN_MS;
+      this.classList.add('playing');
+      this.startBtn.disabled = true;
+      this.statusEl.textContent = 'Get ready…';
+      cancelAnimationFrame(this.raf);
+      this.raf = requestAnimationFrame((t) => this.frame(t));
+    }
+
+    endRound(caughtIt: boolean | null) {
+      this.phase = caughtIt === null ? 'idle' : 'over';
+      this.classList.remove('playing');
+      this.startBtn.disabled = false;
+      this.startBtn.textContent = 'Play again';
+      if (caughtIt !== null) {
+        const secs = (this.steps * this.w.dt).toFixed(1);
+        const t = this.tally.get(this.comboKey) ?? { caught: 0, rounds: 0 };
+        t.rounds++;
+        if (caughtIt) t.caught++;
+        this.tally.set(this.comboKey, t);
+        const who = this.you ? 'you' : 'blue';
+        this.result = caughtIt ? `Caught in ${secs} s` : `${this.you ? 'You' : 'Blue'} got away`;
+        this.statusEl.textContent = caughtIt
+          ? `Orange caught ${who} in ${secs} seconds.`
+          : `${this.you ? 'You' : 'Blue'} got away: 20 seconds without being caught.`;
+        this.updateScore();
+        if (this.you) this.startBtn.focus({ preventScroll: true });
+      }
+      this.draw(1);
+    }
+
+    updateScore() {
+      const t = this.tally.get(this.comboKey);
+      if (!t) {
+        this.scoreEl.textContent = '';
+        return;
+      }
+      const times = (n: number) => (n === 1 ? '1 time' : `${n} times`);
+      this.scoreEl.textContent = `With these settings, orange caught ${this.you ? 'you' : 'blue'} ${times(t.caught)} in ${t.rounds} ${t.rounds === 1 ? 'round' : 'rounds'}.`;
+    }
+
+    onKey(ev: KeyboardEvent, down: boolean) {
+      if (!(ev.code in KEYS)) return;
+      if (this.phase !== 'countdown' && this.phase !== 'play') return;
+      if (!this.you) return;
+      ev.preventDefault();
+      if (down) this.held.add(ev.code);
+      else this.held.delete(ev.code);
+    }
+
+    onPointer(ev: PointerEvent) {
+      if (!this.you || (this.phase !== 'countdown' && this.phase !== 'play')) return;
+      if (ev.type === 'pointerdown') {
+        this.canvas.setPointerCapture(ev.pointerId);
+        this.joy = { ox: ev.offsetX, oy: ev.offsetY, x: ev.offsetX, y: ev.offsetY, id: ev.pointerId };
+        ev.preventDefault();
+      } else if (this.joy && ev.pointerId === this.joy.id) {
+        this.joy.x = ev.offsetX;
+        this.joy.y = ev.offsetY;
+      }
+    }
+
+    inputDir(): [number, number] {
+      if (this.joy) {
+        const dx = this.joy.x - this.joy.ox;
+        const dy = -(this.joy.y - this.joy.oy);
+        const n = Math.hypot(dx, dy);
+        return n > 10 ? [dx / n, dy / n] : [0, 0];
+      }
+      let x = 0;
+      let y = 0;
+      for (const k of this.held) {
+        x += KEYS[k][0];
+        y += KEYS[k][1];
+      }
+      x = Math.sign(x);
+      y = Math.sign(y);
+      const n = Math.hypot(x, y);
+      return n ? [x / n, y / n] : [0, 0];
+    }
+
+    /** Same order as sight.SeekArena.step: both decide, both move, then orange looks. */
+    step() {
+      const w = this.w;
+      const tr = this.tracker;
+      this.pe = { ...this.e };
+      this.pc = { ...this.c };
+      let ed: [number, number];
+      if (this.you) ed = this.inputDir();
+      else if (this.blueSel.value === 'bot:hider') {
+        ed = hiderDirection(this.hide, this.steps, this.grid, tr, this.e, this.c) as [number, number];
+      } else {
+        const r = this.runners.find((m) => `net:${m.id}` === this.blueSel.value)!;
+        ed = ACTIONS[sampleAct(r.net, observe(this.e, this.c, w, r.rays))] as [number, number];
+      }
+      let cd: [number, number];
+      const sk = this.seeker;
+      if (sk) {
+        cd = ACTIONS[act(sk.net, seekObserve(this.c, this.e, tr, sk.sight, w, rays))] as [number, number];
+      } else {
+        const kind = this.whoSel.value.slice(4);
+        cd = seekbotDirection(kind, this.ratio, this.grid, tr, this.c, this.e, w) as [number, number];
+      }
+      this.steps++;
+      move(this.e, ed[0], ed[1], w.maxSpeed, w);
+      move(this.c, cd[0], cd[1], w.maxSpeed * this.ratio, w);
+      tr.update(this.c, this.e);
+      if (caught(this.e, this.c, w)) this.endRound(true);
+      else if (this.steps >= w.maxSteps) this.endRound(false);
+    }
+
+    sightText() {
+      const tr = this.tracker;
+      const who = this.you ? 'you' : 'blue';
+      if (this.whoSel.value === 'bot:xray') return `It sees ${who} through walls.`;
+      if (tr.seen) return `It can see ${who}.`;
+      if (!tr.ever) return `It hasn't seen ${who} yet.`;
+      return `It lost sight of ${who} ${(tr.since * this.w.dt).toFixed(1)} s ago.`;
+    }
+
+    frame(t: number) {
+      if (this.phase === 'countdown') {
+        if (t >= this.countdownEnd) {
+          this.phase = 'play';
+          this.last = t;
+          this.acc = 0;
+        }
+        this.draw(1, Math.ceil((this.countdownEnd - t) / (COUNTDOWN_MS / 3)));
+      } else if (this.phase === 'play') {
+        this.acc += Math.min(t - this.last, 250) / 1000;
+        this.last = t;
+        while (this.acc >= this.w.dt && this.phase === 'play') {
+          this.acc -= this.w.dt;
+          this.step();
+        }
+        if (this.phase === 'play') {
+          const left = (this.w.maxSteps - this.steps) * this.w.dt;
+          this.statusEl.textContent = this.you
+            ? `Stay hidden! ${left.toFixed(1)} s left`
+            : `${left.toFixed(1)} s left`;
+          this.sightEl.textContent = this.sightText();
+          this.draw(this.acc / this.w.dt);
+        }
+      }
+      if (this.phase === 'countdown' || this.phase === 'play') {
+        this.raf = requestAnimationFrame((tt) => this.frame(tt));
+      }
+    }
+
+    resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const r = this.canvas.getBoundingClientRect();
+      if (!r.width) return;
+      this.canvas.width = Math.round(r.width * dpr);
+      this.canvas.height = Math.round(r.height * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cs = getComputedStyle(this);
+      for (const k of ['floor', 'grid', 'wall', 'flag', 'lava', 'ink', 'muted', 'paper', 'shade']) {
+        this.colors[k] = cs.getPropertyValue(`--${k}`).trim();
+      }
+      if (this.w) {
+        this.scale = r.width / this.w.width;
+        this.draw(1);
+      }
+    }
+
+    draw(alpha: number, countdown = 0) {
+      const { ctx, w, colors: k } = this;
+      if (!w) return;
+      const s = this.scale;
+      const W = w.width * s;
+      const H = w.height * s;
+      const X = (x: number) => x * s;
+      const Y = (y: number) => (w.height - y) * s;
+      const lerp = (a: number, b: number) => a + (b - a) * alpha;
+      const ox = lerp(this.pc.x, this.c.x);
+      const oy = lerp(this.pc.y, this.c.y);
+
+      ctx.fillStyle = k.floor;
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = k.grid;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 1; x < w.width; x++) {
+        ctx.moveTo(Math.round(X(x)) + 0.5, 0);
+        ctx.lineTo(Math.round(X(x)) + 0.5, H);
+      }
+      for (let y = 1; y < w.height; y++) {
+        ctx.moveTo(0, Math.round(Y(y)) + 0.5);
+        ctx.lineTo(W, Math.round(Y(y)) + 0.5);
+      }
+      ctx.stroke();
+
+      const show = this.showBox.checked && this.whoSel.value !== 'bot:xray' && this.tracker;
+      if (show) {
+        // Out of orange's sight: shade everything outside its visibility polygon.
+        const reach = 20;
+        const d = rays(ox, oy, w, VIEW_RAYS, reach);
+        ctx.beginPath();
+        ctx.rect(0, 0, W, H);
+        for (let i = 0; i < VIEW_RAYS; i++) {
+          const a = (2 * Math.PI * i) / VIEW_RAYS;
+          const px = X(ox + Math.cos(a) * d[i] * reach);
+          const py = Y(oy + Math.sin(a) * d[i] * reach);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = k.shade;
+        ctx.fill('evenodd');
+        // Where it thinks blue could be.
+        const g = this.grid;
+        const cell = g.nav.cell * s;
+        ctx.fillStyle = k.lava;
+        for (let i = 0; i < g.n; i++) {
+          const v = this.tracker.weight[i];
+          if (!(v > 0.02)) continue;
+          ctx.globalAlpha = 0.12 + 0.43 * v;
+          ctx.beginPath();
+          ctx.roundRect(X(g.cx[i]) - cell * 0.3, Y(g.cy[i]) - cell * 0.3, cell * 0.6, cell * 0.6, 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      ctx.fillStyle = k.wall;
+      for (const [cx, cy, r] of w.pillars) {
+        ctx.beginPath();
+        ctx.arc(X(cx), Y(cy), r * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (const [x0, y0, x1, y1] of w.blocks ?? []) {
+        ctx.beginPath();
+        ctx.roundRect(X(x0), Y(y1), (x1 - x0) * s, (y1 - y0) * s, Math.min(3, s * 0.08));
+        ctx.fill();
+      }
+
+      if (this.phase === 'play' || this.phase === 'over') {
+        const frac = Math.max(0, 1 - this.steps / w.maxSteps);
+        ctx.fillStyle = k.muted;
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(0, H - 4, W * frac, 4);
+        ctx.globalAlpha = 1;
+      }
+
+      const h = w.half * s;
+      const ex = lerp(this.pe.x, this.e.x);
+      const ey = lerp(this.pe.y, this.e.y);
+      if (show && this.tracker.seen) {
+        ctx.strokeStyle = k.lava;
+        ctx.globalAlpha = 0.6;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(X(ox), Y(oy));
+        ctx.lineTo(X(ex), Y(ey));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      } else if (show && this.tracker.ever) {
+        // where it last saw blue
+        const [lx, ly] = this.tracker.last;
+        ctx.strokeStyle = k.flag;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.roundRect(X(lx) - h, Y(ly) - h, h * 2, h * 2, Math.max(2, h * 0.2));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      const square = (x: number, y: number, color: string) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(X(x) - h, Y(y) - h, h * 2, h * 2, Math.max(2, h * 0.2));
+        ctx.fill();
+      };
+      square(ox, oy, k.lava);
+      square(ex, ey, k.flag);
+
+      const fontPx = Math.max(12, Math.min(16, s * 0.42));
+      ctx.font = `600 ${fontPx}px ${getComputedStyle(this).fontFamily}`;
+      ctx.textAlign = 'center';
+      if (this.phase === 'idle' || this.phase === 'countdown') {
+        ctx.fillStyle = k.ink;
+        const label = (text: string, x: number, y: number) => {
+          const above = Y(y) - h - 4 - fontPx >= 0;
+          ctx.textBaseline = above ? 'bottom' : 'top';
+          ctx.fillText(text, X(x), above ? Y(y) - h - 4 : Y(y) + h + 4);
+        };
+        label(this.you ? 'you' : 'bot', ex, ey);
+        label('AI', ox, oy);
+      }
+
+      if (this.joy) {
+        ctx.strokeStyle = k.muted;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.joy.ox, this.joy.oy, 28, 0, Math.PI * 2);
+        ctx.stroke();
+        const dx = this.joy.x - this.joy.ox;
+        const dy = this.joy.y - this.joy.oy;
+        const n = Math.hypot(dx, dy) || 1;
+        const m = Math.min(n, 28);
+        ctx.fillStyle = k.muted;
+        ctx.beginPath();
+        ctx.arc(this.joy.ox + (dx / n) * m, this.joy.oy + (dy / n) * m, 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const banner = countdown ? String(countdown) : this.phase === 'over' ? this.result : '';
+      if (banner) {
+        const big = countdown ? Math.min(H * 0.3, 96) : Math.max(18, Math.min(H * 0.09, 34));
+        ctx.font = `750 ${big}px ${getComputedStyle(this).fontFamily}`;
+        ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(banner).width;
+        ctx.fillStyle = k.paper;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.roundRect(W / 2 - tw / 2 - big * 0.5, H / 2 - big * 0.8, tw + big, big * 1.6, 8);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = k.ink;
+        ctx.fillText(banner, W / 2, H / 2);
+      }
+    }
+  }
+
+  customElements.define('rl-seek', RlSeek);
+</script>

@@ -15,4 +15,5 @@
 - Playable experiments (003-tag) run the trained network in the browser: the JS port in
   `site/src/lib/` must match the Python env. After changing either side, re-export the parity
   fixture (`export_parity` in `experiments/003-tag/evaluate.py`, and in `evaluate_maps.py` for
-  random maps) and run `npm test` in `site/`.
+  random maps, in `evaluate_seek.py` for line of sight and the possibility map) and run
+  `npm test` in `site/`.

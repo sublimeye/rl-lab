@@ -1,0 +1,207 @@
+---
+title: "Tag, part 4: hide and seek"
+number: 6
+date: 2026-11-18
+summary: Until now the chaser always knew where the runner was, even through walls. This time it only sees along clear lines of sight, so it has to guess where you went and go look. I gave it a memory and a map of where you could be.
+---
+
+import SeekGame from '../../components/SeekGame.astro';
+import SeekFrames from '../../components/SeekFrames.astro';
+
+In posts 3 to 5 the chaser always knew exactly where the runner was, walls or not. A person
+wouldn't. So this time the chaser only sees you when the straight line between you misses
+every obstacle. Duck behind a wall and it loses you. Then it has to work out where you could
+have gone and go look, ideally the way a person would: check the corner right next to it
+before walking down a long hallway.
+
+This time you play the runner. Orange is the trained seeker. The shaded area is what it can't
+see, and the orange spots are where it thinks you could be.
+
+<SeekGame
+  src="006-tag-seek/models.json"
+  chaser="net:map"
+  caption="Under Orange you can switch to the other trained chasers, including one that sees through walls, or to two scripted bots. Under Blue you can watch a scripted hider or post 5's runner instead of playing. You see the whole map; orange doesn't."
+/>
+
+**Short answer:**
+
+- **Sight alone isn't enough.** A chaser trained with only line of sight catches post 5's
+  runner on 50–52% of the 200 test maps. The same training with see-through walls: 66–71%.
+- **A memory and a map of where you could be close the gap.** With both, the seeker catches
+  68–70%, as often as the one that sees through walls, and it keeps the runner in sight 72%
+  of the time.
+- **The map matters most when you hide.** Against a runner standing still somewhere out of
+  sight, the seeker with the map sees it after 2.5 seconds on average and catches it 92–94% of
+  the time. With only "where I last saw it": 3.1–4.1 seconds and 84–90%.
+- **It's not free.** Each decision now takes about 60 microseconds instead of 9, almost all
+  of it the line-of-sight bookkeeping, not the network.
+
+## What the chaser sees
+
+The runner still sees everything, like you do in the game. The chaser sees the runner only
+when the segment between their centres doesn't touch any pillar, block or wall. When it does
+see the runner, it gets the same information as before: where it is and how it's moving. When
+it doesn't, those inputs are zeros.
+
+I trained four chasers that differ only in what they know:
+
+| Chaser | What it gets besides its own position, speed and 16 wall sensors |
+| --- | --- |
+| Sees through walls | where the runner is, always (the old setup) |
+| Sight only | where the runner is, only while in sight |
+| + last sighting | plus where and when it last saw the runner |
+| + possibility map | plus a summary of where the runner could be now |
+
+## A map of where you could be
+
+The map is plain bookkeeping, not learned. The room is split into half-unit cells. When the
+chaser loses sight of you, the map starts at the cell where it last saw you and grows outward
+one cell at a time, as fast as you can run, around obstacles. Every cell the chaser can see
+right now is crossed off, because if you were there it would see you. Before it has seen you
+at all, the map is every cell it can't see.
+
+That's the worst case: everywhere you could have reached without being seen. A person
+searching doesn't assume the worst everywhere, though. A spot they looked at a second ago is
+probably still empty. So each cell is also weighted by how long ago the chaser last saw it:
+just looked, almost zero; two seconds ago, about two thirds; never, full weight.
+
+The network doesn't get the whole grid. For each of the 8 directions it can move, it gets how
+much of the map's weight is best reached by going that way, and how good the best spot that
+way is (likely and close). It still has to learn what to do with that: when to chase, when to
+search, which way to look first.
+
+Two things I had to fix on the way. In the first version a cell counted as seen when its
+centre was in sight, so a runner tucked into the corner of a half-visible cell fell off the
+map. And right after a sighting the map waited half a cell before growing. Against the
+scripted hider, the runner's true cell was missing from the map on 6.2% of the steps it was
+hidden. Now a cell is crossed off only when every spot in it where a square fits is in sight,
+and the map grows by one cell right after a sighting. The miss rate is down to 0.7% against
+the hider and 0.03% against a runner standing still (a test checks it); the rest is grid
+rounding.
+
+## Training
+
+Same PPO as post 5's chasers, 10 million steps, two seeds per chaser, random maps, the chaser's
+speed drawn from 85–100% of the runner's every episode. Each episode it faces one of four
+runners:
+
+- post 5's best runner (40%) or another post 5 runner (15%), both seeing everything and picking
+  moves with some randomness;
+- a scripted hider (30%): it runs to the farthest spot out of the chaser's sight that it can
+  reach first, then stands still until it's seen;
+- a runner standing still out of sight from the start (15%), a pure search test.
+
+For comparison, two scripted chasers use the same sight and the same map. The **search bot**
+heads for the best spot on the map (likely and close); the **last-seen bot** goes to where it
+last saw the runner and waits. Both intercept the runner while they can see it.
+
+## Results
+
+All scores are from post 5's 200 test maps (40 of each kind), which no chaser trained on, at 90%
+of the runner's speed. The still runner gets its own 200 starts, always out of sight.
+
+| Chaser | Post 5's runner | Hider | Still runner | First sight of the still runner |
+| --- | --- | --- | --- | --- |
+| Sees through walls | 66–71% | 51–55% | 86–88% | 3.0–3.4 s |
+| Sight only | 50–52% | 37–38% | 84–88% | 3.4–4.1 s |
+| + last sighting | 62–69% | 50–58% | 84–90% | 3.1–4.1 s |
+| **+ possibility map** | **68–70%** | **50–56%** | **92–94%** | **2.5–2.6 s** |
+| Search bot (scripted) | 22% | 12% | 99% | 1.6 s |
+| Last-seen bot (scripted) | 13% | 6% | 0% | never |
+
+Catch rate within 20 seconds; ranges are over the two seeds. First sight is the average time
+until it first sees the still runner, counting 20 s when it never does.
+
+What I read from it:
+
+- **Memory gets you most of the way against a runner that moves.** "Where I last saw it" alone
+  lifts the catch rate against post 5's runner from about 51% to about 65%. A runner that keeps
+  moving is usually close to where it vanished.
+- **The map is what finds someone who hides.** Against the still runner, the last sighting is no
+  help (there is none at the start), and the trained chasers without the map do about as well
+  as the one with sight only. With the map it sees the runner 0.5 to 1.5 seconds sooner and
+  catches it more often than even the chaser that sees through walls, which was trained to run
+  at a target, not to search.
+- **The scripted search bot is the better searcher and a bad chaser.** It finds the still runner
+  in 1.6 seconds, faster than any network. But against runners that move, it catches 12–22%,
+  where the trained seeker catches 50–70%. The network learned to chase well and search
+  reasonably; the bot was written to search and does nothing clever once it sees you.
+- **It keeps you in sight.** The map seeker sees post 5's runner 72% of the time, more than any
+  other chaser (the one that sees through walls: 61–64%, because it doesn't need to).
+
+At 100% speed every chaser catches more, and the order is the same: the map seeker catches post
+5's runner 89–90% of the time and the hider 86–94%; the chaser that sees through walls, 86–88%
+and 86%.
+
+## Does it peek around corners?
+
+Here is the seeker with the map looking for a runner that stands still. Lighter orange cells
+are spots it checked recently.
+
+<SeekFrames
+  src="006-tag-seek/frames.json"
+  episode={0}
+  caption="A walls map from the test set. At the start almost everything is out of sight. The seeker runs right through the middle, checks the space by the L-shaped wall at the bottom right, then turns back up through a gap between two walls and sees the runner at 4.2 seconds."
+/>
+
+<SeekFrames
+  src="006-tag-seek/frames.json"
+  episode={1}
+  caption="A maze map. The seeker heads up the right side of the big L-shaped wall, glancing behind the small wall on the far right on the way, then comes over the top corner and sees the runner inside the L at 3.2 seconds."
+/>
+
+Mostly, yes: it goes to the nearest place that hides a lot of the map, and it turns corners
+close and wide enough to see behind them. Part of that comes from the inputs, though: "the
+best spot that way" already favours close spots, so the network gets a strong hint that a
+nearby corner beats the end of a long hallway. I didn't test that choice directly, with a map
+built to offer exactly a near corner and a far hallway; that's a good next test.
+
+The kind of map still matters a lot. The map seeker catches post 5's runner on 94% of pillar
+maps, 81% of block maps, 75% of mixed, 64% of wall maps and 31% of mazes. Mazes are hardest for
+every chaser, including the one that sees through walls (40%).
+
+## How the AI runs on this page
+
+Same as before: plain JavaScript, no ML library, no server.
+
+- **Size:** the seeker reads 49 numbers instead of 25, so its first layer grew: 7,945 numbers
+  instead of post 5's 6,409 (24% more), 75 KB of JSON per network, 26 KB gzipped. This page's
+  file holds five networks (four chasers and post 5's runner): 324 KB, 116 KB gzipped.
+- **Speed:** one decision takes about 60 microseconds in Node on an M1 Pro: 47 for the line of
+  sight to about 1,900 spots and the map update, 4 for the inputs, 9 for the network. Post 5's
+  runner takes about 9. At 20 decisions a second, that's 0.12% of the time between steps.
+- **New map:** about 40 ms to set up the path grid the map and bots use.
+- **Same results as Python:** a test replays six exported episodes (bots, the hider, the
+  trained seeker) and checks every position, every input, the map's size and weight, and the
+  network's outputs, on every push.
+
+## What I take from it
+
+- **What it can't see changes the job.** Hiding the runner cost a quarter of the catches. Most
+  of that came back from remembering one point; the rest needed a model of where the runner
+  could be.
+- **Hand-made bookkeeping plus a learned policy works.** The network didn't have to learn
+  memory: the map is ordinary code, and the network learned how to use it. Whether a network
+  with its own memory (a recurrent one) could learn the same from raw sight is the obvious
+  next question.
+- **Test the search on its own.** Against runners that move, the last sighting looked almost as
+  good as the map. Only the still runner showed the difference.
+
+I still haven't tested any of this against a person. Try hiding behind a maze wall; that's
+where it struggles.
+
+## Cost
+
+All on an M1 Pro, CPU only:
+
+- Training: 8 runs in parallel, 59–66 minutes each (the map seeker is a bit slower per step).
+- Scoring every checkpoint and the bots on the test maps: 6 minutes.
+
+## Run it yourself
+
+```sh
+cd experiments/003-tag
+uv run seek.py --sight map --seed 2 --name seek-map-s2   # also: xray, none, last
+uv run evaluate_seek.py --export   # scores every run, writes the site data
+uv run summarize_seek.py           # prints every number quoted here
+```

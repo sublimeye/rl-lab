@@ -1,0 +1,191 @@
+---
+/**
+ * Snapshots of the seeker hunting a runner that stands still out of sight: what it can see
+ * (unshaded), where it thinks the runner could be (orange cells, darker = likelier), and its
+ * path so far. Data: experiments/003-tag/evaluate_seek.py export_frames() -> frames.json.
+ * The sight polygons are drawn at build time with the game's own ray code.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { rays } from '../lib/tag-sim.js';
+
+interface Props {
+  src: string;
+  /** which exported episode to show */
+  episode?: number;
+  caption?: string;
+}
+const { src, episode = 0, caption } = Astro.props;
+const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
+const w = data.world;
+const ep = data.episodes[episode];
+const world = { ...w, ...ep.map };
+const Y = (y: number) => w.height - y;
+const h = w.half;
+const found = ep.found ?? ep.snaps[ep.snaps.length - 1].step;
+const pick = (step: number) =>
+  ep.snaps.reduce((a: any, b: any) => (Math.abs(b.step - step) < Math.abs(a.step - step) ? b : a));
+const snaps = [pick(0), pick(found / 3), pick((2 * found) / 3), pick(found)];
+const N = 240;
+const REACH = 20;
+const panels = snaps.map((s: any) => {
+  const [x, y] = s.chaser;
+  const d = rays(x, y, world, N, REACH);
+  const poly = d
+    .map((v: number, i: number) => {
+      const a = (2 * Math.PI * i) / N;
+      return `${(x + Math.cos(a) * v * REACH).toFixed(3)},${Y(y + Math.sin(a) * v * REACH).toFixed(3)}`;
+    })
+    .join(' ');
+  const cells = Object.entries(s.weight).map(([k, v]) => {
+    const kk = Number(k);
+    return { x: ((kk % ep.nx) + 0.5) * ep.cell, y: (Math.floor(kk / ep.nx) + 0.5) * ep.cell, v: v as number };
+  });
+  const pts = s.path.map(([px, py]: number[]) => `${px},${Y(py)}`).join(' ');
+  const t = (s.step * w.dt).toFixed(1);
+  const label = s.step === 0 ? 'Start' : s.step === ep.found ? `${t} s: sees it` : `${t} s`;
+  return { s, poly, cells, pts, label };
+});
+const r = ep.runner;
+---
+
+<figure class="frames wide">
+  <p class="legend">
+    <span><i class="sw seeker"></i>Seeker and its path</span>
+    <span><i class="sw runner"></i>Runner, standing still</span>
+    <span><i class="sw cell"></i>Where it thinks the runner could be</span>
+    <span><i class="sw shade"></i>Out of its sight</span>
+  </p>
+  <p class="maplabel muted">{ep.mapLabel}</p>
+  <div class="grid">
+    {
+      panels.map((p: any) => (
+        <div class="panel">
+          <p class="name">{p.label}</p>
+          <svg viewBox={`0 0 ${w.width} ${w.height}`} role="img" aria-label={`Seeker at ${p.label}`}>
+            <defs>
+              <clipPath id={`c${episode}-${p.s.step}`}>
+                <rect width={w.width} height={w.height} />
+              </clipPath>
+            </defs>
+            <rect class="shade" width={w.width} height={w.height} />
+            <polygon class="lit" points={p.poly} clip-path={`url(#c${episode}-${p.s.step})`} />
+            {p.cells.map((c: any) => (
+              <rect class="cell" x={c.x - 0.17} y={Y(c.y) - 0.17} width="0.34" height="0.34" rx="0.05" style={`opacity: ${(0.12 + 0.6 * c.v).toFixed(2)}`} />
+            ))}
+            {ep.map.pillars.map(([cx, cy, rr]: number[]) => (
+              <circle class="ob" cx={cx} cy={Y(cy)} r={rr} />
+            ))}
+            {ep.map.blocks.map(([x0, y0, x1, y1]: number[]) => (
+              <rect class="ob" x={x0} y={Y(y1)} width={x1 - x0} height={y1 - y0} rx="0.06" />
+            ))}
+            <polyline class="path" points={p.pts} />
+            <rect class="runner" x={r[0] - h} y={Y(r[1]) - h} width={h * 2} height={h * 2} rx="0.08" />
+            <rect class="seeker" x={p.s.chaser[0] - h} y={Y(p.s.chaser[1]) - h} width={h * 2} height={h * 2} rx="0.08" />
+          </svg>
+        </div>
+      ))
+    }
+  </div>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .frames {
+    margin-block: 1.75rem 2.25rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin: 0 0 0.4rem;
+  }
+  .maplabel {
+    font-size: 0.86rem;
+    margin: 0 0 0.6rem;
+  }
+  .sw {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 3px;
+    margin-right: 0.35rem;
+    vertical-align: -0.1rem;
+  }
+  .sw.seeker {
+    background: var(--lava);
+  }
+  .sw.runner {
+    background: var(--flag);
+  }
+  .sw.cell {
+    background: var(--lava);
+    opacity: 0.45;
+  }
+  .sw.shade {
+    background: var(--shade);
+  }
+  .grid {
+    display: grid;
+    gap: 0.9rem 1.1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .name {
+    margin: 0 0 0.3rem;
+    font-weight: 650;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .frames {
+    --shade: color-mix(in srgb, var(--ink) 13%, var(--floor));
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .frames {
+      --shade: color-mix(in srgb, #000 42%, var(--floor));
+    }
+  }
+  :global(:root[data-theme='dark']) .frames {
+    --shade: color-mix(in srgb, #000 42%, var(--floor));
+  }
+  .shade {
+    fill: var(--shade);
+  }
+  .lit {
+    fill: var(--floor);
+  }
+  .cell {
+    fill: var(--lava);
+  }
+  .ob {
+    fill: var(--wall);
+  }
+  .path {
+    fill: none;
+    stroke: var(--lava);
+    stroke-width: 0.06;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    opacity: 0.7;
+  }
+  .runner {
+    fill: var(--flag);
+  }
+  .seeker {
+    fill: var(--lava);
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
