@@ -1,0 +1,150 @@
+---
+/**
+ * Post 10: what each pilot does with the two sticks on the same course, over the whole flight
+ * (one row per pilot: throttle and tilt against time, from -1 to +1).
+ * Data: experiments/010-drone/evaluate.py → traces.json.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+
+interface Props {
+  src: string;
+  title: string;
+  caption?: string;
+}
+const { src, title, caption } = Astro.props;
+const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
+type Row = { label: string; outcome: string; time: number; sticks: [number, number][]; change: number; pinned: number };
+const rows: Row[] = data.pilots;
+const dt = data.dt as number;
+const tMax = Math.max(...rows.map((r) => r.sticks.length * dt));
+const W = 400;
+const H = 70;
+const X = (t: number) => (t / tMax) * W;
+const Y = (v: number) => H / 2 - v * (H / 2 - 3);
+const pathOf = (vals: number[]) => vals.map((v, i) => `${i ? 'L' : 'M'}${X((i + 1) * dt).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+const ticks: number[] = [];
+for (let t = 0; t <= tMax; t += tMax > 12 ? 4 : 2) ticks.push(t);
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+---
+
+<figure class="sticktrace wide">
+  <p class="title">{title}</p>
+  <div class="grid">
+    <span></span>
+    <span class="head">Throttle (up = more power)</span>
+    <span class="head">Tilt (up = lean toward the pad)</span>
+    {
+      rows.map((r) => (
+        <>
+          <div class="who">
+            <strong>{r.label}</strong>
+            <span class="muted">
+              {r.outcome === 'landed' ? `landed in ${r.time.toFixed(1)} s` : r.outcome}
+              <br />
+              {`sticks at an end ${pct(r.pinned)} of the time`}
+            </span>
+          </div>
+          {[0, 1].map((k) => (
+            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${r.label}: ${k ? 'tilt' : 'throttle'} over the flight`}>
+              <rect class="band" x="0" y="0" width={W} height={H} />
+              <line class="mid" x1="0" x2={W} y1={H / 2} y2={H / 2} vector-effect="non-scaling-stroke" />
+              {ticks.map((t) => <line class="tick" x1={X(t)} x2={X(t)} y1="0" y2={H} vector-effect="non-scaling-stroke" />)}
+              <path d={pathOf(r.sticks.map((s) => s[k] * (k ? data.facing : 1)))} vector-effect="non-scaling-stroke" />
+            </svg>
+          ))}
+        </>
+      ))
+    }
+    <span></span>
+    {
+      [0, 1].map(() => (
+        <div class="xaxis" aria-hidden="true">
+          {ticks.map((t) => <span style={`left:${(X(t) / W) * 100}%`}>{t} s</span>)}
+        </div>
+      ))
+    }
+  </div>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .sticktrace {
+    margin-block: 1.75rem 2.25rem;
+  }
+  .title {
+    font-weight: 650;
+    margin: 0 0 0.75rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem 0.9rem;
+    align-items: center;
+  }
+  .head {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .who {
+    display: grid;
+    font-size: 0.86rem;
+    line-height: 1.35;
+  }
+  .who .muted {
+    font-size: 0.8rem;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: 4.2rem;
+  }
+  .band {
+    fill: var(--floor);
+    stroke: var(--rule);
+  }
+  .mid {
+    stroke: var(--rule);
+  }
+  .tick {
+    stroke: var(--grid);
+  }
+  path {
+    fill: none;
+    stroke: var(--flag);
+    stroke-width: 1.75;
+    stroke-linejoin: round;
+  }
+  .xaxis {
+    position: relative;
+    height: 1rem;
+  }
+  .xaxis span {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .xaxis span:first-child {
+    transform: none;
+  }
+  @media (max-width: 40rem) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .grid > span:first-child,
+    .grid > span:nth-last-child(3) {
+      display: none;
+    }
+    .who {
+      grid-column: 1 / -1;
+      margin-top: 0.4rem;
+    }
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>

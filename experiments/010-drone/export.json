@@ -1,0 +1,39 @@
+{
+  "models": {
+    "model-ppo.json": ["ppo-s1", "PPO network"],
+    "model-rand.json": ["rand-s1", "PPO, trained in wind + payload"],
+    "model-sac.json": ["sac-s1", "SAC network"],
+    "model-slow.json": ["rate-0.1", "PPO, slow sticks"]
+  },
+  "groups": {
+    "ppo": ["ppo-s1", "ppo-s2", "ppo-s3"],
+    "ppo-alone": ["ppo-s1"],
+    "sac": ["sac-s1", "sac-s2", "sac-s3"],
+    "rand": ["rand-s1", "rand-s2", "rand-s3"]
+  },
+  "table": {
+    "ppo-s1": "ppo-s1",
+    "ppo-s2": "ppo-s2",
+    "ppo-s3": "ppo-s3",
+    "sac-s1": "sac-s1",
+    "sac-s2": "sac-s2",
+    "sac-s3": "sac-s3",
+    "rand-s1": "rand-s1",
+    "rand-s2": "rand-s2",
+    "rand-s3": "rand-s3",
+    "smooth-0.1": "smooth-0.1",
+    "smooth-1": "smooth-1",
+    "rate-0.25": "rate-0.25",
+    "rate-0.1": "rate-0.1"
+  },
+  "traces": {
+    "seed": 1000000007,
+    "pilots": {
+      "Hand-written autopilot": "autopilot",
+      "PPO": "ppo-s1",
+      "PPO, stick penalty 0.1": "smooth-0.1",
+      "PPO, slow sticks (0.1)": "rate-0.1",
+      "SAC": "sac-s1"
+    }
+  }
+}

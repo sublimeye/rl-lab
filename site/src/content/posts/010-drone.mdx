@@ -1,0 +1,255 @@
+---
+title: "Drone: two analog sticks, two pillars"
+number: 10
+date: 2026-11-20
+summary: A 2D drone flown with a hobby controller's two sticks hops from one pillar to another. PPO learns it in about a minute on a laptop and flies three times faster than a hand-written autopilot, with its sticks jammed at the ends of their travel about half the time. It breaks when the drone gets heavier, unless it trained that way. SAC learns as much per step, almost 40 times slower. Fly it yourself.
+---
+
+import DroneGame from '../../components/DroneGame.astro';
+import DroneChart from '../../components/DroneChart.astro';
+import StickTrace from '../../components/StickTrace.astro';
+
+Every agent so far pressed buttons: step left, dig, drop a log. A drone's controller has two
+analog sticks, and they can sit anywhere in between. So this time the network's answer isn't a
+choice from a list. It's two numbers between −1 and 1, the positions of the two sticks, 20
+times a second.
+
+The job: take off from one pillar standing in water, fly across, and land gently on another.
+Below, the network flies it live, and the two sticks under the picture show what it's pushing.
+You can also give it to a hand-written autopilot, or fly it yourself.
+
+<DroneGame
+  models={[
+    { src: '010-drone/model-ppo.json', label: 'PPO network' },
+    { src: '010-drone/model-rand.json', label: 'PPO, trained in wind + payload' },
+    { src: '010-drone/model-sac.json', label: 'SAC network' },
+    { src: '010-drone/model-slow.json', label: 'PPO, slow sticks' },
+  ]}
+  caption="Flying it yourself: W and S (or the up and down arrows) move the throttle, A and D (or left and right) the tilt; you can also drag the sticks, or use a gamepad. Altitude hold, on by default, is for people only: the networks always fly the raw sticks."
+/>
+
+**Short answer:**
+
+- **It learns fast.** After 1 million steps, PPO lands on 198–200 of 200 courses it has never
+  seen. The run that had the laptop to itself got there in under a minute.
+- **It flies like a racer, not like an autopilot.** It takes 3.1 seconds per flight against
+  9.6 for a hand-written controller, with its sticks at the ends of their travel 46–62% of the
+  time (the autopilot: 3%).
+- **Making it smooth is harder than it sounds.** A penalty on moving the sticks didn't calm
+  them; a bigger one taught it to dive into the pad at 7 m/s. A speed limit on the sticks
+  worked, but cost it robustness.
+- **It's fragile outside what it saw.** With a payload of up to 35%, it lands only 57–82 of 200,
+  mostly by coming down too hard. Trained in random wind and payload, it lands 198–200 in every
+  condition.
+- **SAC isn't needed, and isn't faster here.** It learned about as much per step as PPO, at
+  almost 40 times the cost per step on this CPU. It does fly with calmer sticks.
+
+## The drone
+
+| | |
+| --- | --- |
+| Sticks | Left: throttle. Centre is half power, which exactly holds up a level drone; full is twice its weight. Right: tilt. The flight controller turns the stick into a lean of up to 30° and holds it. That's "angle mode", how beginners fly real drones. Leaning points the thrust sideways, which is the only way to move sideways. |
+| Physics | 60 steps a second. The motors take about 0.08 s to spin up, the flight controller can only turn the drone so fast (and slower when the motors are slow), and there's gravity and air drag. The sticks are read 20 times a second. |
+| Course | 24 m wide, water below, new every flight. A start pillar (2 m wide, 0.5–4 m tall) and a target (1.6–2.6 m wide, 0.5–7 m tall), 8–19.5 m apart, to the left or the right. |
+| Landing | A foot touches the target's deck at under 1.5 m/s down and under 1.5 m/s sideways, tilted less than 20°, with the drone's centre over the deck. |
+| Failing | Hitting a pillar's side, landing too hard, the water, flying off the area (above 13 m or past the edges), or running out of time (20 s). |
+| Weather, for tests | Wind: steady, up to 1.5 m/s² either way, plus a slow gust of up to 1 m/s². Payload: up to 35% heavier, with the same motors. |
+
+The network sees 14 numbers: where the landing spot and the start deck are relative to it, its
+speed, tilt and spin, how fast the motors are turning, how wide the pad is, its height above the
+water and above whatever is under it, and where its sticks were. It isn't told the wind or the
+weight. The reward is +1 for every metre it gets closer to the landing spot (−1 for every metre
+further away), +10 for landing, and −5 for failing.
+
+To have something to compare with, I wrote the controller an engineer might write in an
+afternoon. It climbs to 1.8 m above the taller pillar, flies across at up to 4 m/s, stops over
+the pad, and comes down at about 1 m/s, steering with a few proportional terms. It sees the same
+things as the network. It lands on all 200 test courses in calm air, in 9.6 s on average.
+
+## Training
+
+PPO from Stable-Baselines3, with two layers of 64 for the network and 16 copies of the
+simulator running at once. Three runs (seeds) of 5 million steps each, scored on 200 held-out
+courses at each checkpoint.
+
+<DroneChart
+  src="010-drone/eval.json"
+  title="Landed, of 200 test courses in calm air"
+  groups={[{ key: 'ppo', label: 'PPO' }, { key: 'sac', label: 'SAC' }]}
+  caption="SAC (green) is covered further down. The dashed line is the hand-written autopilot on the same courses."
+/>
+
+Almost nothing for the first 100,000 steps, then it clicks: 146–174 of 200 at 250,000 steps,
+181–199 at 500,000, and 198–200 from 1 million on. The run that had the laptop to itself
+(seed 1) reached 1 million steps in 0.9 minutes and 5 million in 4.8. That's about 17,000 steps
+a second, about 14 minutes of flying for every second of training.
+
+## How it flies
+
+<StickTrace
+  src="010-drone/traces.json"
+  title="The two sticks over one flight, same course for every pilot"
+  caption="Each row is one pilot on test course 1,000,000,007 in calm air. Tilt is shown so that up means leaning towards the target pad. A stick counts as at an end when it's within 0.05 of full travel (±1)."
+/>
+
+The autopilot's sticks barely move: a bump of throttle to climb, a lean to get going, a lean the
+other way to stop. The network does something else:
+
+- **It's fast.** 3.07–3.13 s per flight on average, against the autopilot's 9.6 s. On the course
+  above it lands in 2.8 s.
+- **It slams the sticks.** They're at the ends of their travel 46–62% of the time, counting both
+  sticks at every update (the autopilot: 3%). It goes full throttle and full lean to start, full lean the other way to
+  brake, and then a fast twitch at the end to settle onto the deck.
+- **It lands close to the limit.** It comes down at 1.05–1.11 m/s on average, where the limit
+  is 1.5 (the autopilot: 0.48).
+- **It gets more extreme the longer it trains.** For seed 1, at 250,000 steps: 4.6 s per flight,
+  sticks at an end 17% of the time, touching down at 0.51 m/s. At 1 million: 3.4 s, 34%,
+  0.87 m/s. At 5 million: 3.1 s, 46%, 1.05 m/s.
+
+That's bang-bang control: all or nothing. It's what you'd expect from the reward, which pays for
+getting there and landing, and says nothing about how the sticks move. Full lean is the fastest
+way across. It's also a known pattern: a NeurIPS 2021 paper by Seyde and others, "Is Bang-Bang
+Control All You Need?", found that on standard continuous-control benchmarks, policies allowed
+only the two ends of each control do about as well as fully analog ones.
+
+## Smoother sticks
+
+A drone that flies like this would be hard on real motors, so I tried two ways to calm it
+down. Each is a single 3-million-step run, compared with the plain PPO run (seed 1).
+
+| | Landed, calm | Time per flight | Sticks at an end | Landed with a payload |
+| --- | --- | --- | --- | --- |
+| Plain PPO | 200 | 3.1 s | 46% | 57 |
+| Penalty on stick changes, 0.1 | 200 | 3.4 s | 60% | 82 |
+| Penalty on stick changes, 1.0 | 0 | | 71% | 0 |
+| Stick speed limit, 0.25 per update | 200 | 3.4 s | 37% | 85 |
+| Stick speed limit, 0.1 per update | 197 | 3.8 s | 17% | 33 |
+
+- **A small penalty for moving the sticks** (0.1 times the squared change at each update) did
+  nothing useful. A stick held at its end doesn't change, so it costs nothing. Its sticks are
+  at an end 60% of the time, inside the plain runs' 46–62%.
+- **A big penalty** (1.0) made landing not worth it. A soft landing needs braking, and braking
+  means moving the sticks. So it flies straight at the pad and crashes into the deck, coming
+  down at 6.9 m/s on average in 187 of its 200 crashes. It keeps the reward for getting closer
+  and takes the −5 for the crash, rather than pay for the stick work.
+- **A speed limit on the sticks** is a rule of the simulator rather than a reward: a stick can
+  move at most so far per update. At 0.1 per update (a full sweep takes a second), the sticks
+  are at their ends only 17% of the time. But they sweep back and forth at the top speed allowed
+  (the sawtooth in the chart above), and the drone gets more fragile: with a payload it lands
+  only 33 times.
+
+One fix from research on real drones (CAPS, ICRA 2021) adds the smoothness to how the network
+learns rather than to the reward. That's a bigger change to PPO than I wanted for this post.
+"PPO, slow sticks" in the game above is the 0.1 speed-limit network.
+
+## Wind and payload
+
+| Landed, of 200 | Calm | Wind | Payload | Both |
+| --- | --- | --- | --- | --- |
+| Hand-written autopilot | 200 | 50 | 200 | 100 |
+| PPO, seeds 1–3 | 199–200 | 173–197 | 57–82 | 56–81 |
+| SAC, seeds 1–3 | 196–199 | 181–196 | 111–172 | 123–170 |
+| PPO trained in random wind and payload, seeds 1–3 | 200 | 199–200 | 199–200 | 198–199 |
+
+**The autopilot's weak spot is wind.** It steers on how far it is from the pad right now, with no
+memory, so a steady wind leaves it hovering off to one side until it runs out of time: 150
+timeouts in 200 flights. Adding a term that remembers the error over time would fix that, but I
+left it as written.
+
+**The network's weak spot is weight.** Of its crashes with a payload, 110–135 per seed are
+landings that were too hard, coming down at 1.5–2.0 m/s on average. Its last-moment braking is
+tuned for the normal drone, and a heavier drone with the same motors brakes more slowly.
+
+**Training in the conditions you'll fly in fixes it.** Three more runs drew a new wind, gust and
+payload for every training flight (the same ranges as the tests). They land 198–200 of 200 in
+every condition. They never see the wind or the weight, so they have to judge them from how the
+drone moves. It costs a little: 3.4 s per flight in calm air instead of 3.1, and softer landings
+(0.74–0.84 m/s instead of 1.05–1.11). Training like this, over a spread of conditions, is
+called domain randomisation. It's the standard way to get a policy trained in simulation to
+survive a real drone.
+
+## Would SAC be better?
+
+SAC (Soft Actor-Critic) is the other common choice for analog controls. It keeps every step in a
+memory of a million and learns from a batch of 256 old steps after each new one; PPO collects
+8,192 fresh steps, learns from them, and throws them away. That usually makes SAC better per
+step, and slower per second. Three SAC runs, same network size, 1 million steps each.
+
+<DroneChart
+  src="010-drone/eval.json"
+  title="Landed, of 200 test courses, against training time"
+  x="minutes"
+  groups={[{ key: 'ppo-alone', label: 'PPO' }, { key: 'sac', label: 'SAC' }]}
+  caption="PPO: seed 1, which trained with the laptop to itself. SAC: the three runs, side by side on separate cores with nothing else running."
+/>
+
+- **Per step, it's no better here.** 116–143 of 200 at 200,000 steps, 190–199 at 500,000, and
+  196–199 at 1 million (the first chart above). PPO: 146–174 at 250,000 and 181–199 at 500,000.
+- **Per minute, it's far behind.** About 460 steps a second, against PPO's 17,000. 1 million
+  steps took 36 minutes; PPO did that in under one.
+- **It flies more calmly.** Sticks at an end only 12–15% of the time, but slower: 4.0 s per
+  flight. Its sticks still move a lot from one update to the next; they just don't sit at the
+  ends. That's probably how SAC works: it squashes its output so the very end of the range is
+  hard to reach, and it's rewarded for staying a bit random.
+- **It's less fragile than calm-trained PPO.** With a payload it lands 111–172 of 200, against
+  57–82.
+
+So no, this didn't need SAC. With a simulator this fast, the cheap steps decide it. SAC earns
+its keep when steps are expensive: a real drone, a slow physics engine, a robot that wears out.
+
+## How the AI runs on this page
+
+Plain JavaScript, no ML library, no server.
+
+- **Size:** 14 inputs, two layers of 64, 2 outputs: 5,250 numbers. Each model file is about
+  52 KB of JSON, weights rounded to 6 significant digits. The scores in this post are measured
+  with those rounded weights, so they're the browser network's scores.
+- **Speed:** a decision takes about 7 microseconds in Node on an M1 Pro, 20 times a second.
+- **Same results as Python:** a test rebuilds 14 courses from their seeds and replays flights
+  by the autopilot and three networks (plain PPO, slow sticks, SAC), checking the drone's state
+  and the network's inputs and outputs after every update, on every push.
+- **Altitude hold is for you only.** With the throttle at centre, a climbing drone keeps
+  climbing, which is right for angle mode but hard on a keyboard. So for human pilots the
+  throttle stick asks for a climb or sink speed by default, like the altitude-hold mode on real
+  drones. Untick it to fly what the networks fly.
+
+## What didn't work at first
+
+- **Glued to the pad.** In my first contact model, tilting on the ground pressed a foot into the
+  deck, and the physics snapped the drone back down each step. At normal weight, full throttle
+  climbed just fast enough to escape. With a payload it didn't: the first test pilot sat on its
+  pad at full throttle and full lean for 20 seconds. Now the legs hold the drone level until the
+  thrust beats its weight, and everything was retrained.
+- **The two stick penalties**, above. They're in the post because they're the most instructive
+  failures.
+
+## What I take from it
+
+- **Analog controls don't make analog behaviour.** Given a smooth range and a reward that only
+  cares about the result, it uses the ends of the range.
+- **Penalise the thing you actually mind, or you'll get something else.** Stick changes weren't
+  quite it, and a big enough penalty made crashing the best plan.
+- **Train in the conditions you'll fly in.** The calm-air network was brilliant in calm air and
+  broke with a heavier drone. The one trained in random weather barely noticed.
+- **With a fast simulator, steps are cheap.** SAC's better use of each step didn't show up here,
+  and its cost per step did.
+
+## Cost
+
+All on an M1 Pro, CPU only. PPO: 4.8 minutes for 5 million steps on its own, about 10 minutes
+each with five runs at once. SAC: 36 minutes for 1 million steps, three runs at once. The
+single-run variants: 3 million steps, 4–6 minutes each, several at once.
+
+## Run it yourself
+
+```sh
+cd experiments/010-drone
+uv run train.py --algo ppo --seed 1 --steps 5000000                       # PPO, calm air
+uv run train.py --algo ppo --seed 1 --steps 5000000 --weather rough --name rand-s1
+uv run train.py --algo sac --seed 1 --steps 1000000                       # SAC
+uv run train.py --algo ppo --steps 3000000 --smooth 0.1 --name smooth-0.1 # stick penalty
+uv run train.py --algo ppo --steps 3000000 --stick-rate 0.1 --name rate-0.1
+uv run evaluate.py --export export.json                                   # site data
+uv run evaluate.py --parity ppo-s1 rate-0.1 sac-s1                        # the JS test fixture
+uv run summarize.py                                                       # every number quoted here
+```

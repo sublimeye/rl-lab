@@ -12,11 +12,12 @@
 - Before pushing a site change: `npm run build` in `site/`, preview it, and check desktop, 390px
   mobile and dark mode.
 - Base path is `/rl-lab`: build links with `url()` from `site/src/lib.ts`, never hard-code `/`.
-- Playable experiments (003-tag, 008-flood, 009-beaver) run the trained network in the browser: the JS port in
+- Playable experiments (003-tag, 008-flood, 009-beaver, 010-drone) run the trained network in the browser: the JS port in
   `site/src/lib/` must match the Python env. After changing either side, re-export the parity
   fixture (`export_parity` in `experiments/003-tag/evaluate.py`, and in `evaluate_maps.py` for
   random maps, in `evaluate_seek.py` for line of sight and the possibility map, in `evaluate_cone.py` for
   the field of view; for 008 it's `export_parity` in `experiments/008-flood/evaluate.py` and
   `site/src/lib/flood-sim.js`; for 009 `evaluate.py --parity <beaver run> --parity-river <ckpt>`
-  in `experiments/009-beaver/` and `site/src/lib/beaver-sim.js`) and run
+  in `experiments/009-beaver/` and `site/src/lib/beaver-sim.js`; for 010 `evaluate.py --parity
+  <runs...>` in `experiments/010-drone/` and `site/src/lib/drone-sim.js`) and run
   `npm test` in `site/`.

@@ -1,0 +1,368 @@
+---
+/**
+ * Post 10: share of the 200 test courses landed (calm air) per checkpoint, for one or two groups
+ * of runs (thin lines: seeds; bold: their mean), against training steps (log scale) or
+ * wall-clock minutes. The hand-written autopilot is a dashed reference line.
+ * Data: experiments/010-drone/evaluate.py → eval.json.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { formatSteps } from '../lib';
+
+interface Props {
+  src: string;
+  title: string;
+  /** Groups in eval.json "curves", in series order (first = --flag, second = --timeout) */
+  groups: { key: string; label: string }[];
+  x?: 'steps' | 'minutes';
+  caption?: string;
+}
+const { src, title, groups, x = 'steps', caption } = Astro.props;
+const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
+const CLS = ['s1', 's2'];
+type Pt = { steps: number; seconds: number; landed: number; n: number };
+const series = groups.map((g, gi) => {
+  const runs = Object.values(data.curves[g.key]) as Pt[][];
+  const len = Math.min(...runs.map((r) => r.length));
+  const pts = (r: Pt[]) => r.slice(0, len).map((c) => ({ x: x === 'steps' ? c.steps : c.seconds / 60, v: c.landed / c.n, steps: c.steps, min: c.seconds / 60 }));
+  const seeds = runs.map(pts);
+  const mean = seeds[0].map((p, i) => ({
+    x: seeds.reduce((a, s) => a + s[i].x, 0) / seeds.length,
+    v: seeds.reduce((a, s) => a + s[i].v, 0) / seeds.length,
+    steps: p.steps,
+    min: seeds.reduce((a, s) => a + s[i].min, 0) / seeds.length,
+    lo: Math.min(...seeds.map((s) => s[i].v)),
+    hi: Math.max(...seeds.map((s) => s[i].v)),
+  }));
+  return { ...g, cls: CLS[gi], seeds, mean };
+});
+const auto = data.table.autopilot.calm;
+const autoV = auto.landed / auto.n;
+
+const W = 1000;
+const H = 300;
+const all = series.flatMap((s) => s.mean.map((p) => p.x)).filter((v) => (x === 'steps' ? v > 0 : true));
+const lo = x === 'steps' ? Math.min(...all) : 0;
+const hi = Math.max(...series.flatMap((s) => s.seeds.flat().map((p) => p.x)));
+const tx = (v: number) => (x === 'steps' ? Math.log10(v) : v);
+const X = (v: number) => ((tx(Math.max(v, lo)) - tx(lo)) / (tx(hi) - tx(lo))) * W;
+const Y = (v: number) => H - v * H;
+const pctX = (v: number) => (X(v) / W) * 100;
+const pctY = (v: number) => (Y(v) / H) * 100;
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+const keep = (p: { x: number }) => (x === 'steps' ? p.x > 0 : true);
+const line = (ps: { x: number; v: number }[]) =>
+  ps
+    .filter(keep)
+    .map((p, i) => `${i ? 'L' : 'M'}${X(p.x).toFixed(1)},${Y(p.v).toFixed(1)}`)
+    .join('');
+const fmtX = (v: number) => (x === 'steps' ? formatSteps(v) : Number.isInteger(v) || v >= 10 ? `${Math.round(v)} min` : `${v.toFixed(1)} min`);
+const xTicks =
+  x === 'steps'
+    ? [10_000, 30_000, 100_000, 300_000, 1_000_000, 3_000_000, 10_000_000].filter((t) => t >= lo && t <= hi)
+    : (() => {
+        const step = hi > 60 ? 15 : hi > 20 ? 5 : hi > 8 ? 2 : 1;
+        const out = [];
+        for (let t = 0; t <= hi; t += step) out.push(t);
+        return out;
+      })();
+const yTicks = [0, 0.25, 0.5, 0.75, 1];
+
+// direct labels at the right end of each mean line, nudged apart
+const ends = [
+  ...series.map((s) => ({ name: s.label, y: pctY(s.mean[s.mean.length - 1].v), cls: s.cls })),
+  { name: 'Autopilot', y: pctY(autoV), cls: 'ref' },
+].sort((a, b) => a.y - b.y);
+for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 8) ends[i].y = ends[i - 1].y + 8;
+ends[ends.length - 1].y = Math.min(ends[ends.length - 1].y, 99);
+for (let i = ends.length - 2; i >= 0; i--) if (ends[i + 1].y - ends[i].y < 8) ends[i].y = ends[i + 1].y - 8;
+if (ends[0].y < 1) {
+  const shift = 1 - ends[0].y;
+  ends.forEach((e) => (e.y += shift));
+}
+
+const tips = series.flatMap((s) =>
+  s.mean.filter(keep).map((p) => ({
+    x: pctX(p.x),
+    y: pctY(p.v),
+    cls: s.cls,
+    head: `${s.label}: ${formatSteps(p.steps)} steps${x === 'minutes' ? ` (${fmtX(p.x)})` : ''}`,
+    text: `Landed ${pct(p.v)}${s.seeds.length > 1 ? ` (seeds ${pct(p.lo)}–${pct(p.hi)})` : ''}`,
+  })),
+);
+---
+
+<figure class="dronechart wide">
+  <p class="title">{title}</p>
+  <p class="legend">
+    {
+      series.map((s) => (
+        <span>
+          <i class={`sw ${s.cls}`} />
+          {s.seeds.length > 1 ? `${s.label} (thin: each of ${s.seeds.length} seeds; bold: mean)` : `${s.label} (1 seed)`}
+        </span>
+      ))
+    }
+    <span><i class="sw ref"></i>Hand-written autopilot, same courses</span>
+  </p>
+  <div class="plot" data-tips={JSON.stringify(tips)}>
+    <div class="y-axis" aria-hidden="true">
+      {yTicks.map((t) => <span style={`top:${pctY(t)}%`}>{pct(t)}</span>)}
+    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${title}. See the table below for values.`}>
+      {yTicks.map((t) => <line class="grid" x1="0" x2={W} y1={Y(t)} y2={Y(t)} vector-effect="non-scaling-stroke" />)}
+      <line class="refline" x1="0" x2={W} y1={Y(autoV)} y2={Y(autoV)} vector-effect="non-scaling-stroke" />
+      {series.map((s) => s.seeds.map((p) => <path class={`seed ${s.cls}`} d={line(p)} vector-effect="non-scaling-stroke" />))}
+      {series.map((s) => <path class={`avg ${s.cls}`} d={line(s.mean)} vector-effect="non-scaling-stroke" />)}
+    </svg>
+    <div class="ends" aria-hidden="true">
+      {ends.map((e) => <span class={e.cls} style={`top:${e.y}%`}>{e.name}</span>)}
+    </div>
+    <div class="x-axis" aria-hidden="true">
+      {xTicks.map((t) => <span style={`left:${pctX(t)}%`}>{fmtX(t)}</span>)}
+    </div>
+    <div class="cross" hidden></div>
+    <i class="dot" hidden></i>
+    <div class="tip" hidden></div>
+  </div>
+  <p class="axis-name muted">{x === 'steps' ? 'Training steps (stick updates), log scale' : 'Wall-clock training time on a laptop CPU'}</p>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+  <details>
+    <summary>Show the numbers as a table</summary>
+    <table>
+      <thead>
+        <tr>
+          <th>Run</th>
+          <th>Steps</th>
+          <th>Minutes</th>
+          <th>Landed (mean of seeds)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          series.flatMap((s) =>
+            s.mean.map((p, i) => (
+              <tr>
+                <td>{i === 0 ? s.label : ''}</td>
+                <td>{formatSteps(p.steps)}</td>
+                <td>{p.min.toFixed(1)}</td>
+                <td>{pct(p.v)}</td>
+              </tr>
+            )),
+          )
+        }
+        <tr>
+          <td>Autopilot</td>
+          <td colspan="2">no training</td>
+          <td>{pct(autoV)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </details>
+</figure>
+
+<style>
+  .dronechart {
+    margin-block: 1.75rem 2.25rem;
+  }
+  .title {
+    font-weight: 650;
+    margin: 0 0 0.3rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin: 0 0 0.75rem;
+  }
+  .sw {
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    margin-right: 0.4rem;
+    vertical-align: 0.25em;
+  }
+  .sw.s1 {
+    background: var(--flag);
+  }
+  .sw.s2 {
+    background: var(--timeout);
+  }
+  .sw.ref {
+    background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px);
+  }
+  .plot {
+    position: relative;
+    margin: 0 7rem 0 2.8rem;
+    padding-bottom: 1.4rem;
+  }
+  @media (max-width: 40rem) {
+    .plot {
+      margin-right: 0.5rem;
+    }
+    .ends {
+      display: none;
+    }
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: 13rem;
+    overflow: visible;
+  }
+  .grid {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+  .refline {
+    stroke: var(--muted);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+  }
+  path {
+    fill: none;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  path.s1 {
+    stroke: var(--flag);
+  }
+  path.s2 {
+    stroke: var(--timeout);
+  }
+  .seed {
+    stroke-width: 1;
+    opacity: 0.4;
+  }
+  .avg {
+    stroke-width: 2;
+  }
+  .y-axis,
+  .ends {
+    position: absolute;
+    inset: 0 0 1.4rem 0;
+    pointer-events: none;
+  }
+  .y-axis span,
+  .x-axis span,
+  .ends span {
+    position: absolute;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .y-axis span {
+    right: calc(100% + 0.4rem);
+    transform: translateY(-50%);
+  }
+  .ends span {
+    left: calc(100% + 0.5rem);
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .ends span.ref {
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .x-axis span {
+    bottom: 0;
+    transform: translateX(-50%);
+  }
+  .axis-name {
+    font-size: 0.8rem;
+    margin: 0.3rem 7rem 0 2.8rem;
+    text-align: center;
+  }
+  @media (max-width: 40rem) {
+    .axis-name {
+      margin-right: 0.5rem;
+    }
+  }
+  .cross {
+    position: absolute;
+    top: 0;
+    bottom: 1.4rem;
+    width: 1px;
+    background: var(--muted);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 2px var(--paper);
+    pointer-events: none;
+  }
+  .dot.s1 {
+    background: var(--flag);
+  }
+  .dot.s2 {
+    background: var(--timeout);
+  }
+  .tip {
+    position: absolute;
+    top: -0.5rem;
+    pointer-events: none;
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    z-index: 2;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+  details {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+  }
+  summary {
+    cursor: pointer;
+    color: var(--link);
+  }
+</style>
+
+<script>
+  type Tip = { x: number; y: number; cls: string; head: string; text: string };
+  document.querySelectorAll<HTMLElement>('figure.dronechart .plot').forEach((plot) => {
+    const tips: Tip[] = JSON.parse(plot.dataset.tips!);
+    const cross = plot.querySelector<HTMLElement>('.cross')!;
+    const dot = plot.querySelector<HTMLElement>('.dot')!;
+    const tip = plot.querySelector<HTMLElement>('.tip')!;
+    const svg = plot.querySelector('svg')!;
+    const hide = () => (cross.hidden = dot.hidden = tip.hidden = true);
+    svg.addEventListener('pointerleave', hide);
+    svg.addEventListener('pointermove', (e) => {
+      const box = svg.getBoundingClientRect();
+      const px = ((e.clientX - box.left) / box.width) * 100;
+      const py = ((e.clientY - box.top) / box.height) * 100;
+      const t = tips.reduce((a, b) => (Math.hypot(b.x - px, (b.y - py) * 0.3) < Math.hypot(a.x - px, (a.y - py) * 0.3) ? b : a));
+      cross.hidden = dot.hidden = tip.hidden = false;
+      cross.style.left = `${t.x}%`;
+      dot.className = `dot ${t.cls}`;
+      dot.style.left = `${t.x}%`;
+      dot.style.top = `${(t.y / 100) * box.height}px`;
+      tip.innerHTML = `<strong>${t.head}</strong><br>${t.text}`;
+      const w = tip.offsetWidth;
+      const left = (t.x / 100) * box.width;
+      tip.style.left = `${left + 12 + w > box.width ? left - w - 12 : left + 12}px`;
+    });
+  });
+</script>

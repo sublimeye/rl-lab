@@ -15,6 +15,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [007 Tag, part 5](https://sublimeye.github.io/rl-lab/posts/007-tag-cone/) | A field of view: the seeker sees only in front, turns its head at a limited speed, reacts with a delay; one network for any settings |
 | [008 Flood defence](https://sublimeye.github.io/rl-lab/posts/008-flood/) | Sand and water physics: a digger rewarded only for keeping a house dry learns to build a dam against the rising tide; play it in the browser |
 | [009 Beaver vs river](https://sublimeye.github.io/rl-lab/posts/009-beaver/) | A turn-based board game: you dig channels for the water, a PPO beaver drops logs to keep its den dry; learned and planning rivers test it |
+| [010 Drone](https://sublimeye.github.io/rl-lab/posts/010-drone/) | A 2D drone flown with two analog sticks hops between pillars: PPO vs SAC vs a hand-written autopilot, bang-bang sticks, wind and payload; fly it yourself |
 
 ## Layout
 
@@ -45,14 +46,20 @@ experiments/009-beaver/
   train.py                masked PPO (sb3-contrib) for either side, against scripted or trained opponents
   evaluate.py             200 held-out boards vs scripted, learned and lookahead rivers; site data + parity fixture
   summarize.py            prints the numbers quoted in the post
+experiments/010-drone/
+  drone_env.py            side-view drone physics, angle-mode sticks, random courses, weather, the autopilot
+  train.py                PPO (16 envs) or SAC (1 env), optional stick penalty / stick speed limit / weather
+  evaluate.py             200 held-out courses per checkpoint, every weather; site data + parity fixture
+  summarize.py            prints the numbers quoted in the post
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
-  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart
+  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace
   src/lib/tag-sim.js      browser port of experiments/003-tag/tag_env.py, maps.py + the policy network
   src/lib/tag-sight.js    browser port of experiments/003-tag/sight.py (006)
   src/lib/tag-cone.js     browser port of experiments/003-tag/cone.py (007)
   src/lib/flood-sim.js    browser port of experiments/008-flood/flood_env.py; flood-draw.js draws it
   src/lib/beaver-sim.js   browser port of experiments/009-beaver/beaver_env.py + the networks; beaver-draw.js draws it
+  src/lib/drone-sim.js    browser port of experiments/010-drone/drone_env.py + the pilot network; drone-draw.js draws it
   test/                   node tests: the JS port must match trajectories and maps exported from Python
   public/data/            exported replays (committed, small JSON)
 ```
