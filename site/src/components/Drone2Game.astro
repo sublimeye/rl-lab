@@ -1,0 +1,635 @@
+---
+/**
+ * Post 11's drone, live: a trained pilot (exact positions or the depth camera) or you fly from
+ * one pillar to a pad that may slide, past birds, with a battery that sags when nearly flat and
+ * sensors that lag 50 ms. The network runs in the browser (site/src/lib/drone2-sim.js); data from
+ * experiments/011-drone2/evaluate.py.
+ */
+import { url } from '../lib';
+
+interface Props {
+  /** Trained pilots: path under public/data and a label */
+  models: { src: string; label: string }[];
+  seed?: number;
+  caption?: string;
+}
+const { models, seed = 3_000_000_000, caption } = Astro.props;
+const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }));
+---
+
+<figure class="drone2 wide">
+  <rl-drone2 data-models={JSON.stringify(sources)} data-seed={seed}>
+    <div class="main">
+      <div class="stage">
+        <canvas
+          class="scene"
+          tabindex="0"
+          aria-label="Side view: a drone on a pillar in water, a second pillar marked LAND that may slide sideways, and birds crossing. When you fly: W and S (or up and down) move the throttle, A and D (or left and right) tilt the drone."
+        ></canvas>
+      </div>
+      <div class="pad">
+        <div class="stick">
+          <canvas class="left" aria-hidden="true"></canvas>
+          <span>Throttle</span>
+        </div>
+        <dl class="readout" aria-live="off">
+          <div><dt>Time</dt><dd class="r-time">0.0 s</dd></div>
+          <div><dt>Speed</dt><dd class="r-speed">0.0 m/s</dd></div>
+          <div><dt>Height</dt><dd class="r-height">0.0 m</dd></div>
+          <div><dt>Battery</dt><dd class="r-batt">100%</dd></div>
+        </dl>
+        <div class="stick">
+          <canvas class="right" aria-hidden="true"></canvas>
+          <span>Tilt</span>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <p class="status" aria-live="polite">Loading the trained pilot…</p>
+      <div class="buttons">
+        <button class="restart" type="button" disabled>Fly again</button>
+        <button class="newmap" type="button" disabled>New course</button>
+      </div>
+      <div class="controls">
+        <label>
+          Pilot
+          <select class="who">
+            {models.map((m, i) => <option value={`net:${i}`}>{m.label}</option>)}
+            <option value="you">You</option>
+          </select>
+        </label>
+        <label>
+          Weather
+          <select class="weather">
+            <option value="rough" selected>Wind and a payload</option>
+            <option value="calm">Calm air</option>
+          </select>
+        </label>
+        <label>
+          Battery at the start
+          <select class="battery">
+            <option value="random" selected>Random (6–100%)</option>
+            <option value="full">Full</option>
+            <option value="low">Nearly flat (8%)</option>
+          </select>
+        </label>
+        <label class="check"><input class="birds" type="checkbox" checked /> Birds</label>
+        <label class="check"><input class="moving" type="checkbox" checked /> Moving pad</label>
+        <label class="check raysrow"><input class="rays" type="checkbox" checked /> Show the camera</label>
+        <label class="check"><input class="slow" type="checkbox" /> Slow motion (¼ speed)</label>
+        <label class="check holdrow" hidden>
+          <input class="hold" type="checkbox" checked />
+          Altitude hold (centre throttle keeps your height)
+        </label>
+        <label class="check autorow">
+          <input class="auto" type="checkbox" checked />
+          Keep flying new courses
+        </label>
+      </div>
+      <p class="tally muted" aria-live="polite"></p>
+    </div>
+  </rl-drone2>
+  <p class="legend muted">
+    <span><i class="key knob"></i>Stick now; faded dots: the last second</span>
+    <span><i class="key ray"></i>Camera rays (blue: the pad, orange: a bird)</span>
+    <span>Land gently on the pad, moving with it; don't touch a bird</span>
+  </p>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .drone2 {
+    margin-block: 2rem 2.5rem;
+  }
+  rl-drone2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+  }
+  @media (min-width: 52rem) {
+    rl-drone2 {
+      grid-template-columns: minmax(0, 1fr) 14rem;
+      align-items: start;
+    }
+  }
+  .stage {
+    aspect-ratio: 1.8 / 1;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--sky);
+  }
+  @media (max-width: 40rem) {
+    .stage {
+      aspect-ratio: 1.25 / 1;
+    }
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .scene:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: -2px;
+  }
+  .pad {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--rule);
+    border-radius: 2.5rem;
+    background: var(--floor);
+  }
+  .stick {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .stick canvas {
+    width: 6.5rem;
+    height: 6.5rem;
+    touch-action: none;
+  }
+  rl-drone2[data-human] .stick canvas {
+    cursor: grab;
+  }
+  .readout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.75rem;
+    margin: 0;
+    justify-self: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .readout div {
+    display: grid;
+  }
+  .readout dt {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .readout dd {
+    margin: 0;
+    font-weight: 650;
+    font-size: 0.98rem;
+    white-space: nowrap;
+  }
+  @media (max-width: 30rem) {
+    .pad {
+      padding: 0.5rem;
+      gap: 0.4rem;
+    }
+    .stick canvas {
+      width: 5.6rem;
+      height: 5.6rem;
+    }
+    .readout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.15rem;
+    }
+    .readout dd {
+      font-size: 0.88rem;
+    }
+  }
+  .status {
+    margin: 0 0 0.9rem;
+    font-size: 1.25rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    min-height: 2.5em;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  button {
+    font: inherit;
+    font-weight: 650;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 0.55rem 1rem;
+  }
+  .restart {
+    color: #fff;
+    background: var(--flag);
+    border-color: var(--flag);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  .controls {
+    display: grid;
+    gap: 0.6rem;
+  }
+  @media (min-width: 30rem) and (max-width: 51.99rem) {
+    .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  label {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  label[hidden] {
+    display: none;
+  }
+  label.check[hidden] {
+    display: none;
+  }
+  label.check {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  select {
+    font: inherit;
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .tally {
+    white-space: pre-line;
+    font-size: 0.86rem;
+    margin: 0.9rem 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    margin: 0.6rem 0 0;
+  }
+  .key {
+    display: inline-block;
+    margin-right: 0.35rem;
+    vertical-align: -0.1em;
+  }
+  .key.knob {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: -0.6rem 0 0 -0.15rem color-mix(in srgb, var(--flag) 35%, transparent);
+    margin-left: 0.5rem;
+  }
+  .key.ray {
+    width: 1.1rem;
+    height: 0;
+    border-top: 1px solid var(--flag);
+    vertical-align: 0.25em;
+  }
+  .key.path {
+    width: 1.1rem;
+    height: 0;
+    border-top: 2px dashed var(--flag);
+    vertical-align: 0.25em;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  import { FULL, LEG, unpackNet, OUTCOMES, PHYSICS, WEATHER, birdPos, distance, look, makeCourse, netForward, newDrone, newEyes, push, rays, step, time } from '../lib/drone2-sim.js';
+  import { camera, drawScene, drawStick, fitCanvas, readColors } from '../lib/drone-draw.js';
+
+  const UPDATE = 0.05;
+  const fmt = (v: number, d = 1) => v.toFixed(d).replace('-0.0', '0.0');
+  const padOf = (x0: number, x1: number, top: number) => ({ x0, x1, top, cx: (x0 + x1) / 2, half: (x1 - x0) / 2 });
+
+  class RlDrone2 extends HTMLElement {
+    q = <T extends Element>(sel: string) => this.querySelector(sel) as T;
+    scene!: HTMLCanvasElement;
+    left!: HTMLCanvasElement;
+    right!: HTMLCanvasElement;
+    sources: { src: string; label: string }[] = [];
+    cache = new Map<string, any>();
+    net: any = null;
+    seed = 0;
+    d: any = null;
+    eyes: any = null;
+    obs: number[] = [];
+    prev: any = null;
+    acc = 0;
+    last = 0;
+    clock = 0;
+    cam: any = null;
+    trail: number[][] = [];
+    stickTrail: number[][] = [];
+    colors: any = null;
+    phase: 'wait' | 'fly' | 'over' = 'wait';
+    waitUntil = 0;
+    human = { throttle: 0, tilt: 0 };
+    keys = new Set<string>();
+    drag: { el: HTMLCanvasElement; axis: 'x' | 'y' } | null = null;
+    tally = new Map<string, { landed: number; flights: number }>();
+    raf = 0;
+    visible = true;
+
+    connectedCallback() {
+      this.scene = this.q('.scene');
+      this.left = this.q('.left');
+      this.right = this.q('.right');
+      this.sources = JSON.parse(this.dataset.models!);
+      this.seed = Number(this.dataset.seed);
+      this.q<HTMLButtonElement>('.restart').addEventListener('click', () => this.reset());
+      this.q<HTMLButtonElement>('.newmap').addEventListener('click', () => this.newCourse());
+      this.q<HTMLSelectElement>('.who').addEventListener('change', () => this.load());
+      for (const sel of ['.weather', '.battery', '.birds', '.moving', '.hold']) this.q(sel).addEventListener('change', () => this.reset());
+      this.addEventListener('keydown', (e) => this.key(e, true));
+      this.addEventListener('keyup', (e) => this.key(e, false));
+      this.scene.addEventListener('blur', () => this.keys.clear());
+      for (const [el, axis] of [
+        [this.left, 'y'],
+        [this.right, 'x'],
+      ] as const) {
+        el.addEventListener('pointerdown', (e) => {
+          if (!this.isHuman()) return;
+          el.setPointerCapture(e.pointerId);
+          this.drag = { el, axis };
+          this.dragTo(e);
+        });
+        el.addEventListener('pointermove', (e) => this.drag?.el === el && this.dragTo(e));
+        const up = () => {
+          if (this.drag?.el === el) this.drag = null;
+        };
+        el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
+      }
+      const recolor = () => (this.colors = null);
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+      new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      new IntersectionObserver(([e]) => {
+        this.visible = e.isIntersecting;
+        if (this.visible && !this.raf) this.loop();
+      }).observe(this);
+      this.load();
+    }
+
+    who() {
+      return this.q<HTMLSelectElement>('.who').value;
+    }
+    isHuman() {
+      return this.who() === 'you';
+    }
+    checked(sel: string) {
+      return this.q<HTMLInputElement>(sel).checked;
+    }
+
+    async load() {
+      const who = this.who();
+      this.toggleAttribute('data-human', who === 'you');
+      this.q<HTMLElement>('.autorow').hidden = who === 'you';
+      this.q<HTMLElement>('.holdrow').hidden = who !== 'you';
+      this.setButtons(false);
+      try {
+        if (who.startsWith('net:')) {
+          const src = this.sources[Number(who.slice(4))].src;
+          if (!this.cache.has(src)) this.cache.set(src, unpackNet(await (await fetch(src)).json()));
+          this.net = this.cache.get(src);
+        } else this.net = null;
+      } catch {
+        this.status('Could not load the network.');
+        return;
+      }
+      this.q<HTMLElement>('.raysrow').hidden = !(this.net && this.net.task === 'vision');
+      this.reset();
+      if (who === 'you') this.scene.focus({ preventScroll: true });
+    }
+
+    setButtons(on: boolean) {
+      this.q<HTMLButtonElement>('.restart').disabled = !on;
+      this.q<HTMLButtonElement>('.newmap').disabled = !on;
+    }
+
+    status(text: string) {
+      this.q<HTMLElement>('.status').textContent = text;
+    }
+
+    newCourse() {
+      this.seed = Math.floor(Math.random() * 2 ** 31);
+      this.reset();
+    }
+
+    features() {
+      const f = this.net?.features ?? { delay: 1, stack: 3, obs: 'state' };
+      return { ...FULL, ...f, padMove: this.checked('.moving') ? 1.0 : 0.0, birds: this.checked('.birds') };
+    }
+
+    reset() {
+      const feat = this.features();
+      const weather = WEATHER[this.q<HTMLSelectElement>('.weather').value as 'calm' | 'rough'];
+      const course = makeCourse(this.seed, weather, feat);
+      const batt = this.q<HTMLSelectElement>('.battery').value;
+      if (batt === 'full') course.charge = 1.0;
+      if (batt === 'low') course.charge = 0.08;
+      this.d = newDrone(course, feat);
+      this.eyes = newEyes(this.d, this.net ? 0.5 + Math.random() : 0);
+      this.obs = look(this.d, this.eyes);
+      this.prev = this.snap();
+      this.acc = 0;
+      this.trail = [[this.d.x, this.d.y]];
+      this.stickTrail = [];
+      this.cam = null;
+      this.human = { throttle: 0, tilt: 0 };
+      this.phase = 'wait';
+      this.waitUntil = performance.now() + 700;
+      this.status(this.isHuman() ? 'Push the throttle up to take off.' : 'Ready…');
+      this.setButtons(true);
+      if (!this.raf) this.loop();
+    }
+
+    snap() {
+      const d = this.d;
+      return { x: d.x, y: d.y, th: d.th, motor: d.motor, pad: d.padX0 };
+    }
+
+    key(e: KeyboardEvent, down: boolean) {
+      if (!this.isHuman() || e.target instanceof HTMLSelectElement) return;
+      const k = e.key.toLowerCase();
+      const map: Record<string, string> = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
+      if (!(k in map)) return;
+      e.preventDefault();
+      if (down) this.keys.add(map[k]);
+      else this.keys.delete(map[k]);
+    }
+
+    dragTo(e: PointerEvent) {
+      const el = this.drag!.el;
+      const r = el.getBoundingClientRect();
+      const reach = Math.min(r.width, r.height) / 2 - 3 - 14;
+      const vx = Math.max(-1, Math.min(1, (e.clientX - r.left - r.width / 2) / reach));
+      const vy = Math.max(-1, Math.min(1, -(e.clientY - r.top - r.height / 2) / reach));
+      if (this.drag!.axis === 'y') this.human.throttle = vy;
+      else this.human.tilt = vx;
+    }
+
+    updateHuman(dt: number) {
+      const h = this.human;
+      const ramp = (v: number, want: number, rate: number) => (v < want ? Math.min(want, v + rate * dt) : Math.max(want, v - rate * dt));
+      const dragging = this.drag?.axis;
+      if (dragging !== 'y') {
+        const want = (this.keys.has('up') ? 1 : 0) - (this.keys.has('down') ? 1 : 0);
+        h.throttle = ramp(h.throttle, want, want ? 2.5 : 4);
+      }
+      if (dragging !== 'x') {
+        const want = (this.keys.has('right') ? 1 : 0) - (this.keys.has('left') ? 1 : 0);
+        h.tilt = ramp(h.tilt, want, want ? 3 : 5);
+      }
+      for (const pad of navigator.getGamepads?.() ?? []) {
+        if (!pad) continue;
+        const ly = -(pad.axes[1] ?? 0);
+        const rx = pad.axes[2] ?? 0;
+        if (Math.abs(ly) > 0.08) h.throttle = ly;
+        if (Math.abs(rx) > 0.08) h.tilt = rx;
+      }
+    }
+
+    /** Altitude hold for people (see post 10): the throttle stick asks for a climb rate. */
+    humanSticks(): [number, number] {
+      const h = this.human;
+      if (!this.checked('.hold')) return [h.throttle, h.tilt];
+      const d = this.d;
+      const hover = 1 / (d.ph.thrustMax * Math.max(0.5, Math.cos(d.th)));
+      const frac = hover + 0.25 * (h.throttle * 3 - d.vy);
+      return [Math.max(-1, Math.min(1, 2 * frac - 1)), h.tilt];
+    }
+
+    loop = () => {
+      this.raf = 0;
+      if (!this.visible) return;
+      const now = performance.now();
+      const dt = Math.min(0.1, (now - (this.last || now)) / 1000);
+      this.last = now;
+      this.clock += dt;
+      this.frame(now, dt);
+      this.raf = requestAnimationFrame(this.loop);
+    };
+
+    frame(now: number, dt: number) {
+      const d = this.d;
+      if (!d) return;
+      if (this.isHuman()) this.updateHuman(dt);
+      if (this.phase === 'wait' && now >= this.waitUntil) {
+        if (!this.isHuman()) {
+          this.phase = 'fly';
+          this.status('Flying…');
+        } else if (Math.abs(this.human.throttle) > 0.02 || Math.abs(this.human.tilt) > 0.02) {
+          this.phase = 'fly';
+          this.status('Land on the far pad.');
+        }
+      }
+      if (this.phase === 'fly') {
+        this.acc += dt * (this.checked('.slow') ? 0.25 : 1);
+        while (this.acc >= UPDATE && d.outcome === 0) {
+          this.acc -= UPDATE;
+          this.prev = this.snap();
+          const [thr, tilt] = this.isHuman() ? this.humanSticks() : netForward(this.net, this.obs);
+          step(d, thr, tilt);
+          this.obs = push(d, this.eyes);
+          this.trail.push([d.x, d.y]);
+          this.stickTrail.push([...d.stick]);
+          if (this.stickTrail.length > 20) this.stickTrail.shift();
+        }
+        if (d.outcome !== 0) this.finish();
+      } else if (this.phase === 'over' && !this.isHuman() && this.checked('.auto') && now >= this.waitUntil) {
+        this.newCourse();
+      }
+      this.draw();
+    }
+
+    finish() {
+      const d = this.d;
+      this.phase = 'over';
+      this.acc = 0;
+      this.prev = this.snap();
+      this.waitUntil = performance.now() + 1800;
+      const t = fmt(time(d));
+      const v = fmt(Math.sqrt(d.touch[0] ** 2 + d.touch[1] ** 2));
+      const msg: Record<string, string> = {
+        landed: `Landed in ${t} s, touching down at ${fmt(Math.abs(d.touch[1]))} m/s.`,
+        crashed: d.crash === 1 ? `Landed too hard (${v} m/s) after ${t} s.` : `Hit a pillar after ${t} s.`,
+        water: `Fell in the water after ${t} s.`,
+        lost: 'Flew off the course.',
+        timeout: `Out of time: still ${fmt(distance(d))} m from the pad.`,
+        bird: `Hit a bird after ${t} s.`,
+      };
+      const outcome = OUTCOMES[d.outcome];
+      this.status(msg[outcome]);
+      const who = this.isHuman() ? (this.checked('.hold') ? 'You (altitude hold)' : 'You (raw throttle)') : this.q<HTMLSelectElement>('.who').selectedOptions[0].text;
+      const row = this.tally.get(who) ?? { landed: 0, flights: 0 };
+      row.flights++;
+      if (outcome === 'landed') row.landed++;
+      this.tally.set(who, row);
+      this.q<HTMLElement>('.tally').textContent = [...this.tally].map(([k, r]) => `${k}: landed ${r.landed} of ${r.flights}`).join('\n');
+    }
+
+    draw() {
+      const d = this.d;
+      this.colors ??= readColors(this);
+      const c = this.colors;
+      const a = this.phase === 'fly' ? Math.min(1, this.acc / UPDATE) : 1;
+      const p = this.prev;
+      const lerp = (u: number, v: number) => u + (v - u) * a;
+      const s = { x: lerp(p.x, d.x), y: lerp(p.y, d.y), th: lerp(p.th, d.th), motor: lerp(p.motor, d.motor) };
+      const size = fitCanvas(this.scene);
+      this.cam = camera(size.w, size.h, s, this.cam);
+      const co = d.course;
+      const shift = lerp(p.pad, d.padX0) - co.target[0];
+      const course = { start: padOf(co.start[0], co.start[1], co.start[2]), target: padOf(co.target[0] + shift, co.target[1] + shift, co.target[2]) };
+      const wind = co.wind + co.gust * Math.sin((2 * Math.PI * time(d)) / co.period + co.phase);
+      const showRays = this.net?.task === 'vision' && this.checked('.rays') && d.outcome === 0;
+      drawScene(this.scene.getContext('2d')!, size, this.cam, course, s, c, {
+        trail: [...this.trail, [s.x, s.y]],
+        wind,
+        t: this.clock,
+        outcome: d.outcome ? OUTCOMES[d.outcome] : null,
+        birds: d.feat.birds ? birdPos(d) : null,
+        rays: showRays ? rays(d) : null,
+      });
+      const live = this.isHuman() && this.phase !== 'over';
+      const sticks = live ? [this.human.throttle, this.human.tilt] : d.stick;
+      const trail = live ? [] : this.stickTrail;
+      drawStick(this.left.getContext('2d')!, fitCanvas(this.left), [0, sticks[0]], 'y', trail.map((v) => [0, v[0]]), c, live);
+      drawStick(this.right.getContext('2d')!, fitCanvas(this.right), [sticks[1], 0], 'x', trail.map((v) => [v[1], 0]), c, live);
+      this.q('.r-time').textContent = `${fmt(time(d))} s`;
+      this.q('.r-speed').textContent = `${fmt(Math.sqrt(d.vx * d.vx + d.vy * d.vy))} m/s`;
+      this.q('.r-height').textContent = `${fmt(Math.max(0, d.y - LEG))} m`;
+      this.q('.r-batt').textContent = `${Math.round(d.charge * 100)}%`;
+    }
+  }
+  customElements.define('rl-drone2', RlDrone2);
+  void PHYSICS;
+</script>

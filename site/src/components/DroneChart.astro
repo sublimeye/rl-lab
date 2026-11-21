@@ -2,7 +2,7 @@
 /**
  * Post 10: share of the 200 test courses landed (calm air) per checkpoint, for one or two groups
  * of runs (thin lines: seeds; bold: their mean), against training steps (log scale) or
- * wall-clock minutes. The hand-written autopilot is a dashed reference line.
+ * wall-clock minutes. The hand-written autopilot (post 10's data only) is a dashed reference line.
  * Data: experiments/010-drone/evaluate.py → eval.json.
  */
 import fs from 'node:fs';
@@ -36,8 +36,8 @@ const series = groups.map((g, gi) => {
   }));
   return { ...g, cls: CLS[gi], seeds, mean };
 });
-const auto = data.table.autopilot.calm;
-const autoV = auto.landed / auto.n;
+const auto = data.table.autopilot?.calm;
+const autoV: number | null = auto ? auto.landed / auto.n : null;
 
 const W = 1000;
 const H = 300;
@@ -71,7 +71,7 @@ const yTicks = [0, 0.25, 0.5, 0.75, 1];
 // direct labels at the right end of each mean line, nudged apart
 const ends = [
   ...series.map((s) => ({ name: s.label, y: pctY(s.mean[s.mean.length - 1].v), cls: s.cls })),
-  { name: 'Autopilot', y: pctY(autoV), cls: 'ref' },
+  ...(autoV === null ? [] : [{ name: 'Autopilot', y: pctY(autoV), cls: 'ref' }]),
 ].sort((a, b) => a.y - b.y);
 for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 8) ends[i].y = ends[i - 1].y + 8;
 ends[ends.length - 1].y = Math.min(ends[ends.length - 1].y, 99);
@@ -103,7 +103,7 @@ const tips = series.flatMap((s) =>
         </span>
       ))
     }
-    <span><i class="sw ref"></i>Hand-written autopilot, same courses</span>
+    {autoV !== null && <span><i class="sw ref"></i>Hand-written autopilot, same courses</span>}
   </p>
   <div class="plot" data-tips={JSON.stringify(tips)}>
     <div class="y-axis" aria-hidden="true">
@@ -111,7 +111,7 @@ const tips = series.flatMap((s) =>
     </div>
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${title}. See the table below for values.`}>
       {yTicks.map((t) => <line class="grid" x1="0" x2={W} y1={Y(t)} y2={Y(t)} vector-effect="non-scaling-stroke" />)}
-      <line class="refline" x1="0" x2={W} y1={Y(autoV)} y2={Y(autoV)} vector-effect="non-scaling-stroke" />
+      {autoV !== null && <line class="refline" x1="0" x2={W} y1={Y(autoV)} y2={Y(autoV)} vector-effect="non-scaling-stroke" />}
       {series.map((s) => s.seeds.map((p) => <path class={`seed ${s.cls}`} d={line(p)} vector-effect="non-scaling-stroke" />))}
       {series.map((s) => <path class={`avg ${s.cls}`} d={line(s.mean)} vector-effect="non-scaling-stroke" />)}
     </svg>
@@ -151,11 +151,15 @@ const tips = series.flatMap((s) =>
             )),
           )
         }
-        <tr>
-          <td>Autopilot</td>
-          <td colspan="2">no training</td>
-          <td>{pct(autoV)}</td>
-        </tr>
+        {
+          autoV !== null && (
+            <tr>
+              <td>Autopilot</td>
+              <td colspan="2">no training</td>
+              <td>{pct(autoV)}</td>
+            </tr>
+          )
+        }
       </tbody>
     </table>
   </details>

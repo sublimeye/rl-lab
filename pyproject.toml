@@ -33,4 +33,4 @@ pythonpath = ["."]
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["cube_env", "train", "export", "tag_env", "evaluate", "selfplay", "psro", "maps", "sight", "seek", "evaluate_maps", "evaluate_seek", "cone", "seek_cone", "evaluate_cone", "flood_env", "beaver_env", "drone_env"]
+known-first-party = ["cube_env", "train", "export", "tag_env", "evaluate", "selfplay", "psro", "maps", "sight", "seek", "evaluate_maps", "evaluate_seek", "cone", "seek_cone", "evaluate_cone", "flood_env", "beaver_env", "drone_env", "fleet_env"]

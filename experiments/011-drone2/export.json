@@ -1,0 +1,99 @@
+{
+  "models": {
+    "model-vcaps.json": [
+      "vcaps-s1",
+      "Camera pilot, CAPS"
+    ],
+    "model-vision.json": [
+      "vision-s1",
+      "Camera pilot"
+    ],
+    "model-scaps.json": [
+      "scaps-s1",
+      "Exact-position pilot, CAPS"
+    ],
+    "model-state.json": [
+      "state-s1",
+      "Exact-position pilot"
+    ]
+  },
+  "groups": {
+    "basic": [
+      "basic-s1"
+    ],
+    "fleet": [
+      "fleet-t4"
+    ],
+    "state": [
+      "state-s1",
+      "state-s2",
+      "state-s3"
+    ],
+    "scaps": [
+      "scaps-s1",
+      "scaps-s2",
+      "scaps-s3"
+    ],
+    "vision": [
+      "vision-s1",
+      "vision-s2",
+      "vision-s3"
+    ],
+    "vcaps": [
+      "vcaps-s1",
+      "vcaps-s2",
+      "vcaps-s3"
+    ],
+    "caps": [
+      "scaps-s1",
+      "scaps-s2",
+      "scaps-s3",
+      "vcaps-s1",
+      "vcaps-s2",
+      "vcaps-s3"
+    ]
+  },
+  "speed": [
+    "basic-s1",
+    "basic-t4",
+    "fleet-s1",
+    "fleet-t4",
+    "fleet-fast"
+  ],
+  "table": {
+    "state-s1": "state-s1",
+    "state-s2": "state-s2",
+    "state-s3": "state-s3",
+    "scaps-s1": "scaps-s1",
+    "scaps-s2": "scaps-s2",
+    "scaps-s3": "scaps-s3",
+    "vision-s1": "vision-s1",
+    "vision-s2": "vision-s2",
+    "vision-s3": "vision-s3",
+    "vcaps-s1": "vcaps-s1",
+    "vcaps-s2": "vcaps-s2",
+    "vcaps-s3": "vcaps-s3",
+    "vision-mem1": "vision-mem1",
+    "sbird-s1": "sbird-s1",
+    "snear-s1": "snear-s1",
+    "sflock-s1": "sflock-s1",
+    "caps1-trial": "pilot-caps1"
+  },
+  "blindfold": [
+    "state-s1",
+    "state-s2",
+    "state-s3",
+    "sbird-s1",
+    "snear-s1",
+    "sflock-s1"
+  ],
+  "traces": {
+    "seed": 1000000003,
+    "pilots": {
+      "Exact positions, PPO": "state-s1",
+      "Exact positions, CAPS": "scaps-s1",
+      "Camera, PPO": "vision-s1",
+      "Camera, CAPS": "vcaps-s1"
+    }
+  }
+}

@@ -1,0 +1,290 @@
+---
+title: "Drone, part 2: a camera, birds, a moving pad and calmer sticks"
+number: 11
+date: 2026-11-20
+summary: Post 10's drone gets a 1D depth camera, birds, a sliding landing pad, a battery that sags when nearly flat, and sensors that lag 50 ms. The simulator now steps hundreds of drones at once, and a smoothness term in training (CAPS) makes the sticks six to nine times calmer. One thing it never learned, whatever I tried, was to steer around birds.
+---
+
+import Drone2Game from '../../components/Drone2Game.astro';
+import DroneChart from '../../components/DroneChart.astro';
+import StickTrace from '../../components/StickTrace.astro';
+
+[Post 10](../010-drone/)'s drone hopped between two pillars in empty air, knowing exactly where
+everything was. This time I made its world more like a real one:
+- the landing pad slides;
+- birds cross the course;
+- the battery runs down;
+- every reading is noisy and 50 milliseconds late.
+
+One pilot still gets exact positions. The other has to find its way with a small depth camera.
+I also tried CAPS, a way of training smooth control that post 10 was missing, and rebuilt the
+simulator so it steps hundreds of drones at once.
+
+<Drone2Game
+  models={[
+    { src: '011-drone2/model-vcaps.json', label: 'Camera pilot, CAPS' },
+    { src: '011-drone2/model-vision.json', label: 'Camera pilot' },
+    { src: '011-drone2/model-scaps.json', label: 'Exact-position pilot, CAPS' },
+    { src: '011-drone2/model-state.json', label: 'Exact-position pilot' },
+  ]}
+  caption="The faint lines are the camera's 32 rays: blue where they hit the pad, orange on a bird. Flying it yourself: W and S (or up and down) for the throttle, A and D (or left and right) for the tilt; you can also drag the sticks or use a gamepad. Altitude hold is for people only: the networks always fly the raw sticks."
+/>
+
+**Short answer:**
+
+- **Many drones in one step makes the simulator 7–17 times faster.** Training gets less of
+  that: post 10's 5-million-step run takes 1.8 minutes instead of 4.3, because PPO's own
+  learning step is now most of the time.
+- **The new world is harder, but learnable.** The exact-position pilots land on 165–180 of 200
+  test courses, and the camera pilots on 147–152. On courses without birds, both land 50–55 of
+  56.
+- **CAPS makes the sticks 6–9 times calmer, at a price.** In wind and with a payload it lands
+  16–43 fewer of the 200 courses, seed for seed.
+- **They never learned to dodge birds.** Blindfolding a pilot to the birds barely changes how
+  often it hits one. A bigger penalty, a cost for flying close to birds, and training with three
+  birds every flight didn't change that either. Most hits come with 0.6 seconds' warning or
+  less.
+- **The three-reading memory made no difference.** The camera pilot without it lands as often.
+
+## Faster: many drones per step
+
+In post 10, each drone was its own Python object, stepped one at a time. Now every number about
+every drone lives in arrays: all the x positions in one, all the speeds in another. One numpy
+call moves them all. With the new features switched off it's the same simulator, number for
+number: a test flies 40 courses both ways with the same stick inputs and checks that every
+position and speed matches exactly.
+
+| Steps per second (one stick update for one drone) | |
+| --- | --- |
+| Post 10's simulator, one drone at a time | about 47,000 |
+| Vectorised, 256 drones at once | 323,000 |
+| Vectorised, 1,024 at once | 583,000 |
+| Vectorised, 4,096 at once | 782,000 |
+| Vectorised with this post's world, 1,024 at once: exact positions / camera | 276,000 / 136,000 |
+
+That's 7–17 times faster to step. Training post 10's pilot again, with the same PPO settings
+and the same 5 million steps:
+
+| Post 10's task, 5 million steps | Minutes | Steps per second |
+| --- | --- | --- |
+| One drone at a time (16 processes, as in post 10) | 4.31 | 19,300 |
+| Vectorised, 256 drones, 1 thread for the network | 2.00 | 41,600 |
+| Vectorised, 256 drones, 4 threads | 1.77 | 47,100 |
+
+<DroneChart
+  src="011-drone2/eval.json"
+  title="Landed, of 200 test courses, against training time (post 10's task)"
+  x="minutes"
+  groups={[{ key: 'basic', label: 'One at a time' }, { key: 'fleet', label: 'Vectorised' }]}
+  caption="Same PPO settings, one run each, run back to back on an otherwise idle laptop. Both land 196–200 of 200 from 500,000 steps on."
+/>
+
+So training is about 2.4 times faster: 0.17 minutes to reach 198 of 200 landed, against 0.42
+minutes to reach 196. It isn't 17 times, because the simulator is no longer the slow part. In a
+profile of the vectorised run, PPO's own learning step took about six times as long as stepping
+the drones. One more try: settings
+tuned for a fast simulator (1,024 drones, bigger batches, half as many passes over the data)
+ran at 146,600 steps a second. But it learned less per step, and needed 11 million steps (1.3
+minutes) to land all 200. That's slower to a good pilot, not faster.
+
+The next big step would be the JAX route from my notes: the learning step and the simulator
+both on a GPU. I've left that alone for now. The longest run in this post was 48 minutes.
+
+## The new world
+
+| | |
+| --- | --- |
+| Moving pad | On most courses (133 of the 200 test courses) the landing pad slides left and right, up to 2.5 m each way, one swing every 4–9 s. Landing speed limits count relative to the deck. |
+| Birds | 0–3 per course, at 2–11 m, slow (1–3 m/s) or fast (4–7 m/s), bobbing a little. They fly straight across and come back in from the other side; touching one is a crash. They fly through the pillars; I let them. |
+| Battery | Starts anywhere from 6% to 100%. Hovering for 20 s uses about 6%, full throttle 17%. Full thrust drops by about 1.5% at half charge, 3% at 20%, 12% at 5%, and the motors stop at 0%. Most of the time you don't feel it. |
+| Sensors | Every reading has some noise (its size changes from flight to flight) and arrives 50 ms late. |
+| Memory | The pilot sees its last three readings, not just the latest. |
+| Weather | As post 10 learned: random wind, gusts and a payload of up to 35% on every training course. |
+
+The **exact-position pilot** gets 26 numbers per reading:
+- post 10's 14;
+- the pad's speed and the battery;
+- where the two nearest birds are and how fast they're flying.
+
+The **camera pilot** gets 107:
+- **11 from its own sensors:** speed, tilt, spin, motors, battery, altitude, its sticks, and a
+  GPS-style fix on a beacon on the pad that's off by about 30 cm.
+- **A 1D depth camera:** 32 rays fixed to the drone's body, all round except a 60° cone
+  straight up, out to 15 m. Each ray says how far away the first thing it hits is, and whether
+  that's the marked pad or a bird.
+
+It doesn't know where the pillars are, how big the pad is, or where the birds are, except
+through those rays. Both pilots are networks with two layers of 128, trained with PPO on 256
+drones at once for 20 million steps, three seeds each.
+
+<DroneChart
+  src="011-drone2/eval.json"
+  title="Landed, of 200 test courses (with wind, payload, birds, moving pads)"
+  groups={[{ key: 'state', label: 'Exact positions' }, { key: 'vision', label: 'Camera' }]}
+/>
+
+| Landed, of 200 (test courses, as trained) | Exact positions | Camera |
+| --- | --- | --- |
+| All courses | 165–180 | 147–152 |
+| No birds (56 courses) | 50–55 | 53–55 |
+| Three birds (40 courses) | 28–31 | 18–26 |
+| Pad sliding (133 courses) | 104–117 | 90–94 |
+| Pad still (67 courses) | 61–63 | 57–58 |
+| Battery under 15% (25 courses) | 19–22 | 17–19 |
+| Bird hits | 13–17 | 21–26 |
+
+The exact-position pilot learned in about a million steps (160–170 landed). After that, more
+training didn't help. The camera pilot is slower to learn and ends lower, and the gap is almost
+all birds and the sliding pad. Without birds it lands as well as the other. A battery nearly
+flat at the start costs a few landings, about as much as the "pragmatic" battery was meant to.
+
+## Calmer sticks with CAPS
+
+Post 10's pilot flew bang-bang, sticks slammed to the ends, and my two fixes there backfired.
+CAPS (Mysore and others, ICRA 2021) works differently. Instead of charging the pilot for moving
+its sticks, which it got round by holding them at the ends, it adds two terms to the training
+loss itself:
+- **Temporal:** the action now should be close to the action a moment later.
+- **Spatial:** the action for a reading should be close to the action for a slightly nudged
+  reading.
+
+Both act directly on the network's output, so there's nothing to game. I used a weight of 0.3
+on each. A 10-million-step trial at 1.0 was too smooth to fly well: its sticks barely moved
+(0.019 per update), and it landed 89 of 200.
+
+<StickTrace
+  src="011-drone2/traces.json"
+  title="The two sticks over one flight, same course, wind, a payload and a bird"
+  caption="Test course 1,000,000,003 with wind, a payload, one bird and a sliding pad (all four land). Tilt is shown so that up means leaning towards the pad. A stick counts as at an end within 0.05 of full travel."
+/>
+
+| Test courses, as trained | Landed | Stick movement per update | Sticks at an end | Seconds per landing |
+| --- | --- | --- | --- | --- |
+| Exact positions, PPO | 165–180 | 0.29–0.33 | 49–57% | 3.7–3.8 |
+| Exact positions, CAPS | 140–159 | 0.049–0.054 | 5–14% | 4.7–5.1 |
+| Camera, PPO | 147–152 | 0.42–0.58 | 49–53% | 4.5–5.1 |
+| Camera, CAPS | 109–130 | 0.051–0.058 | 3–6% | 5.2–5.8 |
+
+"Stick movement" adds up how far both sticks move from one update to the next (a full sweep of
+one stick is 2). With CAPS the sticks move about 6 times less for the exact-position pilots and
+9 times less for the camera pilots, and almost never sit at an end. On the trace above it's the
+difference between a scribble and a curve.
+
+It isn't free. A smooth pilot reacts more slowly. In calm air (same birds and pads, no wind or
+payload) the CAPS pilots lose fewer landings (exact positions: 166–171 against 182–183). With
+the wind and payload they trained in they lose more, and the camera pilot most: 109–130 against
+147–152, mostly by crashing. The CAPS pilots also kept getting slightly worse late in
+training: the exact-position ones peaked around 7 million steps (162–171), then slipped. The
+camera pilot with CAPS opens the game above, because it's the one you'd want flying a real
+motor. The plain one is in the menu.
+
+## Birds: through, not around
+
+The surprise. To check whether a pilot dodges birds, I blindfolded it: I replaced its bird
+inputs with "no bird" and flew the same 200 courses.
+
+| Exact-position pilot | Bird hits, seeing | Bird hits, blindfolded | Landed, seeing / blindfolded |
+| --- | --- | --- | --- |
+| Seed 1 | 13 | 17 | 180 / 176 |
+| Seed 2 | 15 | 13 | 175 / 185 |
+| Seed 3 | 17 | 16 | 165 / 166 |
+| Bird hit costs 15 instead of 5 | 19 | 14 | 167 / 180 |
+| Plus a cost for flying within 2 m of a bird | 12 | 14 | 177 / 179 |
+| Trained with 3 birds on every course | 14 | 18 | 158 / 140 |
+
+Seeing the birds makes no consistent difference. The pilots fly the same quick path either way
+and hit whatever happens to be in it. The three fixes I tried didn't teach dodging either:
+- **A bigger penalty** for a bird hit.
+- **A warning cost:** a small charge for every moment spent within 2 m of a bird, the usual
+  trick for obstacle avoidance.
+- **Training with three birds** on every course.
+
+The last one does seem to use its bird inputs. Blindfolded, it crashes much more, because "no
+birds" never happened in its training. But it doesn't hit fewer of them.
+
+Part of the reason is how little time there is. Of the 90 bird hits in that table, 60 came
+within 0.6 seconds of the bird first getting within 3 m: a fast bird flies at up to 7 m/s, the
+drone about as fast. But 23 gave a second or more of warning, so some were avoidable, and none of these
+pilots learned to avoid them. My guess is that a bird hit is too rare and too sudden a signal
+next to everything else in the reward. Learning it would probably need training built around
+birds: easy slow ones first, more encounters, longer runs. That's a post of its own.
+
+## Memory
+
+I added the three-reading memory so the camera pilot could tell which way a bird is moving. A
+camera pilot trained with only the latest reading lands 153 of 200, the same as the ones with
+memory (147–152). That fits the bird result: the pilots don't use where birds are going, and
+their own speed already comes from their motion sensors.
+
+## What didn't work at first
+
+- **A camera that couldn't look up.** My first camera covered the ground and the sides, out to
+  10° above horizontal, so a climbing drone couldn't see a bird above it. I widened it to
+  everything but a 60° cone straight up before the final runs. It didn't fix the birds (see
+  above), but a drone that dodges would need it.
+- **CAPS at full strength**, above: 89 landings of 200. 0.3 was the setting I kept.
+
+## How the AI runs on this page
+
+Plain JavaScript again, one drone at a time.
+
+- **Size:** the exact-position pilot has 78 inputs (three readings of 26) and 26,882 numbers;
+  the camera pilot 321 inputs and 57,986 numbers. Stored as 16-bit floats, the files are 72 KB
+  and 155 KB. The scores in this post are measured with those 16-bit weights.
+- **Speed:** a decision, including casting the 32 rays, takes about 37 microseconds for the
+  exact-position pilot and 81 for the camera pilot (Node, M1 Pro), 20 times a second.
+- **Same results as Python:** a test replays six flights from both networks on courses with
+  birds, sliding pads and a nearly flat battery. With the noise switched off it checks the
+  drone's state after every update and the pilot's inputs and outputs along the way. It also
+  checks that the networks the page loads are the ones it tested.
+
+## Towards a real drone
+
+Most of what makes this post's world realistic is exactly what breaks simulation-trained
+pilots on hardware: noise, delay, wind, payload and a sagging battery. So the next step to real
+hardware is shorter than it looks. Early notes, with nothing bought:
+
+- **Small drones take "virtual sticks".** The cheap route is a Tello-class drone, whose SDK
+  accepts four virtual sticks over Wi-Fi with about 100 ms of delay. The pilot would run on a
+  laptop.
+- **The network fits on a drone's own chip.** A research drone like the Bitcraze Crazyflie
+  could run it on board: these networks are under 60,000 numbers. Its distance-sensor deck
+  (front, back, left, right, up) is a coarse version of the depth camera here.
+- **What's missing is 3D.** The simulator would need two tilts, yaw and a third axis, plus the
+  real drone's command rate and delay. A printed marker on the pad, and a foam "bird" on a
+  pole, would stand in for the rest.
+
+The full notes, with rough prices and a step-by-step path, are in the repository.
+
+## What I take from it
+
+- **Vectorise the simulator first.** It's cheap to do. After it, the learning step is the
+  bottleneck, which is the point where a GPU starts to pay.
+- **CAPS does what penalties couldn't.** Smoothness in the loss, not in the reward, gives calm
+  sticks with nothing to game. It costs some agility in rough air.
+- **Having the information isn't using it.** The exact-position pilot was told where every
+  nearby bird was and how fast it was flying, and flew as if it didn't know. Blindfolding a
+  network is a cheap way to find out what it actually uses.
+
+## Cost
+
+All on an M1 Pro, CPU only. Speed comparison: 4.3 and 1.8 minutes per 5-million-step run. Main
+runs, 20 million steps each, several at once: 17 minutes (exact positions), 26 (camera), 34
+(exact positions, CAPS), 48 (camera, CAPS); the bird and memory experiments 13–20 minutes each.
+No run came near the 5-hour limit.
+
+## Run it yourself
+
+```sh
+cd experiments/011-drone2
+uv run bench.py                                                               # raw simulator speed
+uv run train.py --sim basic --task v010 --envs 16 --n-steps 512 --steps 5000000 --threads 1 --name basic-s1
+uv run train.py --sim fleet --task v010 --steps 5000000 --name fleet-t4      # post 10's task, vectorised
+uv run train.py --task state --name state-s1                                  # exact positions
+uv run train.py --task vision --name vision-s1                                # camera
+uv run train.py --task vision --caps 0.3 0.3 --name vcaps-s1                  # camera + CAPS
+uv run train.py --task state --near 0.5 --name snear-s1                       # bird warning cost
+uv run evaluate.py --export export.json                                       # site data
+uv run evaluate.py --parity state-s1 vcaps-s1                                 # the JS test fixture
+uv run summarize.py                                                           # every number quoted here
+```

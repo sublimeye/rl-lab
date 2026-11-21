@@ -260,10 +260,15 @@ export function drawScene(ctx, size, cam, course, s, c, opts) {
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
   }
+  if (opts.rays) drawRays(ctx, cam, s, opts.rays, c);
+  if (opts.birds) for (const b of opts.birds) bird(ctx, cam, b, c, opts.t);
   drone(
     ctx,
     cam,
-    { ...s, crashed: ["crashed", "water", "lost"].includes(opts.outcome) },
+    {
+      ...s,
+      crashed: ["crashed", "water", "lost", "bird"].includes(opts.outcome),
+    },
     c,
     opts.t,
   );
@@ -351,4 +356,64 @@ export function drawStick(ctx, size, v, axis, trail, c, active) {
   ctx.arc(kx, ky, Math.max(9, r * 0.2), 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
+}
+
+/** A bird: two flapping wings, about 0.6 m across. b: [x, y, vx]. */
+function bird(ctx, cam, b, c, t) {
+  const k = cam.scale;
+  const x = cam.X(b[0]);
+  const y = cam.Y(b[1]);
+  const flap =
+    Math.sin(t * (Math.abs(b[2]) > 3.5 ? 18 : 10) + b[1] * 3) * 0.12 * k;
+  const w = Math.max(7, 0.3 * k);
+  ctx.strokeStyle = c.ink;
+  ctx.lineWidth = Math.max(1.6, 0.05 * k);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(x - w, y - flap);
+  ctx.quadraticCurveTo(x - w / 2, y - Math.abs(flap) - 0.04 * k, x, y);
+  ctx.quadraticCurveTo(
+    x + w / 2,
+    y - Math.abs(flap) - 0.04 * k,
+    x + w,
+    y - flap,
+  );
+  ctx.stroke();
+  ctx.fillStyle = c.ink;
+  ctx.beginPath();
+  ctx.arc(
+    x + Math.sign(b[2] || 1) * 0.06 * k,
+    y + 0.02 * k,
+    Math.max(1.6, 0.05 * k),
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+}
+
+/** The depth camera's rays: faint lines to what each hit (the pad in blue, birds in orange). */
+function drawRays(ctx, cam, s, rays, c) {
+  const ox = cam.X(s.x);
+  const oy = cam.Y(s.y);
+  ctx.lineWidth = 1;
+  for (const r of rays) {
+    const ex = s.x + Math.sin(r.angle) * r.dist;
+    const ey = s.y - Math.cos(r.angle) * r.dist;
+    const col = r.pad ? c.flag : r.bird ? c.lava : c.muted;
+    ctx.strokeStyle = col;
+    ctx.globalAlpha = r.pad || r.bird ? 0.55 : 0.22;
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(cam.X(ex), cam.Y(ey));
+    ctx.stroke();
+    if (r.depth < 1) {
+      ctx.fillStyle = col;
+      ctx.globalAlpha = r.pad || r.bird ? 0.9 : 0.45;
+      ctx.beginPath();
+      ctx.arc(cam.X(ex), cam.Y(ey), 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
 }
