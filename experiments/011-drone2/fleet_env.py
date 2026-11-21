@@ -682,6 +682,11 @@ class FleetEnv(VecEnv):
         self._fill(idx)
         return self._flat()
 
+    def step(self, actions):
+        """Same as VecEnv.step (defined here too, so the env works without SB3 installed)."""
+        self.step_async(actions)
+        return self.step_wait()
+
     def step_async(self, actions):
         self._actions = np.asarray(actions, float)
 
