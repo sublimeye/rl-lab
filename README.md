@@ -17,6 +17,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [009 Beaver vs river](https://sublimeye.github.io/rl-lab/posts/009-beaver/) | A turn-based board game: you dig channels for the water, a PPO beaver drops logs to keep its den dry; learned and planning rivers test it |
 | [010 Drone](https://sublimeye.github.io/rl-lab/posts/010-drone/) | A 2D drone flown with two analog sticks hops between pillars: PPO vs SAC vs a hand-written autopilot, bang-bang sticks, wind and payload; fly it yourself |
 | [011 Drone, part 2](https://sublimeye.github.io/rl-lab/posts/011-drone2/) | A vectorised simulator (hundreds of drones per numpy step), a 1D depth camera, birds, a moving pad, battery, sensor noise and delay; CAPS for smooth sticks |
+| [012 Dodge school](https://sublimeye.github.io/rl-lab/posts/012-dodge/) | Birds, falling rocks and a homing missile; an escape test for avoidable hits; curricula (a missile that speeds up, birds aimed at the drone) that teach dodging where random threats teach nothing |
 
 ## Layout
 
@@ -58,9 +59,15 @@ experiments/011-drone2/
   evaluate.py, export.py  200 held-out courses flown at once; blindfold test; site data + parity fixture
   bench.py                raw simulator speed, one-at-a-time vs vectorised
   summarize.py            prints the numbers quoted in the post
+experiments/012-dodge/
+  dodge_env.py            post 11's fleet + rocks, a proportional-navigation missile, arenas, urgency-sorted threat inputs, shadows on the camera
+  escape.py               the escape test (was a hit avoidable?) and a scripted hover pilot
+  train.py                PPO with optional warm start, gSDE, missile-speed ramp, arena difficulty dial, course mixes
+  evaluate.py, export.py  test courses and arenas, blindfold and escape tests; site data + parity fixture
+  summarize.py            prints the numbers quoted in the post
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
-  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace, Drone2Game
+  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace, Drone2Game, DodgeGame
   src/lib/tag-sim.js      browser port of experiments/003-tag/tag_env.py, maps.py + the policy network
   src/lib/tag-sight.js    browser port of experiments/003-tag/sight.py (006)
   src/lib/tag-cone.js     browser port of experiments/003-tag/cone.py (007)
@@ -68,6 +75,7 @@ site/                     Astro blog, deployed to GitHub Pages
   src/lib/beaver-sim.js   browser port of experiments/009-beaver/beaver_env.py + the networks; beaver-draw.js draws it
   src/lib/drone-sim.js    browser port of experiments/010-drone/drone_env.py + the pilot network; drone-draw.js draws it
   src/lib/drone2-sim.js   browser port of experiments/011-drone2/fleet_env.py (one drone) + the camera and the pilots
+  src/lib/dodge-sim.js    browser port of experiments/012-dodge/dodge_env.py (one drone, its threats, camera and pilots)
   test/                   node tests: the JS port must match trajectories and maps exported from Python
   public/data/            exported replays (committed, small JSON)
 ```

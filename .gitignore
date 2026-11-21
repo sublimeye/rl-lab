@@ -6,6 +6,7 @@ __pycache__/
 
 # Training output: checkpoints and raw logs stay local; exported replays live in site/public/data
 experiments/*/runs/
+experiments/*/logs/
 
 # Tools
 .playwright-cli/

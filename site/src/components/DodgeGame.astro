@@ -1,0 +1,945 @@
+---
+/**
+ * Post 12's drone, live: a trained pilot (exact threat positions or the depth camera) or you fly
+ * past birds, falling rocks and a homing missile, either to a landing pad (the test course) or
+ * holding a point in the air for 12 s (the arenas). Post 11's physics, battery, moving pad and
+ * 50 ms sensor lag. The network runs in the browser (site/src/lib/dodge-sim.js); models from
+ * experiments/012-dodge/export.py.
+ */
+import { url } from '../lib';
+
+type Course = 'mix' | 'arena' | 'aimed' | 'missile';
+interface Props {
+  /**
+   * Trained pilots: path under public/data and a label. The model file's `obs` ("state" or
+   * "vision") decides what the pilot sees. `course`: the course to switch to when this pilot is
+   * picked (what it was trained for); the reader can still change it.
+   */
+  models: { src: string; label: string; course?: Course }[];
+  seed?: number;
+  caption?: string;
+}
+const { models, seed = 3_000_000_000, caption } = Astro.props;
+const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label, course: m.course ?? null }));
+const first: Course = models[0]?.course ?? 'mix';
+const COURSES: [Course, string][] = [
+  ['mix', 'Test course'],
+  ['arena', 'Dodge-school arena'],
+  ['aimed', 'Aimed-bird arena'],
+  ['missile', 'Missile arena'],
+];
+---
+
+<figure class="dodge wide">
+  <rl-dodge data-models={JSON.stringify(sources)} data-seed={seed}>
+    <div class="main">
+      <div class="stage">
+        <canvas
+          class="scene"
+          tabindex="0"
+          aria-label="Side view: a drone on a pillar in water, and either a second pillar marked LAND or a circle in the air to hold. Birds cross, rocks fall from above with a shadow on the surface below them, and a homing missile may launch from the side. When you fly: W and S (or up and down) move the throttle, A and D (or left and right) tilt the drone."
+        ></canvas>
+      </div>
+      <div class="pad">
+        <div class="stick">
+          <canvas class="left" aria-hidden="true"></canvas>
+          <span>Throttle</span>
+        </div>
+        <dl class="readout" aria-live="off">
+          <div><dt>Time</dt><dd class="r-time">0.0 s</dd></div>
+          <div><dt>Speed</dt><dd class="r-speed">0.0 m/s</dd></div>
+          <div><dt>Height</dt><dd class="r-height">0.0 m</dd></div>
+          <div><dt>Battery</dt><dd class="r-batt">100%</dd></div>
+        </dl>
+        <div class="stick">
+          <canvas class="right" aria-hidden="true"></canvas>
+          <span>Tilt</span>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <p class="status" aria-live="polite">Loading the trained pilot…</p>
+      <div class="buttons">
+        <button class="restart" type="button" disabled>Fly again</button>
+        <button class="newmap" type="button" disabled>New course</button>
+      </div>
+      <div class="controls">
+        <label>
+          Pilot
+          <select class="who">
+            {models.map((m, i) => <option value={`net:${i}`}>{m.label}</option>)}
+            <option value="you">You</option>
+          </select>
+        </label>
+        <label>
+          Course
+          <select class="course">
+            {COURSES.map(([v, text]) => <option value={v} selected={v === first}>{text}</option>)}
+          </select>
+        </label>
+        <label class="check raysrow"><input class="rays" type="checkbox" checked /> Show the camera</label>
+        <label class="check"><input class="slow" type="checkbox" /> Slow motion (¼ speed)</label>
+        <label class="check holdrow" hidden>
+          <input class="hold" type="checkbox" checked />
+          Altitude hold (centre throttle keeps your height)
+        </label>
+        <label class="check autorow">
+          <input class="auto" type="checkbox" checked />
+          Keep flying new courses
+        </label>
+      </div>
+      <p class="tally muted" aria-live="polite"></p>
+    </div>
+  </rl-dodge>
+  <p class="legend muted">
+    <span><i class="key knob"></i>Stick now; faded dots: the last second</span>
+    <span><i class="key ray"></i>Camera rays (blue: the pad, orange: a threat, green ring: a rock's shadow)</span>
+    <span>Land on the pad, or in an arena stay in the circle for 12 s; don't touch a bird, a rock or the missile</span>
+  </p>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .dodge {
+    margin-block: 2rem 2.5rem;
+  }
+  rl-dodge {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+  }
+  @media (min-width: 52rem) {
+    rl-dodge {
+      grid-template-columns: minmax(0, 1fr) 14rem;
+      align-items: start;
+    }
+  }
+  .stage {
+    aspect-ratio: 1.8 / 1;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--sky);
+  }
+  @media (max-width: 40rem) {
+    .stage {
+      aspect-ratio: 1.25 / 1;
+    }
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .scene:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: -2px;
+  }
+  .pad {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--rule);
+    border-radius: 2.5rem;
+    background: var(--floor);
+  }
+  .stick {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .stick canvas {
+    width: 6.5rem;
+    height: 6.5rem;
+    touch-action: none;
+  }
+  rl-dodge[data-human] .stick canvas {
+    cursor: grab;
+  }
+  .readout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.75rem;
+    margin: 0;
+    justify-self: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .readout div {
+    display: grid;
+  }
+  .readout dt {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .readout dd {
+    margin: 0;
+    font-weight: 650;
+    font-size: 0.98rem;
+    white-space: nowrap;
+  }
+  @media (max-width: 30rem) {
+    .pad {
+      padding: 0.5rem;
+      gap: 0.4rem;
+    }
+    .stick canvas {
+      width: 5.6rem;
+      height: 5.6rem;
+    }
+    .readout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.15rem;
+    }
+    .readout dd {
+      font-size: 0.88rem;
+    }
+  }
+  .status {
+    margin: 0 0 0.9rem;
+    font-size: 1.25rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    min-height: 2.5em;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  button {
+    font: inherit;
+    font-weight: 650;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 0.55rem 1rem;
+  }
+  .restart {
+    color: #fff;
+    background: var(--flag);
+    border-color: var(--flag);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  .controls {
+    display: grid;
+    gap: 0.6rem;
+  }
+  @media (min-width: 30rem) and (max-width: 51.99rem) {
+    .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  label {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  label[hidden] {
+    display: none;
+  }
+  label.check[hidden] {
+    display: none;
+  }
+  label.check {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  select {
+    font: inherit;
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .tally {
+    white-space: pre-line;
+    font-size: 0.86rem;
+    margin: 0.9rem 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    margin: 0.6rem 0 0;
+  }
+  .key {
+    display: inline-block;
+    margin-right: 0.35rem;
+    vertical-align: -0.1em;
+  }
+  .key.knob {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: -0.6rem 0 0 -0.15rem color-mix(in srgb, var(--flag) 35%, transparent);
+    margin-left: 0.5rem;
+  }
+  .key.ray {
+    width: 1.1rem;
+    height: 0;
+    border-top: 1px solid var(--flag);
+    vertical-align: 0.25em;
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  import {
+    ARENA_T,
+    FULL,
+    HOLD_R,
+    LEG,
+    OUTCOMES,
+    THREATS,
+    WEATHER,
+    distance,
+    goal,
+    holding,
+    look,
+    makeCourse,
+    netForward,
+    newDrone,
+    newEyes,
+    push,
+    rays,
+    step,
+    threats,
+    time,
+    unpackNet,
+  } from '../lib/dodge-sim.js';
+  import { camera, drawScene, drawStick, fitCanvas, readColors } from '../lib/drone-draw.js';
+
+  type Course = 'mix' | 'arena' | 'aimed' | 'missile';
+  type Threat = { x: number; y: number; vx: number; vy: number; on: boolean; kind: number };
+  type Cam = ReturnType<typeof camera>;
+  type Pad = { x0: number; x1: number; top: number };
+
+  const UPDATE = 0.05;
+  const SMOKE = 16; // smoke trail: the missile's last 0.8 s
+  const fmt = (v: number, d = 1) => v.toFixed(d).replace('-0.0', '0.0');
+  const padOf = (x0: number, x1: number, top: number) => ({ x0, x1, top, cx: (x0 + x1) / 2, half: (x1 - x0) / 2 });
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+  // a rock's outline: 8 corners at these fractions of its radius
+  const ROCK = [1, 0.84, 0.97, 0.8, 0.93, 0.86, 1, 0.78];
+
+  class RlDodge extends HTMLElement {
+    q = <T extends Element>(sel: string) => this.querySelector(sel) as T;
+    scene!: HTMLCanvasElement;
+    left!: HTMLCanvasElement;
+    right!: HTMLCanvasElement;
+    sources: { src: string; label: string; course: Course | null }[] = [];
+    cache = new Map<string, any>();
+    net: any = null;
+    seed = 0;
+    d: any = null;
+    eyes: any = null;
+    obs: number[] = [];
+    prev: any = null;
+    acc = 0;
+    last = 0;
+    clock = 0;
+    cam: Cam | null = null;
+    trail: number[][] = [];
+    stickTrail: number[][] = [];
+    smoke: number[][] = [];
+    held = 0; // stick updates spent within HOLD_R of the arena's point
+    colors: any = null;
+    phase: 'wait' | 'fly' | 'over' = 'wait';
+    waitUntil = 0;
+    human = { throttle: 0, tilt: 0 };
+    keys = new Set<string>();
+    drag: { el: HTMLCanvasElement; axis: 'x' | 'y' } | null = null;
+    tally = new Map<string, { won: number; flights: number; arena: boolean }>();
+    courseTouched = false;
+    raf = 0;
+    visible = true;
+
+    connectedCallback() {
+      this.scene = this.q('.scene');
+      this.left = this.q('.left');
+      this.right = this.q('.right');
+      this.sources = JSON.parse(this.dataset.models!);
+      this.seed = Number(this.dataset.seed);
+      this.q<HTMLButtonElement>('.restart').addEventListener('click', () => this.reset());
+      this.q<HTMLButtonElement>('.newmap').addEventListener('click', () => this.newCourse());
+      this.q<HTMLSelectElement>('.who').addEventListener('change', () => this.load(true));
+      this.q<HTMLSelectElement>('.course').addEventListener('change', () => {
+        this.courseTouched = true;
+        this.reset();
+      });
+      this.q('.hold').addEventListener('change', () => this.reset());
+      this.addEventListener('keydown', (e) => this.key(e, true));
+      this.addEventListener('keyup', (e) => this.key(e, false));
+      this.scene.addEventListener('blur', () => this.keys.clear());
+      for (const [el, axis] of [
+        [this.left, 'y'],
+        [this.right, 'x'],
+      ] as const) {
+        el.addEventListener('pointerdown', (e) => {
+          if (!this.isHuman()) return;
+          el.setPointerCapture(e.pointerId);
+          this.drag = { el, axis };
+          this.dragTo(e);
+        });
+        el.addEventListener('pointermove', (e) => this.drag?.el === el && this.dragTo(e));
+        const up = () => {
+          if (this.drag?.el === el) this.drag = null;
+        };
+        el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
+      }
+      const recolor = () => (this.colors = null);
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+      new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      new IntersectionObserver(([e]) => {
+        this.visible = e.isIntersecting;
+        if (this.visible && !this.raf) this.loop();
+      }).observe(this);
+      this.load(false);
+    }
+
+    who() {
+      return this.q<HTMLSelectElement>('.who').value;
+    }
+    isHuman() {
+      return this.who() === 'you';
+    }
+    checked(sel: string) {
+      return this.q<HTMLInputElement>(sel).checked;
+    }
+    courseKind(): Course {
+      return this.q<HTMLSelectElement>('.course').value as Course;
+    }
+
+    /** picked: the reader chose a new pilot (so its preferred course applies). */
+    async load(picked: boolean) {
+      const who = this.who();
+      this.toggleAttribute('data-human', who === 'you');
+      this.q<HTMLElement>('.autorow').hidden = who === 'you';
+      this.q<HTMLElement>('.holdrow').hidden = who !== 'you';
+      this.setButtons(false);
+      const src = who.startsWith('net:') ? this.sources[Number(who.slice(4))] : null;
+      if (picked) {
+        // a pilot trained for one course starts there; otherwise keep the reader's choice
+        const sel = this.q<HTMLSelectElement>('.course');
+        if (src?.course) {
+          sel.value = src.course;
+          this.courseTouched = false;
+        } else if (!this.courseTouched) sel.value = 'mix';
+      }
+      try {
+        if (src) {
+          if (!this.cache.has(src.src)) this.cache.set(src.src, unpackNet(await (await fetch(src.src)).json()));
+          this.net = this.cache.get(src.src);
+        } else this.net = null;
+      } catch {
+        this.status('Could not load the network.');
+        return;
+      }
+      if (this.who() !== who) return; // the reader picked again while this one loaded
+      this.q<HTMLElement>('.raysrow').hidden = !this.vision();
+      this.reset();
+      if (who === 'you') this.scene.focus({ preventScroll: true });
+    }
+
+    vision() {
+      return this.net?.obs === 'vision';
+    }
+
+    setButtons(on: boolean) {
+      this.q<HTMLButtonElement>('.restart').disabled = !on;
+      this.q<HTMLButtonElement>('.newmap').disabled = !on;
+    }
+
+    status(text: string) {
+      const el = this.q<HTMLElement>('.status');
+      if (el.textContent !== text) el.textContent = text;
+    }
+
+    newCourse() {
+      this.seed = Math.floor(Math.random() * 2 ** 31);
+      this.reset();
+    }
+
+    /** What the pilot sees comes from its model; the threats from the course picked. */
+    features() {
+      return { ...FULL, obs: this.net?.obs ?? 'state', threats: THREATS[this.courseKind()] };
+    }
+
+    reset() {
+      const feat = this.features();
+      const course = makeCourse(this.seed, WEATHER.rough, feat);
+      this.d = newDrone(course, feat);
+      this.eyes = newEyes(this.d, this.net ? 0.5 + Math.random() : 0);
+      this.obs = look(this.d, this.eyes);
+      this.prev = this.snap();
+      this.acc = 0;
+      this.trail = [[this.d.x, this.d.y]];
+      this.stickTrail = [];
+      this.smoke = [];
+      this.held = 0;
+      this.cam = null;
+      this.human = { throttle: 0, tilt: 0 };
+      this.phase = 'wait';
+      this.waitUntil = performance.now() + 700;
+      this.status(this.isHuman() ? 'Push the throttle up to take off.' : 'Ready…');
+      this.setButtons(true);
+      if (!this.raf) this.loop();
+    }
+
+    snap() {
+      const d = this.d;
+      return { x: d.x, y: d.y, th: d.th, motor: d.motor, pad: d.padX0, threats: threats(d) as Threat[] };
+    }
+
+    key(e: KeyboardEvent, down: boolean) {
+      if (!this.isHuman() || e.target instanceof HTMLSelectElement) return;
+      const k = e.key.toLowerCase();
+      const map: Record<string, string> = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
+      if (!(k in map)) return;
+      e.preventDefault();
+      if (down) this.keys.add(map[k]);
+      else this.keys.delete(map[k]);
+    }
+
+    dragTo(e: PointerEvent) {
+      const el = this.drag!.el;
+      const r = el.getBoundingClientRect();
+      const reach = Math.min(r.width, r.height) / 2 - 3 - 14;
+      const vx = Math.max(-1, Math.min(1, (e.clientX - r.left - r.width / 2) / reach));
+      const vy = Math.max(-1, Math.min(1, -(e.clientY - r.top - r.height / 2) / reach));
+      if (this.drag!.axis === 'y') this.human.throttle = vy;
+      else this.human.tilt = vx;
+    }
+
+    updateHuman(dt: number) {
+      const h = this.human;
+      const ramp = (v: number, want: number, rate: number) => (v < want ? Math.min(want, v + rate * dt) : Math.max(want, v - rate * dt));
+      const dragging = this.drag?.axis;
+      if (dragging !== 'y') {
+        const want = (this.keys.has('up') ? 1 : 0) - (this.keys.has('down') ? 1 : 0);
+        h.throttle = ramp(h.throttle, want, want ? 2.5 : 4);
+      }
+      if (dragging !== 'x') {
+        const want = (this.keys.has('right') ? 1 : 0) - (this.keys.has('left') ? 1 : 0);
+        h.tilt = ramp(h.tilt, want, want ? 3 : 5);
+      }
+      for (const pad of navigator.getGamepads?.() ?? []) {
+        if (!pad) continue;
+        const ly = -(pad.axes[1] ?? 0);
+        const rx = pad.axes[2] ?? 0;
+        if (Math.abs(ly) > 0.08) h.throttle = ly;
+        if (Math.abs(rx) > 0.08) h.tilt = rx;
+      }
+    }
+
+    /** Altitude hold for people (see post 10): the throttle stick asks for a climb rate. */
+    humanSticks(): [number, number] {
+      const h = this.human;
+      if (!this.checked('.hold')) return [h.throttle, h.tilt];
+      const d = this.d;
+      const hover = 1 / (d.ph.thrustMax * Math.max(0.5, Math.cos(d.th)));
+      const frac = hover + 0.25 * (h.throttle * 3 - d.vy);
+      return [Math.max(-1, Math.min(1, 2 * frac - 1)), h.tilt];
+    }
+
+    loop = () => {
+      this.raf = 0;
+      if (!this.visible) return;
+      const now = performance.now();
+      const dt = Math.min(0.1, (now - (this.last || now)) / 1000);
+      this.last = now;
+      this.clock += dt;
+      this.frame(now, dt);
+      this.raf = requestAnimationFrame(this.loop);
+    };
+
+    /** The status line while flying: in an arena it says whether the drone is on the point. */
+    flightStatus() {
+      const d = this.d;
+      if (d.arena) return holding(d) ? 'Holding the point.' : this.isHuman() ? 'Get into the circle and stay there for 12 s.' : 'Flying to the point…';
+      return this.isHuman() ? 'Land on the far pad.' : 'Flying…';
+    }
+
+    frame(now: number, dt: number) {
+      const d = this.d;
+      if (!d) return;
+      if (this.isHuman()) this.updateHuman(dt);
+      if (this.phase === 'wait' && now >= this.waitUntil) {
+        if (!this.isHuman() || Math.abs(this.human.throttle) > 0.02 || Math.abs(this.human.tilt) > 0.02) this.phase = 'fly';
+      }
+      if (this.phase === 'fly') {
+        this.acc += dt * (this.checked('.slow') ? 0.25 : 1);
+        while (this.acc >= UPDATE && d.outcome === 0) {
+          this.acc -= UPDATE;
+          this.prev = this.snap();
+          const [thr, tilt] = this.isHuman() ? this.humanSticks() : netForward(this.net, this.obs);
+          step(d, thr, tilt);
+          this.obs = push(d, this.eyes);
+          this.trail.push([d.x, d.y]);
+          this.stickTrail.push([...d.stick]);
+          if (this.stickTrail.length > 20) this.stickTrail.shift();
+          if (holding(d)) this.held++;
+          if (d.mState === 1) this.smoke.push([d.mX, d.mY]);
+          if (this.smoke.length > SMOKE || (d.mState !== 1 && this.smoke.length)) this.smoke.shift();
+        }
+        if (d.outcome !== 0) this.finish();
+        else this.status(this.flightStatus());
+      } else if (this.phase === 'over' && !this.isHuman() && this.checked('.auto') && now >= this.waitUntil) {
+        this.newCourse();
+      }
+      this.draw();
+    }
+
+    finish() {
+      const d = this.d;
+      this.phase = 'over';
+      this.acc = 0;
+      this.prev = this.snap();
+      this.waitUntil = performance.now() + 1800;
+      const t = fmt(time(d));
+      const v = fmt(Math.sqrt(d.touch[0] ** 2 + d.touch[1] ** 2));
+      const held = fmt(this.held * UPDATE);
+      const msg: Record<string, string> = {
+        landed: `Landed in ${t} s, touching down at ${fmt(Math.abs(d.touch[1]))} m/s.`,
+        crashed: d.crash === 1 ? `Landed too hard (${v} m/s) after ${t} s.` : `Hit a pillar after ${t} s.`,
+        water: `Fell in the water after ${t} s.`,
+        lost: d.y > d.ph.ceiling ? `Flew above the ${d.ph.ceiling} m ceiling after ${t} s.` : `Flew off the course after ${t} s.`,
+        timeout: d.arena
+          ? `Held for ${ARENA_T} s! ${held} s of it within ${HOLD_R} m of the point.`
+          : `Out of time: still ${fmt(distance(d))} m from the pad.`,
+        bird: `Hit a bird after ${t} s.`,
+        rock: `Hit by a falling rock after ${t} s.`,
+        missile: `Caught by the missile after ${t} s.`,
+      };
+      const outcome = OUTCOMES[d.outcome];
+      this.status(msg[outcome]);
+      const pilot = this.isHuman() ? (this.checked('.hold') ? 'You (altitude hold)' : 'You (raw throttle)') : this.q<HTMLSelectElement>('.who').selectedOptions[0].text;
+      const where = this.q<HTMLSelectElement>('.course').selectedOptions[0].text.toLowerCase();
+      const key = `${pilot}, ${where}`;
+      const row = this.tally.get(key) ?? { won: 0, flights: 0, arena: !!d.arena };
+      row.flights++;
+      if (outcome === (d.arena ? 'timeout' : 'landed')) row.won++;
+      this.tally.set(key, row);
+      this.q<HTMLElement>('.tally').textContent = [...this.tally].map(([k, r]) => `${k}: ${r.arena ? 'held' : 'landed'} ${r.won} of ${r.flights}`).join('\n');
+    }
+
+    /** The surface under x: the start pillar's top, the pad's top, or the water. */
+    surfaceTop(x: number, target: { x0: number; x1: number; top: number } | null) {
+      const st = this.d.course.start;
+      if (st[0] < x && x < st[1]) return st[2];
+      if (target && target.x0 < x && x < target.x1) return target.top;
+      return 0;
+    }
+
+    draw() {
+      const d = this.d;
+      this.colors ??= readColors(this);
+      const c = this.colors;
+      const a = this.phase === 'fly' ? Math.min(1, this.acc / UPDATE) : 1;
+      const p = this.prev;
+      const lerp = (u: number, v: number) => u + (v - u) * a;
+      const s = { x: lerp(p.x, d.x), y: lerp(p.y, d.y), th: lerp(p.th, d.th), motor: lerp(p.motor, d.motor) };
+      // threats between stick updates; no easing across a wrap, a new drop or a launch
+      const hs = (threats(d) as Threat[]).map((h, i) => {
+        const o = p.threats[i];
+        const smooth = o.on === h.on && Math.abs(h.x - o.x) + Math.abs(h.y - o.y) < 3;
+        return smooth ? { ...h, x: lerp(o.x, h.x), y: lerp(o.y, h.y) } : h;
+      });
+      const size = fitCanvas(this.scene);
+      const cam = (this.cam = camera(size.w, size.h, s, this.cam));
+      const co = d.course;
+      const shift = lerp(p.pad, d.padX0) - co.target[0];
+      const target = d.arena ? null : padOf(co.target[0] + shift, co.target[1] + shift, co.target[2]);
+      const course = { start: padOf(co.start[0], co.start[1], co.start[2]), target };
+      const wind = co.wind + co.gust * Math.sin((2 * Math.PI * time(d)) / co.period + co.phase);
+      const showRays = this.vision() && this.checked('.rays') && d.outcome === 0;
+      const ctx = this.scene.getContext('2d')!;
+      const rocks = hs.filter((h) => h.kind === 1 && h.on);
+      drawScene(ctx, size, cam, course, s, c, {
+        trail: [...this.trail, [s.x, s.y]],
+        wind,
+        t: this.clock,
+        outcome: d.outcome ? OUTCOMES[d.outcome] : null,
+        birds: hs.filter((h) => h.kind === 0 && h.on).map((h) => [h.x, h.y, h.vx]),
+        rays: showRays ? rays(d) : null,
+        aim: d.arena ? goal(d) : undefined,
+        under: (ctx: CanvasRenderingContext2D, cam: Cam) => {
+          for (const r of rocks) this.drawShadow(ctx, cam, r, course, size);
+          if (d.arena) this.drawGoal(ctx, cam, goal(d), holding(d));
+        },
+      });
+      for (const r of rocks) if (r.y > this.surfaceTop(r.x, target) - 0.3) this.drawRock(ctx, cam, r, size);
+      const m = hs[hs.length - 1];
+      if (this.smoke.length) this.drawSmoke(ctx, cam, m.on ? [...this.smoke, [m.x, m.y]] : this.smoke);
+      if (m.on) this.drawMissile(ctx, cam, m, size);
+      if (d.mState === 1 && d.outcome === 0) this.badge(ctx, size, 'Missile launched');
+      const live = this.isHuman() && this.phase !== 'over';
+      const sticks = live ? [this.human.throttle, this.human.tilt] : d.stick;
+      const trail = live ? [] : this.stickTrail;
+      drawStick(this.left.getContext('2d')!, fitCanvas(this.left), [0, sticks[0]], 'y', trail.map((v) => [0, v[0]]), c, live);
+      drawStick(this.right.getContext('2d')!, fitCanvas(this.right), [sticks[1], 0], 'x', trail.map((v) => [v[1], 0]), c, live);
+      this.q('.r-time').textContent = d.arena ? `${fmt(time(d))} / ${ARENA_T} s` : `${fmt(time(d))} s`;
+      this.q('.r-speed').textContent = `${fmt(Math.sqrt(d.vx * d.vx + d.vy * d.vy))} m/s`;
+      this.q('.r-height').textContent = `${fmt(Math.max(0, d.y - LEG))} m`;
+      this.q('.r-batt').textContent = `${Math.round(d.charge * 100)}%`;
+    }
+
+    /**
+     * A falling rock's shadow on the surface below it, darker as the rock gets closer; clipped to
+     * that surface (a pillar's top, or the water between the pillars).
+     */
+    drawShadow(ctx: CanvasRenderingContext2D, cam: Cam, r: Threat, course: { start: Pad; target: Pad | null }, size: { w: number; h: number }) {
+      const top = this.surfaceTop(r.x, course.target);
+      const above = r.y - top;
+      if (above < 0) return;
+      const k = cam.scale;
+      const near = 1 - clamp01(above / 16);
+      const pillars = [course.start, course.target].filter((q): q is Pad => !!q);
+      const on = pillars.find((q) => q.x0 < r.x && r.x < q.x1);
+      ctx.save();
+      ctx.beginPath();
+      if (on) ctx.rect(cam.X(on.x0), 0, (on.x1 - on.x0) * k, size.h);
+      else {
+        ctx.rect(0, 0, size.w, size.h);
+        for (const q of pillars) ctx.rect(cam.X(q.x0), cam.Y(q.top), (q.x1 - q.x0) * k, size.h);
+      }
+      ctx.clip('evenodd');
+      ctx.fillStyle = this.colors.shade;
+      ctx.globalAlpha = 0.3 + 0.4 * near;
+      ctx.beginPath();
+      ctx.ellipse(cam.X(r.x), cam.Y(top) + 1, 0.45 * k * (0.75 + 0.25 * near), Math.max(3, 0.11 * k), 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /** The arena's point: a dashed circle of the hold radius, filled in while the drone is in it. */
+    drawGoal(ctx: CanvasRenderingContext2D, cam: Cam, [gx, gy]: number[], held: boolean) {
+      const c = this.colors;
+      const x = cam.X(gx);
+      const y = cam.Y(gy);
+      const r = HOLD_R * cam.scale;
+      ctx.save();
+      ctx.fillStyle = c.flag;
+      ctx.globalAlpha = held ? 0.2 : 0.07;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = c.flag;
+      ctx.lineWidth = held ? 2 : 1.5;
+      ctx.setLineDash(held ? [] : [5, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y);
+      ctx.lineTo(x + 5, y);
+      ctx.moveTo(x, y - 5);
+      ctx.lineTo(x, y + 5);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.font = '700 11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillStyle = c.flag;
+      ctx.fillText(held ? 'HELD' : 'HOLD HERE', x, y - r - 3);
+      ctx.restore();
+    }
+
+    /** A grey stone; above the ceiling (or the view) a marker at the top edge instead. */
+    drawRock(ctx: CanvasRenderingContext2D, cam: Cam, r: Threat, size: { w: number; h: number }) {
+      const c = this.colors;
+      const x = cam.X(r.x);
+      const y = cam.Y(r.y);
+      const rad = Math.max(6, 0.32 * cam.scale);
+      ctx.save();
+      if (r.y > this.d.ph.ceiling || y < rad) {
+        if (x < -8 || x > size.w + 8) return ctx.restore();
+        const my = Math.max(0, cam.Y(this.d.ph.ceiling));
+        ctx.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(this.clock * 6));
+        ctx.fillStyle = c.stone;
+        ctx.strokeStyle = c.ink;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x - 6, my + 2);
+        ctx.lineTo(x + 6, my + 2);
+        ctx.lineTo(x, my + 11);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+      ctx.translate(x, y);
+      ctx.rotate(r.y * 0.35 + r.x);
+      ctx.beginPath();
+      ROCK.forEach((f, i) => {
+        const ang = (i / ROCK.length) * Math.PI * 2;
+        const px = Math.cos(ang) * rad * f;
+        const py = Math.sin(ang) * rad * f * 0.88;
+        if (i) ctx.lineTo(px, py);
+        else ctx.moveTo(px, py);
+      });
+      ctx.closePath();
+      ctx.fillStyle = c.stone;
+      ctx.fill();
+      ctx.strokeStyle = c.ink;
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      // a lit face
+      ctx.fillStyle = c.paper;
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.ellipse(-rad * 0.25, -rad * 0.3, rad * 0.35, rad * 0.2, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /** Smoke behind the missile: a trail that widens and fades with age. */
+    drawSmoke(ctx: CanvasRenderingContext2D, cam: Cam, pts: number[][]) {
+      ctx.save();
+      ctx.strokeStyle = this.colors.muted;
+      ctx.lineCap = 'round';
+      const n = pts.length;
+      for (let i = 1; i < n; i++) {
+        const age = (n - 1 - i) / SMOKE; // 0 newest .. 1 oldest
+        ctx.globalAlpha = 0.45 * (1 - age);
+        ctx.lineWidth = 2 + 5 * age;
+        ctx.beginPath();
+        ctx.moveTo(cam.X(pts[i - 1][0]), cam.Y(pts[i - 1][1]));
+        ctx.lineTo(cam.X(pts[i][0]), cam.Y(pts[i][1]));
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /** The missile: a dart along its velocity with a flickering motor; an edge arrow when off view. */
+    drawMissile(ctx: CanvasRenderingContext2D, cam: Cam, m: Threat, size: { w: number; h: number }) {
+      const c = this.colors;
+      const x = cam.X(m.x);
+      const y = cam.Y(m.y);
+      ctx.save();
+      if (x < 0 || x > size.w || y < 0 || y > size.h) {
+        const ax = Math.max(14, Math.min(size.w - 14, x));
+        const ay = Math.max(14, Math.min(size.h - 14, y));
+        ctx.translate(ax, ay);
+        ctx.rotate(Math.atan2(y - ay, x - ax));
+        ctx.fillStyle = c.lava;
+        ctx.beginPath();
+        ctx.moveTo(9, 0);
+        ctx.lineTo(-5, -6);
+        ctx.lineTo(-5, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        return;
+      }
+      const len = Math.max(18, 0.8 * cam.scale);
+      const wid = Math.max(3, 0.11 * cam.scale);
+      ctx.translate(x, y);
+      ctx.rotate(-Math.atan2(m.vy, m.vx));
+      // motor flame
+      ctx.fillStyle = c.lava;
+      ctx.globalAlpha = 0.85;
+      const flame = len * (0.28 + 0.12 * Math.sin(this.clock * 40));
+      ctx.beginPath();
+      ctx.moveTo(-len / 2, -wid * 0.6);
+      ctx.lineTo(-len / 2 - flame, 0);
+      ctx.lineTo(-len / 2, wid * 0.6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // body, nose and fins
+      ctx.fillStyle = c.ink;
+      ctx.beginPath();
+      ctx.moveTo(len / 2, 0);
+      ctx.lineTo(len / 2 - wid * 2, -wid);
+      ctx.lineTo(-len / 2, -wid);
+      ctx.lineTo(-len / 2 - wid * 0.8, -wid * 2.2);
+      ctx.lineTo(-len / 2 + wid * 1.6, -wid);
+      ctx.lineTo(-len / 2 + wid * 1.6, wid);
+      ctx.lineTo(-len / 2 - wid * 0.8, wid * 2.2);
+      ctx.lineTo(-len / 2, wid);
+      ctx.lineTo(len / 2 - wid * 2, wid);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = c.lava;
+      ctx.beginPath();
+      ctx.moveTo(len / 2, 0);
+      ctx.lineTo(len / 2 - wid * 2, -wid);
+      ctx.lineTo(len / 2 - wid * 2, wid);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /** A warning in the top-right corner, with a pulsing dot. */
+    badge(ctx: CanvasRenderingContext2D, size: { w: number }, text: string) {
+      const c = this.colors;
+      ctx.save();
+      ctx.font = '700 12px system-ui, sans-serif';
+      const tw = ctx.measureText(text).width;
+      const bw = tw + 30;
+      const bh = 24;
+      const x = size.w - bw - 8;
+      const y = 8;
+      ctx.fillStyle = c.paper;
+      ctx.globalAlpha = 0.92;
+      ctx.beginPath();
+      ctx.roundRect(x, y, bw, bh, 12);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = c.lava;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = c.lava;
+      ctx.globalAlpha = 0.45 + 0.55 * Math.abs(Math.sin(this.clock * 5));
+      ctx.beginPath();
+      ctx.arc(x + 13, y + bh / 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = c.ink;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, x + 22, y + bh / 2 + 0.5);
+      ctx.restore();
+    }
+  }
+  customElements.define('rl-dodge', RlDodge);
+</script>

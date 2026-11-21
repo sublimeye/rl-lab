@@ -1,0 +1,290 @@
+---
+title: "Dodge school: birds, rocks and a missile"
+number: 12
+date: 2026-11-21
+summary: Post 11's drone meets falling rocks and a homing missile, and I set out to make it dodge the birds it never learned to avoid. Pilots trained on the usual courses still don't dodge anything. Two things changed that. Missiles that start slow and speed up taught the pilot to break away from them. Birds aimed at the drone taught it to dodge birds. Random birds taught it nothing.
+---
+
+import DodgeGame from '../../components/DodgeGame.astro';
+import DroneChart from '../../components/DroneChart.astro';
+
+[Post 11](../011-drone2/)'s pilots never learned to steer around birds, so this post is about
+dodging. The drone is the same, still in wind with a payload and with noisy, late sensors.
+There are now three kinds of threat:
+- **birds**, as before;
+- **falling rocks**, dropped from above the screen near wherever the drone is;
+- **a missile** that homes in. It's faster than the drone but turns slowly, and runs out of
+  fuel after 4 seconds.
+
+Besides the usual pillar-to-pad courses there's an **arena**: no pad, just a point in the air
+to hold for 12 seconds while things come at you.
+
+<DodgeGame
+  models={[
+    { src: '012-dodge/model-school.json', label: 'School 2' },
+    { src: '012-dodge/model-mix.json', label: 'Test-mix pilot' },
+    { src: '012-dodge/model-aimed.json', label: 'Aimed-bird school', course: 'aimed' },
+    { src: '012-dodge/model-missile.json', label: 'Missile school', course: 'missile' },
+    { src: '012-dodge/model-camera.json', label: 'Camera, school 2' },
+  ]}
+  caption="Pick a pilot and a course. The specialists open on their own arena; try them on the others too. Camera rays: blue on the pad, orange on a threat, green where a falling rock's shadow is. Flying it yourself: W and S (or up and down) for the throttle, A and D (or left and right) for the tilt."
+/>
+
+**Short answer:**
+
+- **The pilots trained on the usual courses still don't dodge.** Blindfold them to every
+  threat and they land just as often (171 and 169 of 200, against 168 and 164 seeing). They
+  get through by flying fast and straight, landing before most missiles launch.
+- **Almost every hit could have been avoided.** Rewinding to just before each hit and trying
+  nine full-stick escapes shows that 73 of 74 bird hits were avoidable with half a second's
+  notice. So were all 192 rock hits with 0.8 seconds, and 126 of 197 missile hits with 0.8
+  seconds. The pilots don't lack the agility.
+- **A missile that starts slow and speeds up teaches dodging.** Trained against the full-speed
+  missile from the start, a pilot never survives more than 4 of 200 missile arenas. Starting at
+  6 m/s and stepping up as it improves, it reaches the full 11 m/s and holds 167 of 200.
+  Blindfolded, it holds 1.
+- **Birds need to come at you.** Random birds give almost no lessons: most never come close.
+  When every bird in the arena flies straight at the drone, the pilot survives 180 of 200
+  arenas (3 blindfolded) after a few minutes of training. But that pilot then shies away from
+  harmless birds too, and does worse among ordinary birds when it can see them (85 of 200
+  survived, against 137 blindfolded).
+- **Mixing it all works partly.** A final pilot ("School 2", above) trained on half normal
+  courses, a quarter aimed-bird arenas and a quarter missile arenas:
+  - survives 178 of 200 aimed-bird arenas (13 blindfolded);
+  - no longer over-reacts to ordinary birds;
+  - its missile ramp reached 8.5 m/s, and it survives 55 of 200 full-speed missiles;
+  - it lands fewer test courses than the pilot that never learned to dodge: 135 against 168.
+- **Training is about eight times faster with different settings.** 512 drones per update and 4
+  passes over each batch, instead of 256 and 10, got to a better pilot in 3 minutes than the
+  old settings did in 25.
+
+## The threats, and a test of whether a hit was avoidable
+
+**Birds** are post 11's: slow (1–3 m/s) or fast (4–7 m/s), bobbing a little. One thing changed.
+In post 11 a bird leaving the screen came back in 2 m beyond the other edge, so a drone near
+that edge could have a bird appear right beside it. Now they re-enter 6 m out.
+
+**Rocks** drop on a steady beat from 16 m up, above the 13 m screen, aimed near wherever the
+drone is at that moment. They take about 1.5 seconds to fall to flying height. The camera can't
+see straight up, as most real drones can't, so the camera pilot sees each rock's **shadow** on
+the surface below it instead, with the sun overhead.
+
+**The missile** is launched from one side at a random time. It flies at 11 m/s, faster than
+the drone's comfortable speed, and steers with proportional navigation, the rule real missiles
+use: turn in proportion to how fast the line of sight to the target is turning. Its turn rate
+is capped, so up close a sharp break can out-turn it, but only with good timing. I tuned it
+before any training with a scripted pilot that ignores threats: that pilot is always hit, and
+holding a full-stick escape doesn't help if you start it too early.
+
+**The escape test.** For every hit I rewind to some time before it and try nine escapes: full
+throttle down, hold or up, each with full tilt left, none or right, held until well after the
+hit. If any of them gets away, the hit was avoidable with that much notice. It says nothing
+about what the pilot could have known, only whether the drone was capable of getting away.
+
+**The blindfold** is post 11's test: the threats still fly, but the pilot's inputs say "nothing
+there". If a pilot does as well blindfolded, it wasn't using what it saw.
+
+## Training faster
+
+The trainer is post 11's: PPO on the vectorised simulator, with 512 drones flying at once. I
+profiled a training run first. About 70% of the time goes to PPO's learning step and 30% to
+the simulator, so a faster simulator wouldn't help much. Three changes were tried side by side
+on the dense-threat training task, each scored on the 200 test courses:
+
+<DroneChart
+  src="012-dodge/eval.json"
+  title="Test courses landed, by wall-clock training time"
+  groups={[
+    { key: 'speed-wide', label: '512 drones, 4 passes per batch' },
+    { key: 'speed-base', label: "256 drones, 10 passes (post 11's settings)" },
+  ]}
+  x="minutes"
+  caption="Three runs side by side, three CPU threads each, on the same task."
+/>
+
+- **More drones per update, fewer passes over each batch.** This one helped: it reached 146
+  landings in 3.1 minutes, while post 11's settings peaked at 107 in 14 minutes. Every later
+  run in both posts used it.
+- **Starting from post 11's pilot** (its inputs copied over, new ones starting at zero) gives a
+  pilot that lands 143 of 200 before any training. Training then wore it down to 102 by the end
+  of the 25 minutes. I didn't use it.
+- **Steadier exploration noise.** PPO explores by adding fresh random noise to the sticks 20
+  times a second. The drone's inertia averages that out, so I tried gSDE, noise held for 8
+  updates. It didn't help: after the same 6 million steps in rock arenas it survives 54 of 200
+  (61 with ordinary noise), and in missile arenas it survives none (4).
+
+## Trained on the usual courses: no dodging
+
+Two pilots trained on the test mix itself:
+- each course has 0–3 birds, 0–2 rock droppers, and a missile half the time;
+- the pad slides, the weather is rough and the battery starts anywhere between 6% and 100%.
+
+They land 168 and 164 of the 200 test courses, with 21 and 23 threat hits. Without any threats
+they land 194 and 193.
+
+Blindfolded, they land 171 and 169, with 23 threat hits each. They aren't dodging, the same as
+post 11's pilots. They fly fast and straight and are on the pad before most missiles launch.
+
+In the arenas, where you can't land your way out, the same two pilots survive 3 and 2 of 200
+missile arenas, and 8 and 4 rock arenas. They survive 125 and 127 of 200 bird arenas, about as
+many as when blindfolded (127 and 137), or as the scripted hover pilot that ignores everything
+(138). The escape test says nearly all those hits were avoidable.
+
+My first "dodge school" didn't help either. Dense threats on half the courses and full arenas
+on the other half gave a pilot that lands less (144) and dodges no better (blindfolded: 145).
+
+## Missiles: start slow
+
+Trained only in missile arenas, against the real missile, a pilot never discovers a dodge. A
+random wobble almost never adds up to a well-timed break, so there's nothing to reinforce.
+Against a slower, 7 m/s missile, a 12-million-step test run did learn, and it even survives 87
+of 200 arenas with the real 11 m/s missile. So I added a ramp:
+- the missile starts at 6 m/s;
+- each time the pilot gets away from 60% of the last 500 missiles it faced, the top speed goes
+  up 0.5 m/s, to the test's 11 m/s.
+
+<DroneChart
+  src="012-dodge/eval.json"
+  title="Missile arenas survived (the real 11 m/s missile)"
+  measure="Survived"
+  groups={[
+    { key: 'missile-ramp', label: 'Trained with the speed ramp' },
+    { key: 'missile-plain', label: 'Trained on the real missile' },
+  ]}
+  caption="Each point is the pilot at that checkpoint, tested on 200 missile arenas at full speed. The ramp reached 11 m/s after 4.6 million steps."
+/>
+
+The ramp reached full speed after 4.6 million steps, about two minutes. By the end (40 million
+steps, 19 minutes) the pilot survives 167 of 200 full-speed missile arenas, spending 78% of its
+flying time within 1.5 m of the point. Blindfolded, it survives 1. Without the ramp: 4.
+
+My first version of the ramp had a bug. It counted every flight that didn't end with a missile
+hit as a win, including flights that crashed before the missile launched, so it sped the
+missile up while the pilot was still learning to fly. Now it only counts flights that actually
+faced the missile.
+
+## Birds: aim them
+
+The bird-only arena has three random birds. A pilot trained there for 40 million steps
+survives 138 of 200, exactly the scripted hover pilot's 138, and 134 blindfolded. It learned
+nothing about birds. A speed ramp (birds from 30% of their speed) didn't help: the pilot
+passed every step of it within 0.8 million steps without learning to dodge.
+
+The difference from the missile: the missile always comes for you, and birds mostly don't. A
+random bird that passes 3 m away is no lesson. So I made an arena where **every bird is aimed**:
+it flies at the drone's height and passes through the point at a random moment, 1 to 3 birds.
+The hover pilot survives 43 of 200 of those.
+
+<DroneChart
+  src="012-dodge/eval.json"
+  title="Aimed-bird arenas survived"
+  measure="Survived"
+  groups={[
+    { key: 'aimed-trained', label: 'Trained on aimed birds (2 runs)' },
+    { key: 'aimed-random', label: 'Trained on random birds' },
+  ]}
+  caption="At step zero the untrained networks sit on their pillar, out of the birds' way, so the first checkpoints after it are the ones to read."
+/>
+
+Trained on aimed birds, a pilot survives 191 of 200 after 1.5 million steps, half a minute of
+training. The two finished pilots survive 180 and 181, spending 83% of their flying time within
+1.5 m of the point. Blindfolded they survive 3 and 2. That's real dodging. The pilot trained on
+random birds survives 4.
+
+**Then it shies at harmless birds.** In the random-bird arena, the aimed-bird pilots survive
+only 85 and 90 of 200, against 137 blindfolded. Every bird it has ever seen was coming
+straight at it, so it swerves from birds that would have missed, into others. That's a
+training-set lesson as much as a reinforcement-learning one: a pilot learns what birds meant in
+its world.
+
+## School 2: everything at once
+
+The last pilot trains on a mix:
+- half of its flights are the test mix of courses, so it keeps landing;
+- a quarter are aimed-bird arenas;
+- a quarter are missile arenas, with the speed ramp.
+
+| | School 2, seed 1 | School 2, seed 2 | Test-mix pilot |
+|---|---|---|---|
+| Test courses landed (blindfolded) | 135 (153) | 143 (165) | 168 (171) |
+| Aimed-bird arenas survived (blindfolded) | 178 (13) | 188 (4) | 6 (7) |
+| Random-bird arenas survived (blindfolded) | 136 (131) | 129 (132) | 125 (127) |
+| Missile arenas survived (blindfolded) | 55 (13) | 0 (1) | 3 (3) |
+| Missile ramp reached | 8.5 m/s | 6 m/s (never moved) | – |
+
+- **It dodges aimed birds, and no longer over-reacts** to random ones.
+- **The missile is half-learned in seed 1 and not at all in seed 2.** With the other lessons in
+  the mix, the ramp moves slowly or not at all.
+- **On the test courses, dodging costs landings.** Both seeds land fewer courses seeing than
+  blindfolded. Their extra failures are crashes (33 and 26, against 11 for the test-mix pilot),
+  which looks like swerving near the pad. The test-mix pilot's way of not dodging, straight and
+  fast, still wins on that test.
+
+**The camera version** (same mix, depth camera instead of exact positions):
+- lands 120 of 200 (121 blindfolded);
+- survives 139 aimed-bird arenas (17 blindfolded);
+- survives 27 missile arenas (23 blindfolded).
+
+## Rocks: halfway
+
+Rocks fall where the drone was, so the more still a pilot holds the point, the easier a target
+it becomes. With a ramp on how often rocks drop (from one every 6–7 s towards the test's 2–3 s),
+a rock-only pilot reached the ramp's halfway point. It survives 54 of 200 full-rate rock arenas
+(11 blindfolded, 29 for the hover pilot). It does dodge, but nowhere near the 100% the escape
+test allows with 0.8 seconds' notice.
+
+## What didn't work at first
+
+- **The first mixed school.** Dense threats plus full arenas: nothing about any threat was
+  learned. A ramp on all three threats at once ("graduate" arenas) never left its easiest
+  level in 40 million steps.
+- **Empty threat lists.** My first practice courses always had at least one bird, so a pilot
+  never saw an empty threat list, which the test courses often have. Practice now includes
+  zero-bird courses too.
+- **The ramp that counted crashes as wins**, above.
+
+## How the AI runs on this page
+
+Plain JavaScript, one drone at a time, as in post 11.
+- **Size:** the exact-position pilots read three snapshots of 50 numbers, the 4 most urgent
+  threats (distance divided by closing speed) plus the drone's own state. Each network is 96 KB
+  as 16-bit floats; the camera pilot reads 141 numbers per snapshot and is 190 KB.
+- **Same results as Python:** a test replays three school courses for the shipped
+  exact-position and camera networks. Between them the courses have rocks dropping, a missile
+  launching and hitting, and shadows on the camera. The test checks the drone's state, the
+  rocks and the missile after every update, and the pilot's inputs and outputs. It also checks
+  that the page loads the tested networks.
+
+## What I take from it
+
+- **Check that a lesson is learnable before asking for it.** The escape test and a scripted
+  pilot took seconds. They showed that the misses weren't the drone's limits and that a
+  full-speed missile from the start was hopeless.
+- **Rare dangers teach nothing.** Random birds, the full-speed missile and the mixed school all
+  failed for the same reason: the pilot almost never lived through a situation where dodging
+  paid. Aiming the birds and slowing the missile made the lesson common.
+- **A pilot learns its training world.** The aimed-bird pilot's over-reaction is the flip side:
+  what it learned about birds was true of its world, not of birds.
+
+## Cost
+
+All on an M1 Pro, CPU only, several runs at once:
+- the speed comparison: 15–25 minutes per run;
+- test-mix and school pilots: 60 million steps in 26–29 minutes each, the camera pilot in 39;
+- specialists: 11–21 minutes each.
+
+No run came near the 5-hour limit.
+
+## Run it yourself
+
+```sh
+cd experiments/012-dodge
+uv run train.py --task mix --envs 512 --epochs 4 --steps 60000000 --name mix-s1          # test mix
+uv run train.py --task missile-arena --curriculum --envs 512 --epochs 4 --name missile-cur
+uv run train.py --task aimed-arena --levels --envs 512 --epochs 4 --steps 30000000 --name aimed-lv
+uv run train.py --task school2 --curriculum --envs 512 --epochs 4 --steps 60000000 --name school2-s1
+uv run evaluate.py --table school2-s1          # every test, blindfold and escape test
+uv run evaluate.py --export export.json        # site data
+uv run evaluate.py --parity school2-s1 vschool2-s1
+uv run summarize.py                            # every number quoted here
+```

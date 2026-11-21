@@ -14,6 +14,7 @@ const TOKENS = [
   "lava",
   "timeout",
   "wall",
+  "shade",
 ];
 
 export function readColors(el) {
@@ -198,7 +199,9 @@ function drone(ctx, cam, s, c, t) {
 
 /**
  * The whole scene. s: interpolated {x, y, th, motor}; opts: {trail: [[x, y]], wind (m/s^2),
- * t (seconds, for animation), outcome}.
+ * t (seconds, for animation), outcome}. Optional (post 12): course.target null for no landing
+ * pad; opts.aim [x, y] for the off-screen arrow (default: the pad); opts.under(ctx, cam), drawn
+ * on top of the water and pillars but under the path, rays and drone.
  */
 export function drawScene(ctx, size, cam, course, s, c, opts) {
   const { w, h, dpr } = size;
@@ -245,7 +248,8 @@ export function drawScene(ctx, size, cam, course, s, c, opts) {
   }
   water(ctx, cam, w, h, c, opts.t);
   pillar(ctx, cam, course.start, c, false);
-  pillar(ctx, cam, course.target, c, true);
+  if (course.target) pillar(ctx, cam, course.target, c, true);
+  if (opts.under) opts.under(ctx, cam);
   // the path flown so far
   if (opts.trail.length > 1) {
     ctx.strokeStyle = c.flag;
@@ -267,15 +271,19 @@ export function drawScene(ctx, size, cam, course, s, c, opts) {
     cam,
     {
       ...s,
-      crashed: ["crashed", "water", "lost", "bird"].includes(opts.outcome),
+      crashed: ["crashed", "water", "lost", "bird", "rock", "missile"].includes(
+        opts.outcome,
+      ),
     },
     c,
     opts.t,
   );
-  // where the pad is, when the camera can't see it
-  const tx = cam.X(course.target.cx);
-  const ty = cam.Y(course.target.top);
-  if (tx < 0 || tx > w || ty < 0 || ty > h) {
+  // where the pad (or opts.aim) is, when the camera can't see it
+  const aim =
+    opts.aim ?? (course.target ? [course.target.cx, course.target.top] : null);
+  const tx = aim ? cam.X(aim[0]) : 0;
+  const ty = aim ? cam.Y(aim[1]) : 0;
+  if (aim && (tx < 0 || tx > w || ty < 0 || ty > h)) {
     const ax = Math.max(18, Math.min(w - 18, tx));
     const ay = Math.max(18, Math.min(h - 18, ty));
     const ang = Math.atan2(ty - ay, tx - ax);
@@ -392,7 +400,10 @@ function bird(ctx, cam, b, c, t) {
   ctx.fill();
 }
 
-/** The depth camera's rays: faint lines to what each hit (the pad in blue, birds in orange). */
+/**
+ * The depth camera's rays: faint lines to what each hit (the pad in blue, birds in orange). Post
+ * 12's rays also have threat (orange, like birds) and shadow (green, ending in a ring).
+ */
 function drawRays(ctx, cam, s, rays, c) {
   const ox = cam.X(s.x);
   const oy = cam.Y(s.y);
@@ -400,19 +411,28 @@ function drawRays(ctx, cam, s, rays, c) {
   for (const r of rays) {
     const ex = s.x + Math.sin(r.angle) * r.dist;
     const ey = s.y - Math.cos(r.angle) * r.dist;
-    const col = r.pad ? c.flag : r.bird ? c.lava : c.muted;
+    const hot = r.bird || r.threat;
+    const col = hot ? c.lava : r.shadow ? c.timeout : r.pad ? c.flag : c.muted;
+    const marked = hot || r.shadow || r.pad;
     ctx.strokeStyle = col;
-    ctx.globalAlpha = r.pad || r.bird ? 0.55 : 0.22;
+    ctx.globalAlpha = marked ? 0.55 : 0.22;
     ctx.beginPath();
     ctx.moveTo(ox, oy);
     ctx.lineTo(cam.X(ex), cam.Y(ey));
     ctx.stroke();
     if (r.depth < 1) {
-      ctx.fillStyle = col;
-      ctx.globalAlpha = r.pad || r.bird ? 0.9 : 0.45;
+      ctx.globalAlpha = marked ? 0.9 : 0.45;
       ctx.beginPath();
-      ctx.arc(cam.X(ex), cam.Y(ey), 2.2, 0, Math.PI * 2);
-      ctx.fill();
+      if (r.shadow && !hot) {
+        ctx.lineWidth = 1.5;
+        ctx.arc(cam.X(ex), cam.Y(ey), 3.2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      } else {
+        ctx.fillStyle = col;
+        ctx.arc(cam.X(ex), cam.Y(ey), 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
   ctx.globalAlpha = 1;

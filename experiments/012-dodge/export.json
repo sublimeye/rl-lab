@@ -1,0 +1,122 @@
+{
+  "models": {
+    "model-school.json": [
+      "school2-s1",
+      "School 2"
+    ],
+    "model-mix.json": [
+      "mix-s1",
+      "Test-mix pilot"
+    ],
+    "model-aimed.json": [
+      "aimed-lv",
+      "Aimed-bird school"
+    ],
+    "model-missile.json": [
+      "missile-cur",
+      "Missile school"
+    ],
+    "model-camera.json": [
+      "vschool2-s1",
+      "Camera, school 2"
+    ]
+  },
+  "curves": {
+    "speed-base": {
+      "runs": [
+        "opt-base"
+      ],
+      "test": "mix"
+    },
+    "speed-wide": {
+      "runs": [
+        "opt-wide"
+      ],
+      "test": "mix"
+    },
+    "speed-warm": {
+      "runs": [
+        "opt-warm"
+      ],
+      "test": "mix"
+    },
+    "missile-plain": {
+      "runs": [
+        "y-missile"
+      ],
+      "test": "missile"
+    },
+    "missile-ramp": {
+      "runs": [
+        "missile-cur"
+      ],
+      "test": "missile"
+    },
+    "aimed-random": {
+      "runs": [
+        "bird-arena"
+      ],
+      "test": "aimed"
+    },
+    "aimed-trained": {
+      "runs": [
+        "aimed",
+        "aimed-lv"
+      ],
+      "test": "aimed"
+    },
+    "explore-missile-sde": {
+      "runs": [
+        "y-missile-sde"
+      ],
+      "test": "missile"
+    },
+    "explore-missile-slow": {
+      "runs": [
+        "y-missile-slow"
+      ],
+      "test": "missile"
+    },
+    "explore-rock-plain": {
+      "runs": [
+        "x-rock-base"
+      ],
+      "test": "rock"
+    },
+    "explore-rock-sde": {
+      "runs": [
+        "x-rock-sde"
+      ],
+      "test": "rock"
+    }
+  },
+  "table": [
+    "mix-s1",
+    "mix-s2",
+    "school-nocur-s1",
+    "school2-s1",
+    "school2-s2",
+    "missile-cur",
+    "y-missile",
+    "aimed",
+    "aimed-lv",
+    "bird-arena",
+    "rock-lv",
+    "arena-lv",
+    "vschool2-s1"
+  ],
+  "speed": [
+    "opt-base",
+    "opt-wide",
+    "opt-warm"
+  ],
+  "levels": [
+    "missile-cur",
+    "school2-s1",
+    "school2-s2",
+    "rock-lv",
+    "bird-lv",
+    "aimed-lv",
+    "arena-lv"
+  ]
+}

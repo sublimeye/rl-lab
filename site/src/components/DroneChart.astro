@@ -16,8 +16,10 @@ interface Props {
   groups: { key: string; label: string }[];
   x?: 'steps' | 'minutes';
   caption?: string;
+  /** What the share counts (post 12's arenas: "Held") */
+  measure?: string;
 }
-const { src, title, groups, x = 'steps', caption } = Astro.props;
+const { src, title, groups, x = 'steps', caption, measure = 'Landed' } = Astro.props;
 const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
 const CLS = ['s1', 's2'];
 type Pt = { steps: number; seconds: number; landed: number; n: number };
@@ -59,7 +61,7 @@ const line = (ps: { x: number; v: number }[]) =>
 const fmtX = (v: number) => (x === 'steps' ? formatSteps(v) : Number.isInteger(v) || v >= 10 ? `${Math.round(v)} min` : `${v.toFixed(1)} min`);
 const xTicks =
   x === 'steps'
-    ? [10_000, 30_000, 100_000, 300_000, 1_000_000, 3_000_000, 10_000_000].filter((t) => t >= lo && t <= hi)
+    ? [10_000, 30_000, 100_000, 300_000, 1_000_000, 3_000_000, 10_000_000, 30_000_000].filter((t) => t >= lo && t <= hi)
     : (() => {
         const step = hi > 60 ? 15 : hi > 20 ? 5 : hi > 8 ? 2 : 1;
         const out = [];
@@ -87,7 +89,7 @@ const tips = series.flatMap((s) =>
     y: pctY(p.v),
     cls: s.cls,
     head: `${s.label}: ${formatSteps(p.steps)} steps${x === 'minutes' ? ` (${fmtX(p.x)})` : ''}`,
-    text: `Landed ${pct(p.v)}${s.seeds.length > 1 ? ` (seeds ${pct(p.lo)}–${pct(p.hi)})` : ''}`,
+    text: `${measure} ${pct(p.v)}${s.seeds.length > 1 ? ` (seeds ${pct(p.lo)}–${pct(p.hi)})` : ''}`,
   })),
 );
 ---
@@ -135,7 +137,7 @@ const tips = series.flatMap((s) =>
           <th>Run</th>
           <th>Steps</th>
           <th>Minutes</th>
-          <th>Landed (mean of seeds)</th>
+          <th>{measure} (mean of seeds)</th>
         </tr>
       </thead>
       <tbody>

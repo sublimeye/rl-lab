@@ -28,6 +28,8 @@
   --leaf: #5c9a52;
   --wood: #8a5a32;
   --beaver: #7a4a26;
+  /* Dodge (post 12): a falling rock's shadow, dark in both themes. */
+  --shade: #0e1418;
 
   --font: 'Schibsted Grotesk', system-ui, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -64,6 +66,7 @@
   --leaf: #3f7a3a;
   --wood: #8f5e36;
   --beaver: #9a6236;
+  --shade: #000000;
   }
 }
 :root[data-theme='dark'] {
@@ -94,6 +97,7 @@
   --leaf: #3f7a3a;
   --wood: #8f5e36;
   --beaver: #9a6236;
+  --shade: #000000;
 }
 
 *,
