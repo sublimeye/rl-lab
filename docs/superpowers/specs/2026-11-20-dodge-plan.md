@@ -74,3 +74,13 @@ No JAX (needs the user's approval); 5-hour cap per run.
   over-reacts to random birds. School 2 (courses + aimed birds + missile arenas) dodges aimed
   birds without over-reacting, half-learns the missile in one seed of two, lands less.
 - Post: site/src/content/posts/012-dodge.mdx; numbers from experiments/012-dodge/summarize.py.
+
+## Outcome, 013 (2026-11-21)
+
+- Frogs in the gap (2-3 s beat): every pilot charged through, memory or not (~half hit); a
+  slower beat didn't help. Frogs guarding the pad: pilots gave up landing. A ramp (beat from
+  6-7 s down to 3-4 s, a step each time half the flights land) taught the memory pilots to
+  wait and land between strikes (187 and 194 of 200; entries 1.5+ s before the next strike);
+  without memory the ramp never moved (54 landed); with a visible crouch, 169 after 31M steps.
+  The countdown head hurt (159). A linear probe didn't separate memory from no memory.
+- Post: site/src/content/posts/013-frogs.mdx; numbers from experiments/013-frogs/summarize.py.

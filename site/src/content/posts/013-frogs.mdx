@@ -1,0 +1,219 @@
+---
+title: "Watch, then go: air-frogs and memory"
+number: 13
+date: 2026-11-21
+summary: An air-frog guards the landing pad and strikes on a rhythm. A pilot with three seconds of memory learns to wait for the strike and land in the gap, 187 and 194 times out of 200. Without memory it never gets the timing, and a visible crouch before each strike only partly makes up for it. Getting there took a ramp, after the pilots first either charged through or gave up.
+---
+
+import FrogGame from '../../components/FrogGame.astro';
+import DroneChart from '../../components/DroneChart.astro';
+
+[Post 12](../012-dodge/)'s threats could be dodged by reacting in time. This post asks for
+something else:
+- watch a threat;
+- work out its rhythm;
+- wait;
+- go at the right moment.
+
+The threat is an **air-frog**:
+- it floats on a perch;
+- on a beat it lunges at the drone, aiming 0.35 seconds ahead of where the drone is going;
+- it holds there for half a second, then floats back;
+- up close, a lunge is too fast to dodge, so the only way past is between strikes.
+
+<FrogGame
+  models={[
+    { src: '013-frogs/model-memory.json', label: 'Memory (3 s of frog history)' },
+    { src: '013-frogs/model-countdown.json', label: 'Memory + countdown' },
+    { src: '013-frogs/model-tell.json', label: 'No memory, sees the crouch' },
+    { src: '013-frogs/model-none.json', label: 'No memory' },
+  ]}
+  caption="The frog guards the pad; the dashed band is how far either side of its column it can reach. With the countdown pilot, the ring around the frog is the network's own guess of the time to the next strike. Flying it yourself: W and S (or up and down) for the throttle, A and D (or left and right) for the tilt."
+/>
+
+**Short answer:**
+
+- **With memory, the pilot learns to wait and go.** It sees the last three seconds of the
+  frog's movements and lands 187 and 194 of 200 courses (two seeds), with 3 and 0 frog hits.
+  Every time, it reaches the frog's band with the next strike at least a second away.
+- **Without memory it can't.** It never gets past the easiest stage of training. In the end it
+  lands 54 of 200, with 70 frog hits and 65 flights spent hovering until time ran out.
+- **A visible tell helps, partly.** If the frog crouches before striking, the memoryless pilot
+  lands 169, with 22 hits. It needed 31 million steps to get there, against 5–6 million for the
+  pilots with memory.
+- **It took a ramp.** Facing the real frog from the start, every pilot either charged through
+  (about half hit) or, when the frog guarded the pad, gave up landing at all. Starting with a slow
+  frog and speeding it up fixed that.
+- **Change the beat and the memory pilots get caught.** When the frog's rhythm speeds up after
+  its first strike, one memory pilot's frog hits go from 3 to 21, the other's from 0 to 5.
+- **A small "countdown" output, trained to predict the next strike, made things worse.** It
+  lands 159, and its guess is off by half a second on average.
+
+## The frog, and when it's safe to go
+
+The frog's beat is set per course, with a little jitter on each strike. The pilot never sees
+the frog's timer, only where the frog is and how it's moving. I gave the frog two jobs:
+- **in the gap** between the pillar and the pad (the first design), with a strike every 2–3 s;
+- **guarding the pad**, perched 2.5–4.5 m above it, with a strike every 3–4 s.
+
+Before training I flew a scripted pilot straight past a frog in the gap 1,500 times and
+recorded when in the rhythm it reached the frog's band:
+
+| Time to the frog's next strike as it arrives | Hit |
+|---|---|
+| under 0.5 s | 297 of 315 |
+| 0.5–1.5 s | 112 of 576 |
+| 1.5–2.0 s | 75 of 260 |
+| over 2 s, right after a strike | 138 of 218 |
+
+So going the moment the frog strikes is a bad idea: it's still lunging and floating back. The
+safe window is later. That's what makes this a memory problem: the moment to go isn't visible
+in a single snapshot.
+
+## First try: the pilots charge through
+
+With the frog in the gap and a 2–3 s beat, three pilots trained for 40 million steps:
+
+| Pilot | Landed | Frog hits | Time to land |
+|---|---|---|---|
+| No memory (the last 0.15 s) | 80 | 102 | 3.7 s |
+| 3 s of frog history | 77 | 99 | 3.8 s |
+| History + countdown output | 87 | 107 | 4.2 s |
+
+All three fly straight at the pad and arrive at the frog's band anywhere in its rhythm. The
+no-memory pilot, for one, arrives 56 times with under half a second to the next strike. They hover for less
+than 0.2 s on average. Waiting has to be discovered before it can pay off, and a pilot that
+sometimes gets through never discovers it.
+
+**A slower frog** (a 4–5 s beat) didn't help. Pilots with and without memory both land 124 of
+200 and are hit 72 times, still charging through.
+
+## Second try: the frog guards the pad
+
+With the frog perched above the pad, charging can't work: landing takes longer than the gap
+between strikes. The pilots learned the opposite lesson. After 22 million steps they land 1 and
+0 of 200, and spend almost every flight hovering out of reach until time runs out (178 and 184
+times). Staying out of reach was the safe answer they settled on.
+
+## Third try: start slow
+
+Same guard frog, but the beat starts at one strike every 6–7 s, which leaves long gaps to land
+in. Each time the pilot lands half its last 500 flights, the beat speeds up a step, down to the
+test's 3–4 s.
+
+<DroneChart
+  src="013-frogs/eval.json"
+  title="Guarded pads landed (the full 3–4 s beat)"
+  groups={[
+    { key: 'memory', label: 'With 3 s of frog history (2 seeds)' },
+    { key: 'none', label: 'No memory' },
+  ]}
+  caption="Each point is the pilot at that checkpoint, tested on 200 courses with the frog at full speed."
+/>
+
+The pilots with memory reached the full beat after 6.4 and 4.8 million steps, two or three
+minutes of training. At 14 million steps one of them landed all 200 test courses. At the end
+they land 187 and 194, with 3 and 0 frog hits.
+
+The pilot without memory never got past the ramp's first step. It lands 54, is hit 70 times,
+and hovers until time runs out on 65 courses.
+
+## Does it really wait for the gap?
+
+Where in the frog's rhythm each pilot first reaches the band (counts of 200):
+
+| Time to the next strike as it arrives | under 1 s | 1–1.5 s | 1.5–2 s | 2–2.5 s | over 2.5 s |
+|---|---|---|---|---|---|
+| Memory, seed 1 | 0 | 3 | 57 | 91 | 49 |
+| Memory, seed 2 | 0 | 4 | 32 | 98 | 66 |
+| No memory | 26 | 22 | 48 | 52 | 52 |
+
+The memory pilots go in right after a strike, with at least 1.5 seconds to spare 197 and 196
+times out of 200. With a 3–4 s beat and the frog back on its perch 1.85 s after a strike, that
+gap is the opening. The no-memory pilot arrives anywhere in the rhythm.
+
+**Changing the beat** (0.8 of its period from the first strike on):
+- **Memory pilots:** seed 1 lands 171 (from 187) with 21 frog hits (from 3); seed 2 lands 189
+  with 5 hits (from 194 and 0). They now arrive with less time to spare before the next strike:
+  they keep the old beat's timing.
+- **Crouch pilot:** lands 140 with 43 hits (from 169 and 22).
+- **No-memory pilot:** hits go from 70 to 113.
+
+**A visible tell.** With the crouch to read, a pilot without memory gets through the ramp, but
+only after 31 million steps. It lands 169 with 22 hits. A crouch says "now" just 0.4 s ahead,
+too late to time a landing. Memory says "soon".
+
+## Memory inside the network
+
+Instead of handing the pilot a history of the frog, an LSTM network keeps its own memory from
+one update to the next. Using the same ramp, it trained about six times slower on the CPU
+(14 million steps in 43 minutes, when I stopped it). It reached the full beat after 4.1 million
+steps, but at the end it lands 116 of 200 with 82 frog hits, and arrives anywhere in the
+rhythm. Within the time I gave it, a plain network with an explicit history did much better.
+
+## A countdown output
+
+I gave one memory pilot an extra output, trained alongside it to predict the time to the
+frog's next strike. The ring on the frog in the game above is that output. Its guess is off by
+0.52 s on average, against 0.70 s for always guessing the average. It lands 159 of 200 with 36
+frog hits: worse than the memory pilots without it. My reading is that the extra task competed
+with flying for the same network.
+
+I also tried reading each guard pilot's last hidden layer with a straight-line fit (a "probe") to see
+whether it tracks the rhythm internally. It doesn't separate them. The fit is off by about half
+a second for every pilot, memory or not (0.44–0.50 s, against 0.69–0.74 s for guessing the
+average). Part of the rhythm shows in where the frog is right now, so even a pilot with no
+memory carries some of it. The difference shows in behaviour, not in the probe.
+
+## What didn't work at first
+
+- **Frogs that teleported.** When the beat sped up for the test, a new strike could start while
+  the frog was still flying home, and my code started it from the perch. The frog jumped up to
+  5.8 m in one tick. Porting the simulator to the browser caught it, before any training:
+  strikes now start from wherever the frog is.
+- **A test the pilots never reached.** The first rhythm change came after the third strike. The
+  pilots then still charged through, so they had always landed or crashed before it happened.
+
+## How the AI runs on this page
+
+Plain JavaScript, one drone at a time.
+- **Size:** the memory pilot reads 198 numbers: three snapshots of 34 (the drone, the pad and
+  the frog), plus 16 snapshots of the frog's offset from its perch. As 16-bit floats it's
+  113 KB; the no-memory pilots are 80 KB.
+- **Same results as Python:** a test replays three guard courses for the memory, countdown and
+  crouch pilots, with the beat changing. It checks the drone and the frog after every update,
+  and the pilot's inputs, outputs and countdown. A 10-second flight sitting on the pillar checks
+  the strikes, the crouch and the beat change.
+
+## What I take from it
+
+- **Waiting is hard to discover.** The pilots found waiting only when the frog was slow enough
+  for it to pay off quickly, and then kept it as the frog sped up. The same ramp that taught
+  post 12's missile dodge.
+- **Memory is the difference, not a better reflex.** The no-memory pilot had the same ramp and
+  the same training time. It just couldn't know when the gap was coming.
+- **A tell is a weaker substitute.** It works, slowly, and less well: it says "now" when the
+  pilot needed to know "soon".
+
+## Cost
+
+All on an M1 Pro, CPU only, several runs at once:
+- each 40-million-step pilot took 18–23 minutes;
+- the slow-frog and first-try runs took 8–27 minutes;
+- the LSTM, stopped early, 43 minutes for 14 million steps.
+
+No run came near the 5-hour limit.
+
+## Run it yourself
+
+```sh
+cd experiments/013-frogs
+uv run train.py --task guard --levels --name guardlv-hist         # memory + the ramp
+uv run train.py --task guard-none --levels --name guardlv-none    # no memory
+uv run train.py --task guard-tell --levels --name guardlv-tell    # no memory, sees the crouch
+uv run train.py --task guard --levels --aux 1 --name guardlv-aux  # + countdown output
+uv run evaluate.py --table guardlv-hist guardlv-none              # tests, beat change, probe
+uv run evaluate.py --export export.json                           # site data
+uv run evaluate.py --parity guardlv-hist-s2 guardlv-aux guardlv-tell
+uv run summarize.py                                               # every number quoted here
+```

@@ -18,6 +18,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [010 Drone](https://sublimeye.github.io/rl-lab/posts/010-drone/) | A 2D drone flown with two analog sticks hops between pillars: PPO vs SAC vs a hand-written autopilot, bang-bang sticks, wind and payload; fly it yourself |
 | [011 Drone, part 2](https://sublimeye.github.io/rl-lab/posts/011-drone2/) | A vectorised simulator (hundreds of drones per numpy step), a 1D depth camera, birds, a moving pad, battery, sensor noise and delay; CAPS for smooth sticks |
 | [012 Dodge school](https://sublimeye.github.io/rl-lab/posts/012-dodge/) | Birds, falling rocks and a homing missile; an escape test for avoidable hits; curricula (a missile that speeds up, birds aimed at the drone) that teach dodging where random threats teach nothing |
+| [013 Watch, then go](https://sublimeye.github.io/rl-lab/posts/013-frogs/) | Air-frogs that strike on a rhythm; 3 s of memory lets a pilot learn to wait and land between strikes, with a slow-to-fast ramp; a crouch "tell" partly substitutes; a countdown head |
 
 ## Layout
 
@@ -65,9 +66,14 @@ experiments/012-dodge/
   train.py                PPO with optional warm start, gSDE, missile-speed ramp, arena difficulty dial, course mixes
   evaluate.py, export.py  test courses and arenas, blindfold and escape tests; site data + parity fixture
   summarize.py            prints the numbers quoted in the post
+experiments/013-frogs/
+  frog_env.py             post 12's fleet + air-frogs (rhythm, lunge, crouch, guard), frog history (memory), strike-time labels
+  train.py                PPO with labels dropped from the input, optional countdown head, LSTM, frog-rhythm ramp
+  evaluate.py, export.py  test courses, a rhythm change, entry timing, probes; site data + parity fixture
+  summarize.py            prints the numbers quoted in the post
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
-  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace, Drone2Game, DodgeGame
+  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace, Drone2Game, DodgeGame, FrogGame
   src/lib/tag-sim.js      browser port of experiments/003-tag/tag_env.py, maps.py + the policy network
   src/lib/tag-sight.js    browser port of experiments/003-tag/sight.py (006)
   src/lib/tag-cone.js     browser port of experiments/003-tag/cone.py (007)
@@ -76,6 +82,7 @@ site/                     Astro blog, deployed to GitHub Pages
   src/lib/drone-sim.js    browser port of experiments/010-drone/drone_env.py + the pilot network; drone-draw.js draws it
   src/lib/drone2-sim.js   browser port of experiments/011-drone2/fleet_env.py (one drone) + the camera and the pilots
   src/lib/dodge-sim.js    browser port of experiments/012-dodge/dodge_env.py (one drone, its threats, camera and pilots)
+  src/lib/frog-sim.js     browser port of experiments/013-frogs/frog_env.py (+ frogs, memory and the countdown head)
   test/                   node tests: the JS port must match trajectories and maps exported from Python
   public/data/            exported replays (committed, small JSON)
 ```

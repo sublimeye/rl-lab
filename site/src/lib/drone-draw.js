@@ -15,6 +15,7 @@ const TOKENS = [
   "timeout",
   "wall",
   "shade",
+  "leaf",
 ];
 
 export function readColors(el) {
@@ -271,9 +272,15 @@ export function drawScene(ctx, size, cam, course, s, c, opts) {
     cam,
     {
       ...s,
-      crashed: ["crashed", "water", "lost", "bird", "rock", "missile"].includes(
-        opts.outcome,
-      ),
+      crashed: [
+        "crashed",
+        "water",
+        "lost",
+        "bird",
+        "rock",
+        "missile",
+        "frog",
+      ].includes(opts.outcome),
     },
     c,
     opts.t,

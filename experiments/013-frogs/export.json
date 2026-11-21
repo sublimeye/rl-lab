@@ -1,0 +1,50 @@
+{
+  "models": {
+    "model-memory.json": [
+      "guardlv-hist-s2",
+      "Memory (3 s of frog history)"
+    ],
+    "model-countdown.json": [
+      "guardlv-aux",
+      "Memory + countdown"
+    ],
+    "model-tell.json": [
+      "guardlv-tell",
+      "No memory, sees the crouch"
+    ],
+    "model-none.json": [
+      "guardlv-none",
+      "No memory"
+    ]
+  },
+  "groups": {
+    "memory": [
+      "guardlv-hist",
+      "guardlv-hist-s2"
+    ],
+    "none": [
+      "guardlv-none"
+    ],
+    "tell": [
+      "guardlv-tell"
+    ],
+    "countdown": [
+      "guardlv-aux"
+    ]
+  },
+  "table": [
+    "none-s1",
+    "hist-s1",
+    "aux-s1",
+    "slow-hist",
+    "slow-none",
+    "guard-hist",
+    "guard-none",
+    "guardlv-hist",
+    "guardlv-hist-s2",
+    "guardlv-aux",
+    "guardlv-none",
+    "guardlv-tell",
+    "guardlv-lstm"
+  ]
+}
