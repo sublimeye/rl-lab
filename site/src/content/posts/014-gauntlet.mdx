@@ -1,0 +1,205 @@
+---
+title: "The gauntlet: one pilot for every threat"
+number: 14
+date: 2026-11-21
+summary: One pilot for a 60 to 120 m flight past homing birds, the missile and one or two air-frogs, with the pad out of sight until the last 40 m. The long flight itself is easy. The threats together are not. The best pilot lands 33 of 200 courses, far short of the 180 I aimed for. Frogs are its biggest killer, and its dodging is weak. A few hand-written lines dodge birds and flocks far better from the same inputs.
+---
+
+import GauntletGame from '../../components/GauntletGame.astro';
+import DroneChart from '../../components/DroneChart.astro';
+
+Posts [12](../012-dodge/) and [13](../013-frogs/) taught separate pilots to dodge and to wait.
+This post asks one pilot to do both, on a much longer flight:
+- **the course:** 60–120 m from the start pillar to the pad, against post 11's 8–20 m. A
+  clear flight takes the final pilot 12 s on average;
+- **the pad:** the pilot knows which way it is but not how far. Until it's within 40 m, its
+  distance reads as "more than 40 m that way";
+- **sight:** birds, missiles and frogs show up in the pilot's inputs from 40 m away;
+- **encounters:** every 18–28 m along the way, the flight meets one of these:
+  - nothing;
+  - an aimed bird;
+  - two aimed birds timed to arrive together;
+  - the missile, from ahead or behind;
+  - a bird and the missile together;
+  - a flock of two or three birds crossing at random heights;
+- **frogs:** an air-frog guards the pad on every course, and half the courses have a second
+  one mid-route.
+
+<GauntletGame
+  models={[
+    { src: '014-gauntlet/model-final.json', label: 'Final pilot' },
+    { src: '014-gauntlet/model-first.json', label: 'First recipe' },
+  ]}
+  caption="The view follows the drone; the strip below is the whole route (waypoints, frogs, the pad, the 40 m the pilot can see). A ring marks an aimed bird, and a dashed line appears once it commits. The blindfold hides every bird and missile from the pilot's inputs. Flying it yourself: W and S (or up and down) for the throttle, A and D (or left and right) for the tilt."
+/>
+
+**Short answer:**
+
+- **The long flight is easy.** With no threats, the final pilot lands 192 of 200 long courses
+  (the first recipe's pilot 197), flying on without knowing how far the pad is and slowing
+  down once it's in sight.
+- **Everything together is not.** The best pilot lands 33 of 200 full courses; its second seed
+  lands 17. I aimed for 180.
+- **It took ramps to get anywhere.** Facing every threat at full strength from the start, a
+  pilot landed nothing in 40 million steps. Starting easy and turning each threat up as the
+  pilot coped got it flying the course.
+- **Frogs are the biggest killer.** Of the best pilot's 167 failed flights, 67 end at a frog,
+  37 at a bird and 26 at the missile. With only the two frogs and no other threat, it is still
+  caught on 127 of 200 courses. Post 13's frog-only pilots, on short courses with one frog,
+  were caught 3 and 0 times in 200.
+- **Dodging is learned slowly.** A pilot trained on nothing but crossing flocks still hits
+  about one flock in eleven after 20 million steps. From the same inputs, a few hand-written
+  lines hit 2 flocks in 663 and 2 single birds in 666. The information is there; the training
+  doesn't extract it.
+
+## Making the threats fair
+
+Before training, a scripted pilot flew the test courses at 7 m up and 7 m/s, ignoring every
+threat. With no threats it lands 197 of 200. With threats:
+- **Birds that aim at a point don't threaten a flying drone.** My first aimed birds flew a
+  straight line at where the drone would be. Any change of speed made them miss, so a pilot
+  could beat them without looking. Now they home in, then commit to a straight line once
+  they're about a second from contact. With a bird at every waypoint, all 200 courses end in
+  a bird hit, and so do all 200 with two birds at every waypoint. Every one of those 400 hits
+  could have been avoided by some full-stick move started half a second earlier.
+- **The missile is post 12's** (11 m/s, a poor turner, 4 s of fuel). It hits the scripted pilot
+  on 195 of 200 missile courses, and a fixed full-stick move half a second earlier avoids 118
+  of those hits. That's a lower bound: a pilot that flies a curve instead of a fixed move can
+  do better, as post 12's did.
+- **Bugs caught along the way:**
+  - every landing counted as getting past the pad's frog, frog or not;
+  - a new bird or missile could take the slot of one still chasing the drone, so the old one
+    vanished mid-chase;
+  - the blindfold still showed the "missile launched" warning.
+
+  Porting the simulator to the browser caught the last two.
+
+## Recipe
+
+The pilot is the same kind as post 13's: two layers of 256 units, three stacked frames of
+input plus 3 s of each frog's movements, trained with PPO on 512 drones at once. What was new:
+
+- **A cost for time in the air.** Post 13's pilots either charged through the frog or hovered
+  until time ran out. Here, with 0.3 per metre of progress, +20 for landing and −10 for any
+  failure, a pilot hovered on most frog drills. A cost of 0.2 per second in the air
+  fixed it (frog drills, 200 courses with a slow beat):
+
+  | Reward | Landed | Frog hits | Out of time |
+  |---|---|---|---|
+  | No cost for time | 0 | 52 | 145 |
+  | Cost for time | 91 | 96 | 0 |
+  | Post 13's reward | 84 | 80 | 0 |
+
+  Post 13's reward lands about as often but crashes more (33 against 11).
+- **Four dials.** Each makes one thing harder once the pilot copes with it:
+  - the missile's speed, 6 → 11 m/s, when 60% of missiles are escaped;
+  - how early an aimed bird commits to its line, 2 s → 1 s before contact, when 80% of birds
+    are beaten;
+  - the frogs' beat, 6–7 s → 3–4 s, when half the flights get past every frog;
+  - the share of waypoints and frogs that are real on long courses, when 60% of those land.
+
+  A beginner flails, and flailing beats early-committing birds by accident, so the bird and
+  missile dials wait until the pilot lands a quarter of its flights.
+- **Drills.** Each training course is one of:
+  - 40%: a long course, 15–130 m, with a waypoint every 12–20 m;
+  - 30%: a dodge drill, 20–50 m, with an encounter every 8–14 m and no frogs;
+  - 30%: a frog drill, 15–35 m, the pad's frog always there and a mid-route frog half the time.
+- **Closest-approach inputs.** For each of the four nearest threats, the pilot gets when it
+  will be closest if both keep flying straight, and how far off it will be then. On dodge
+  drills this halved the hit rate against single birds (83 of 796 → 45 of 810) and against the
+  missile (193 of 797 → 92 of 809). It did less for two birds at once (132 → 97, of about 800)
+  and for flocks (170 → 151).
+- **Two shaping terms tried, neither kept.** A cost for passing within 2 m of a threat, and a
+  shaped "danger" signal for threats on course to pass close soon. On dodge drills neither
+  beat no shaping: bird hits 65 and 58 of about 800, against 45 without.
+
+The two final pilots trained for 280 minutes each (about 483 million steps) on the laptop's
+CPU, two at a time. The best one's bird and missile dials reached full strength within 14
+million steps, and its frog dial within 43 million. Its share of real waypoints on long
+courses never passed 0.5, so it trained on long courses with half the threats of a test
+course. The drills, though, run at full strength.
+
+<DroneChart
+  src="014-gauntlet/eval.json"
+  title="Full test courses landed"
+  groups={[
+    { key: 'final', label: 'Final recipe' },
+    { key: 'first', label: 'First recipe (long courses only)' },
+  ]}
+  caption="Each point is the pilot at that checkpoint, tested on 200 full courses: every waypoint real, both frogs, the frogs' 3–4 s beat."
+/>
+
+## Where the best pilot fails
+
+The best pilot on 200 test courses for each mix of threats:
+
+| Course | Landed | Hit by a threat | Hits per encounter |
+|---|---|---|---|
+| No threats | 192 | – | – |
+| A bird at every waypoint | 125 | 46 | 46 of 601 (8%) |
+| Two birds at every waypoint | 98 | 75 | 75 of 573 (13%) |
+| The missile at every waypoint | 72 | 108 | 108 of 504 (21%) |
+| A bird + the missile at every waypoint | 64 | 121 | 121 of 491 (25%) |
+| A flock at every waypoint | 70 | 114 | 114 of 508 (22%) |
+| The two frogs only | 57 | 127 | – |
+| The full gauntlet | 33 | 130 | – |
+
+- **Frogs most of all.** On the full gauntlet, 67 of the 167 failed flights end at a frog. Its
+  frog memory helps: blindfolded to the frogs, it is caught on 95 courses and lands 24.
+- **Every encounter takes its cut.** A full course has 1.7 encounters with aimed birds or the
+  missile on average, and a flock on about one course in three. Even the easiest threat, a
+  bird at every waypoint, leaves only 125 of 200 landed.
+- **Seeing the threats doesn't add landings.** Blindfolded to every bird and missile, the pilot
+  still lands 33 of 200 full courses. It is hit more often (103 hits against 63), but it
+  crashes and hits the water far less (4 flights against 35). Its dodges save about as many
+  flights as they cost.
+
+## Does the input carry what's needed?
+
+A pilot that hits one bird in thirteen might not have the information to do better. To check,
+I wrote a rule that reads only the pilot's inputs. It cruises at 7 m up and 7 m/s, and climbs
+or dives 3 m away from any threat whose closest approach is due within 1.6 s and closer than
+1.6 m. Tested with one kind of encounter at every waypoint and no frogs:
+
+| Encounter | Hits per encounter, the rule | Hits per encounter, the best pilot |
+|---|---|---|
+| A bird | 2 of 666 | 46 of 601 |
+| Two birds | 19 of 658 | 75 of 573 |
+| A crossing flock | 2 of 663 | 114 of 508 |
+| The missile | 179 of 355 | 108 of 504 |
+
+Its landing is crude (it lands 62 of 200 bird courses), and it can't handle the missile, which
+turns after it. But it hits 25 times fewer single birds than the trained pilot, 75 times fewer flocks and
+4 times fewer pairs of birds, from the same numbers.
+
+The trained pilots learn this slowly. A pilot trained on crossing flocks alone, short courses
+with the pad in sight, hits 198 of 760 flocks after 0.2 million steps and 71 of 804 after 20 million
+steps. Blindfolded, the same pilot hits 184 of 788: it really does dodge, but it took 20
+million steps to get to one in eleven.
+
+I also tried bolting the rule onto the best pilot as a reflex: the pilot flies, and the rule
+takes the throttle whenever a threat is about to pass close. On flock courses this lifts the
+landings from 70 to 110 of 200 (flock hits 114 of 508 → 52 of 603). On full courses it lands
+30 against 33: it trades bird hits (37 → 21) for more crashes, missile hits and frog hits.
+
+## What I take from it
+
+- **The long flight wasn't the hard part.** Not knowing how far the pad is cost nothing: with
+  no threats, the pilot lands 192 of 200.
+- **180 of 200 is far off.** The best pilot lands 33. To get to 180 with about two hostile
+  encounters per course plus one or two frogs, each would need to go wrong roughly once in a
+  hundred, against one in four to one in thirteen today.
+- **The inputs suffice for birds; training doesn't extract it.** A few lines of rules hit
+  25 to 75 times fewer single birds and flocks than 280 minutes of PPO. Closest-approach inputs
+  helped, and shaping the reward didn't.
+- **One pilot for everything is harder than the parts.** Post 13's frog pilots were caught 3
+  and 0 times in 200 on short courses; this one, also learning to dodge on long flights, is caught on 127 with
+  only the frogs there.
+- **What I'd try next:**
+  - **teach it from the rule first:** copy a scripted pilot's dodges (imitation), then let PPO
+    improve on them. The missile needs a better teacher than the rule;
+  - **train with the reflex in the loop,** so the pilot learns around it instead of being
+    surprised by it;
+  - **more compute:** the best seed was still improving slowly at the end (26 of 200 at 250
+    million steps, 33 at 483 million). Hours more on a GPU or a faster simulator would show
+    whether it keeps climbing.

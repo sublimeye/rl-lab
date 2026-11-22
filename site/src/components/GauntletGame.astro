@@ -1,0 +1,862 @@
+---
+/**
+ * Post 14's gauntlet, live: a 60-120 m flight from the start pillar to a landing pad past aimed
+ * birds, the missile, crossing flocks and air-frogs (one guarding the pad, half the time one
+ * mid-route). The view follows the drone; a strip underneath shows the whole route. A trained
+ * pilot or you fly it; the blindfold hides the pursuers from the pilot's inputs. The network
+ * runs in the browser (site/src/lib/gauntlet-sim.js); models from experiments/014-gauntlet/export.py.
+ */
+import { url } from '../lib';
+
+interface Props {
+  /** Trained pilots: path under public/data and a label. The model file's `predict` decides
+   * whether the pilot also reads each pursuer's closest approach. */
+  models: { src: string; label: string }[];
+  seed?: number;
+  caption?: string;
+}
+const { models, seed = 20_003, caption } = Astro.props;
+const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }));
+---
+
+<figure class="gauntlet wide">
+  <rl-gauntlet data-models={JSON.stringify(sources)} data-seed={seed}>
+    <div class="main">
+      <div class="stage">
+        <canvas
+          class="scene"
+          tabindex="0"
+          aria-label="Side view following a drone over water on a long course from a start pillar to a pad marked LAND. Birds home in on it, missiles chase it, flocks cross, and green air-frogs strike from above their columns. A strip below shows the whole route. When you fly: W and S (or up and down) move the throttle, A and D (or left and right) tilt the drone."
+        ></canvas>
+      </div>
+      <canvas class="route" aria-hidden="true"></canvas>
+      <div class="pad">
+        <div class="stick">
+          <canvas class="left" aria-hidden="true"></canvas>
+          <span>Throttle</span>
+        </div>
+        <dl class="readout" aria-live="off">
+          <div><dt>Time</dt><dd class="r-time">0.0 s</dd></div>
+          <div><dt>Speed</dt><dd class="r-speed">0.0 m/s</dd></div>
+          <div><dt>Height</dt><dd class="r-height">0.0 m</dd></div>
+          <div><dt>Battery</dt><dd class="r-batt">100%</dd></div>
+        </dl>
+        <div class="stick">
+          <canvas class="right" aria-hidden="true"></canvas>
+          <span>Tilt</span>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <p class="status" aria-live="polite">Loading the trained pilot…</p>
+      <div class="buttons">
+        <button class="restart" type="button" disabled>Fly again</button>
+        <button class="newmap" type="button" disabled>New course</button>
+      </div>
+      <div class="controls">
+        <label>
+          Pilot
+          <select class="who">
+            {models.map((m, i) => <option value={`net:${i}`}>{m.label}</option>)}
+            <option value="you">You</option>
+          </select>
+        </label>
+        <label class="check blindrow"><input class="blind" type="checkbox" /> Blindfold (hide birds and missiles from the pilot)</label>
+        <label class="check"><input class="slow" type="checkbox" /> Slow motion (¼ speed)</label>
+        <label class="check holdrow" hidden>
+          <input class="hold" type="checkbox" checked />
+          Altitude hold (centre throttle keeps your height)
+        </label>
+        <label class="check autorow">
+          <input class="auto" type="checkbox" checked />
+          Keep flying new courses
+        </label>
+      </div>
+      <p class="tally muted" aria-live="polite"></p>
+    </div>
+  </rl-gauntlet>
+  <p class="legend muted">
+    <span><i class="key knob"></i>Stick now; faded dots: the last second</span>
+    <span><i class="key aimed"></i>Aimed bird (dashed: its straight line once it commits)</span>
+    <span><i class="key reach"></i>How far either side of its column a frog can strike</span>
+    <span><i class="key sight"></i>Route strip: what the pilot can see (40 m either way); the box is the view</span>
+    <span>Route marks: <b class="g-bird">v</b> bird, <b class="g-missile">▲</b> missile, <b class="g-flock">···</b> flock, <b class="g-frog">●</b> frog</span>
+  </p>
+  {caption && <figcaption class="muted">{caption}</figcaption>}
+</figure>
+
+<style>
+  .gauntlet {
+    margin-block: 2rem 2.5rem;
+  }
+  rl-gauntlet {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+  }
+  @media (min-width: 52rem) {
+    rl-gauntlet {
+      grid-template-columns: minmax(0, 1fr) 14rem;
+      align-items: start;
+    }
+  }
+  .stage {
+    aspect-ratio: 2.4 / 1;
+    width: 100%;
+    border-radius: 6px 6px 0 0;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--sky);
+  }
+  @media (max-width: 40rem) {
+    .stage {
+      aspect-ratio: 1.4 / 1;
+    }
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .route {
+    height: 2.1rem;
+    border: 1px solid var(--rule);
+    border-top: 0;
+    border-radius: 0 0 6px 6px;
+    background: var(--floor);
+  }
+  .scene:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: -2px;
+  }
+  .pad {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--rule);
+    border-radius: 2.5rem;
+    background: var(--floor);
+  }
+  .stick {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .stick canvas {
+    width: 6.5rem;
+    height: 6.5rem;
+    touch-action: none;
+  }
+  rl-gauntlet[data-human] .stick canvas {
+    cursor: grab;
+  }
+  .readout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.75rem;
+    margin: 0;
+    justify-self: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .readout div {
+    display: grid;
+  }
+  .readout dt {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .readout dd {
+    margin: 0;
+    font-weight: 650;
+    font-size: 0.98rem;
+    white-space: nowrap;
+  }
+  @media (max-width: 30rem) {
+    .pad {
+      padding: 0.5rem;
+      gap: 0.4rem;
+    }
+    .stick canvas {
+      width: 5.6rem;
+      height: 5.6rem;
+    }
+    .readout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.15rem;
+    }
+    .readout dd {
+      font-size: 0.88rem;
+    }
+  }
+  .status {
+    margin: 0 0 0.9rem;
+    font-size: 1.25rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    min-height: 2.5em;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  button {
+    font: inherit;
+    font-weight: 650;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 0.55rem 1rem;
+  }
+  .restart {
+    color: #fff;
+    background: var(--flag);
+    border-color: var(--flag);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  .controls {
+    display: grid;
+    gap: 0.6rem;
+  }
+  @media (min-width: 30rem) and (max-width: 51.99rem) {
+    .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  label {
+    display: grid;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  label.check[hidden] {
+    display: none;
+  }
+  label.check {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  select {
+    font: inherit;
+    font-size: 0.92rem;
+    color: var(--ink);
+    background: var(--floor);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .tally {
+    white-space: pre-line;
+    font-size: 0.86rem;
+    margin: 0.9rem 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    font-size: 0.86rem;
+    margin: 0.6rem 0 0;
+  }
+  .legend b {
+    font-weight: 750;
+  }
+  .g-bird {
+    color: var(--ink);
+  }
+  .g-missile {
+    color: var(--lava);
+  }
+  .g-flock {
+    color: var(--muted);
+  }
+  .g-frog {
+    color: var(--leaf);
+  }
+  .key {
+    display: inline-block;
+    margin-right: 0.35rem;
+    vertical-align: -0.1em;
+  }
+  .key.knob {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: -0.6rem 0 0 -0.15rem color-mix(in srgb, var(--flag) 35%, transparent);
+    margin-left: 0.5rem;
+  }
+  .key.aimed {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, var(--lava) 70%, transparent);
+  }
+  .key.reach {
+    width: 0.9rem;
+    height: 0.85rem;
+    border-inline: 1.5px dashed var(--leaf);
+    background: color-mix(in srgb, var(--leaf) 12%, transparent);
+  }
+  .key.sight {
+    width: 1.4rem;
+    height: 0.7rem;
+    background: color-mix(in srgb, var(--flag) 14%, transparent);
+    border: 1px solid var(--muted);
+  }
+  figcaption {
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    max-width: var(--measure);
+  }
+</style>
+
+<script>
+  import {
+    ENCOUNTERS,
+    FROG_REACH,
+    FULL,
+    LEG,
+    OUTCOMES,
+    P_KIND,
+    SIGHT,
+    WEATHER,
+    distance,
+    frogs,
+    look,
+    makeCourse,
+    netForward,
+    newDrone,
+    newEyes,
+    padSeen,
+    pursuers,
+    push,
+    step,
+    time,
+    unpackNet,
+  } from '../lib/gauntlet-sim.js';
+  import {
+    drawBadge,
+    drawFrog,
+    drawMissile,
+    drawReach,
+    drawScene,
+    drawSmoke,
+    drawStick,
+    edgeArrow,
+    fitCanvas,
+    follow,
+    readColors,
+  } from '../lib/drone-draw.js';
+
+  type P = { x: number; y: number; vx: number; vy: number; on: boolean; kind: number; steer: boolean; hostile: boolean };
+  type Frog = { x: number; y: number; vx: number; vy: number; on: boolean; perchX: number; perchY: number; phase: string };
+  type Cam = ReturnType<typeof follow>;
+  type Size = { w: number; h: number; dpr: number };
+
+  const UPDATE = 0.05;
+  const SMOKE = 16; // each missile's last 0.8 s
+  const fmt = (v: number, d = 1) => v.toFixed(d).replace('-0.0', '0.0');
+  const padOf = (x0: number, x1: number, top: number) => ({ x0, x1, top, cx: (x0 + x1) / 2, half: (x1 - x0) / 2 });
+  const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+
+  class RlGauntlet extends HTMLElement {
+    q = <T extends Element>(sel: string) => this.querySelector(sel) as T;
+    scene!: HTMLCanvasElement;
+    route!: HTMLCanvasElement;
+    left!: HTMLCanvasElement;
+    right!: HTMLCanvasElement;
+    sources: { src: string; label: string }[] = [];
+    cache = new Map<string, any>();
+    net: any = null;
+    seed = 0;
+    d: any = null;
+    eyes: any = null;
+    obs: number[] = [];
+    prev: any = null;
+    acc = 0;
+    last = 0;
+    clock = 0;
+    cam: Cam | null = null;
+    trail: number[][] = [];
+    stickTrail: number[][] = [];
+    smoke: number[][][] = []; // per pursuer slot (only missiles smoke)
+    colors: any = null;
+    phase: 'wait' | 'fly' | 'over' = 'wait';
+    waitUntil = 0;
+    human = { throttle: 0, tilt: 0 };
+    keys = new Set<string>();
+    drag: { el: HTMLCanvasElement; axis: 'x' | 'y' } | null = null;
+    tally = new Map<string, { landed: number; flights: number }>();
+    raf = 0;
+    visible = true;
+
+    connectedCallback() {
+      this.scene = this.q('.scene');
+      this.route = this.q('.route');
+      this.left = this.q('.left');
+      this.right = this.q('.right');
+      this.sources = JSON.parse(this.dataset.models!);
+      this.seed = Number(this.dataset.seed);
+      this.q('.restart').addEventListener('click', () => this.reset());
+      this.q('.newmap').addEventListener('click', () => this.newCourse());
+      this.q('.who').addEventListener('change', () => this.load());
+      this.q('.hold').addEventListener('change', () => this.reset());
+      // the blindfold goes on (or off) mid-flight: from the next reading on
+      this.q('.blind').addEventListener('change', () => this.eyes && (this.eyes.hide = this.hide()));
+      this.addEventListener('keydown', (e) => this.key(e, true));
+      this.addEventListener('keyup', (e) => this.key(e, false));
+      this.scene.addEventListener('blur', () => this.keys.clear());
+      for (const [el, axis] of [
+        [this.left, 'y'],
+        [this.right, 'x'],
+      ] as const) {
+        el.addEventListener('pointerdown', (e) => {
+          if (!this.isHuman()) return;
+          el.setPointerCapture(e.pointerId);
+          this.drag = { el, axis };
+          this.dragTo(e);
+        });
+        el.addEventListener('pointermove', (e) => this.drag?.el === el && this.dragTo(e));
+        const up = () => {
+          if (this.drag?.el === el) this.drag = null;
+        };
+        el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
+      }
+      const recolor = () => (this.colors = null);
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+      new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      new IntersectionObserver(([e]) => {
+        this.visible = e.isIntersecting;
+        if (this.visible && !this.raf) this.loop();
+      }).observe(this);
+      this.load();
+    }
+
+    who() {
+      return this.q<HTMLSelectElement>('.who').value;
+    }
+    isHuman() {
+      return this.who() === 'you';
+    }
+    checked(sel: string) {
+      return this.q<HTMLInputElement>(sel).checked;
+    }
+    hide() {
+      return this.net && this.checked('.blind') ? { threats: true } : {};
+    }
+
+    async load() {
+      const who = this.who();
+      this.toggleAttribute('data-human', who === 'you');
+      this.q<HTMLElement>('.autorow').hidden = who === 'you';
+      this.q<HTMLElement>('.blindrow').hidden = who === 'you';
+      this.q<HTMLElement>('.holdrow').hidden = who !== 'you';
+      this.setButtons(false);
+      try {
+        if (who.startsWith('net:')) {
+          const src = this.sources[Number(who.slice(4))].src;
+          if (!this.cache.has(src)) this.cache.set(src, unpackNet(await (await fetch(src)).json()));
+          this.net = this.cache.get(src);
+        } else this.net = null;
+      } catch {
+        this.status('Could not load the network.');
+        return;
+      }
+      if (this.who() !== who) return; // the reader picked again while this one loaded
+      this.reset();
+      if (who === 'you') this.scene.focus({ preventScroll: true });
+    }
+
+    setButtons(on: boolean) {
+      this.q<HTMLButtonElement>('.restart').disabled = !on;
+      this.q<HTMLButtonElement>('.newmap').disabled = !on;
+    }
+
+    status(text: string) {
+      const el = this.q<HTMLElement>('.status');
+      if (el.textContent !== text) el.textContent = text;
+    }
+
+    newCourse() {
+      this.seed = Math.floor(Math.random() * 2 ** 31);
+      this.reset();
+    }
+
+    /** The test course (every encounter, the guard frog, a mid-route frog half the time), read
+     * the way this pilot was trained to read it. */
+    features() {
+      return { ...FULL, predict: !!this.net?.predict, memory: this.net?.memory ?? 'hist' };
+    }
+
+    reset() {
+      const feat = this.features();
+      this.d = newDrone(makeCourse(this.seed, WEATHER.rough, feat), feat);
+      this.eyes = newEyes(this.d, this.net ? 0.5 + Math.random() : 0, this.hide());
+      this.obs = look(this.d, this.eyes);
+      this.prev = this.snap();
+      this.acc = 0;
+      this.trail = [[this.d.x, this.d.y]];
+      this.stickTrail = [];
+      this.smoke = P_KIND.map(() => []);
+      this.cam = null;
+      this.human = { throttle: 0, tilt: 0 };
+      this.phase = 'wait';
+      this.waitUntil = performance.now() + 700;
+      this.status(this.isHuman() ? 'Push the throttle up to take off.' : 'Ready…');
+      this.setButtons(true);
+      if (!this.raf) this.loop();
+    }
+
+    snap() {
+      const d = this.d;
+      return { x: d.x, y: d.y, th: d.th, motor: d.motor, ps: pursuers(d) as P[], fs: frogs(d) as Frog[] };
+    }
+
+    key(e: KeyboardEvent, down: boolean) {
+      if (!this.isHuman() || e.target instanceof HTMLSelectElement) return;
+      const k = e.key.toLowerCase();
+      const map: Record<string, string> = { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down', a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' };
+      if (!(k in map)) return;
+      e.preventDefault();
+      if (down) this.keys.add(map[k]);
+      else this.keys.delete(map[k]);
+    }
+
+    dragTo(e: PointerEvent) {
+      const el = this.drag!.el;
+      const r = el.getBoundingClientRect();
+      const reach = Math.min(r.width, r.height) / 2 - 3 - 14;
+      const vx = Math.max(-1, Math.min(1, (e.clientX - r.left - r.width / 2) / reach));
+      const vy = Math.max(-1, Math.min(1, -(e.clientY - r.top - r.height / 2) / reach));
+      if (this.drag!.axis === 'y') this.human.throttle = vy;
+      else this.human.tilt = vx;
+    }
+
+    updateHuman(dt: number) {
+      const h = this.human;
+      const ramp = (v: number, want: number, rate: number) => (v < want ? Math.min(want, v + rate * dt) : Math.max(want, v - rate * dt));
+      const dragging = this.drag?.axis;
+      if (dragging !== 'y') {
+        const want = (this.keys.has('up') ? 1 : 0) - (this.keys.has('down') ? 1 : 0);
+        h.throttle = ramp(h.throttle, want, want ? 2.5 : 4);
+      }
+      if (dragging !== 'x') {
+        const want = (this.keys.has('right') ? 1 : 0) - (this.keys.has('left') ? 1 : 0);
+        h.tilt = ramp(h.tilt, want, want ? 3 : 5);
+      }
+      for (const pad of navigator.getGamepads?.() ?? []) {
+        if (!pad) continue;
+        const ly = -(pad.axes[1] ?? 0);
+        const rx = pad.axes[2] ?? 0;
+        if (Math.abs(ly) > 0.08) h.throttle = ly;
+        if (Math.abs(rx) > 0.08) h.tilt = rx;
+      }
+    }
+
+    /** Altitude hold for people (see post 10): the throttle stick asks for a climb rate. */
+    humanSticks(): [number, number] {
+      const h = this.human;
+      if (!this.checked('.hold')) return [h.throttle, h.tilt];
+      const d = this.d;
+      const hover = 1 / (d.ph.thrustMax * Math.max(0.5, Math.cos(d.th)));
+      const frac = hover + 0.25 * (h.throttle * 3 - d.vy);
+      return [Math.max(-1, Math.min(1, 2 * frac - 1)), h.tilt];
+    }
+
+    loop = () => {
+      this.raf = 0;
+      if (!this.visible) return;
+      const now = performance.now();
+      const dt = Math.min(0.1, (now - (this.last || now)) / 1000);
+      this.last = now;
+      this.clock += dt;
+      this.frame(now, dt);
+      this.raf = requestAnimationFrame(this.loop);
+    };
+
+    /** Encounters (not counting calm waypoints) met so far, and on the whole course. */
+    met() {
+      const enc = this.d.course.encounters as [number, number, number[]][];
+      const real = (e: [number, number, number[]][]) => e.filter(([, k]) => k > 0).length;
+      return [real(enc.slice(0, this.d.encNext)), real(enc)];
+    }
+
+    frame(now: number, dt: number) {
+      const d = this.d;
+      if (!d) return;
+      if (this.isHuman()) this.updateHuman(dt);
+      if (this.phase === 'wait' && now >= this.waitUntil) {
+        if (!this.isHuman() || Math.abs(this.human.throttle) > 0.02 || Math.abs(this.human.tilt) > 0.02) this.phase = 'fly';
+      }
+      if (this.phase === 'fly') {
+        this.acc += dt * (this.checked('.slow') ? 0.25 : 1);
+        while (this.acc >= UPDATE && d.outcome === 0) {
+          this.acc -= UPDATE;
+          this.prev = this.snap();
+          const [thr, tilt] = this.isHuman() ? this.humanSticks() : netForward(this.net, this.obs);
+          step(d, thr, tilt);
+          this.obs = push(d, this.eyes);
+          this.trail.push([d.x, d.y]);
+          this.stickTrail.push([...d.stick]);
+          if (this.stickTrail.length > 20) this.stickTrail.shift();
+          this.smoke.forEach((trail, k) => {
+            if (P_KIND[k] !== 1) return;
+            const m = [d.pX[k], d.pY[k]];
+            const tail = trail.at(-1);
+            if (tail && Math.hypot(m[0] - tail[0], m[1] - tail[1]) > 3) trail.length = 0; // a new missile
+            if (d.pOn[k]) trail.push(m);
+            if (trail.length > SMOKE || (!d.pOn[k] && trail.length)) trail.shift();
+          });
+        }
+        if (d.outcome !== 0) this.finish();
+        else {
+          const [met, all] = this.met();
+          const way = d.course.dir > 0 ? 'right' : 'left';
+          this.status(this.isHuman() ? `Fly ${way}: the pad shows up within ${SIGHT} m. Land on it.` : `Flying… ${met} of ${plural(all, 'encounter')} met.`);
+        }
+      } else if (this.phase === 'over' && !this.isHuman() && this.checked('.auto') && now >= this.waitUntil) {
+        this.newCourse();
+      }
+      this.draw();
+    }
+
+    finish() {
+      const d = this.d;
+      this.phase = 'over';
+      this.acc = 0;
+      this.prev = this.snap();
+      this.waitUntil = performance.now() + 2200;
+      const t = fmt(time(d));
+      const v = fmt(Math.sqrt(d.touch[0] ** 2 + d.touch[1] ** 2));
+      const [met, all] = this.met();
+      const from = d.hitEnc >= 0 ? ` (${ENCOUNTERS[d.hitEnc]}, encounter ${met} of ${all})` : '';
+      const msg: Record<string, string> = {
+        landed: `Landed in ${t} s, past ${plural(all, 'encounter')} and ${plural(d.frogOn.filter(Boolean).length, 'frog')}.`,
+        crashed: d.crash === 1 ? `Landed too hard (${v} m/s) after ${t} s.` : `Hit a pillar after ${t} s.`,
+        water: `Fell in the water after ${t} s.`,
+        lost: d.y > d.ph.ceiling ? `Flew above the ${d.ph.ceiling} m ceiling after ${t} s.` : `Flew off the course after ${t} s.`,
+        timeout: `Out of time: still ${fmt(distance(d))} m from the pad.`,
+        bird: `Hit by a bird${from} after ${t} s.`,
+        missile: `Caught by a missile${from} after ${t} s.`,
+        frog: `Hit by ${d.frogOn[0] && !d.frogPast[0] ? 'the mid-route' : "the pad's"} frog after ${t} s.`,
+      };
+      const outcome = OUTCOMES[d.outcome];
+      this.status(msg[outcome]);
+      let pilot = this.isHuman() ? (this.checked('.hold') ? 'You (altitude hold)' : 'You (raw throttle)') : this.q<HTMLSelectElement>('.who').selectedOptions[0].text;
+      if (this.eyes.hide.threats) pilot += ', blindfolded';
+      const row = this.tally.get(pilot) ?? { landed: 0, flights: 0 };
+      row.flights++;
+      if (outcome === 'landed') row.landed++;
+      this.tally.set(pilot, row);
+      this.q<HTMLElement>('.tally').textContent = [...this.tally].map(([k, r]) => `${k}: landed ${r.landed} of ${r.flights}`).join('\n');
+    }
+
+    draw() {
+      const d = this.d;
+      this.colors ??= readColors(this);
+      const c = this.colors;
+      const a = this.phase === 'fly' ? Math.min(1, this.acc / UPDATE) : 1;
+      const p = this.prev;
+      const lerp = (u: number, v: number) => u + (v - u) * a;
+      const s = { x: lerp(p.x, d.x), y: lerp(p.y, d.y), th: lerp(p.th, d.th), motor: lerp(p.motor, d.motor) };
+      // pursuers and frogs between stick updates (not across a spawn)
+      const ease = <T extends { x: number; y: number; on: boolean }>(now: T, o: T) =>
+        o.on === now.on && Math.abs(now.x - o.x) + Math.abs(now.y - o.y) < 3 ? { ...now, x: lerp(o.x, now.x), y: lerp(o.y, now.y) } : now;
+      const ps = (pursuers(d) as P[]).map((h, i) => ease(h, p.ps[i]));
+      const fs = (frogs(d) as Frog[]).map((f, i) => ({ ...ease(f, p.fs[i]), perchY: lerp(p.fs[i].perchY, f.perchY) }));
+      const size: Size = fitCanvas(this.scene);
+      const co = d.course;
+      const span = Math.max(20, Math.min(36, size.w / 16));
+      const cam = (this.cam = follow(size.w, size.h, s, this.cam, { span, x0: co.world[0] - 0.5, x1: co.world[1] + 0.5, lead: co.dir * span * 0.15 }));
+      const course = { start: padOf(co.start[0], co.start[1], co.start[2]), target: padOf(co.target[0], co.target[1], co.target[2]) };
+      const wind = co.wind + co.gust * Math.sin((2 * Math.PI * time(d)) / co.period + co.phase);
+      const ctx = this.scene.getContext('2d')!;
+      const birds = ps.filter((h) => h.on && h.kind === 0);
+      const seen = padSeen(d);
+      drawScene(ctx, size, cam, course, s, c, {
+        trail: [...this.trail, [s.x, s.y]],
+        wind,
+        t: this.clock,
+        follow: true,
+        outcome: d.outcome ? OUTCOMES[d.outcome] : null,
+        birds: birds.map((h) => [h.x, h.y, h.vx]),
+        // until the pad is in sight, the edge arrow only says which way it is
+        aim: seen ? undefined : [s.x + co.dir * 1e3, s.y],
+        under: (ctx: CanvasRenderingContext2D, cam: Cam) => {
+          for (const f of fs) if (f.on) drawReach(ctx, cam, f.perchX, FROG_REACH, d.ph.ceiling - 0.5, [course.start, course.target], size, c);
+          for (const b of birds) if (b.hostile) this.drawAimed(ctx, cam, b);
+        },
+      });
+      for (const f of fs) if (f.on) drawFrog(ctx, cam, f, c);
+      this.smoke.forEach((trail, k) => {
+        const m = ps[k];
+        if (trail.length) drawSmoke(ctx, cam, m.on ? [...trail, [m.x, m.y]] : trail, SMOKE, c);
+      });
+      // pursuers off the view: an arrow on its edge (hollow while out of the pilot's sight)
+      for (const h of ps) {
+        if (!h.on) continue;
+        const x = cam.X(h.x);
+        const y = cam.Y(h.y);
+        const off = x < 0 || x > size.w || y < 0 || y > size.h;
+        if (!off) {
+          if (h.kind === 1) drawMissile(ctx, cam, h, c, this.clock);
+        } else if (h.hostile) edgeArrow(ctx, size, x, y, h.kind === 1 ? c.lava : c.ink, Math.hypot(h.x - d.x, h.y - d.y) >= SIGHT);
+      }
+      this.hud(ctx, seen);
+      let row = 0;
+      const missiles = ps.filter((h) => h.on && h.kind === 1).length;
+      if (missiles && d.outcome === 0) drawBadge(ctx, size, missiles > 1 ? `${missiles} missiles launched` : 'Missile launched', c, this.clock, row++);
+      if (this.eyes.hide.threats && d.outcome === 0) drawBadge(ctx, size, 'Pilot blindfolded', c, this.clock, row++);
+      this.drawRoute(s.x, cam);
+      const live = this.isHuman() && this.phase !== 'over';
+      const sticks = live ? [this.human.throttle, this.human.tilt] : d.stick;
+      const trail = live ? [] : this.stickTrail;
+      drawStick(this.left.getContext('2d')!, fitCanvas(this.left), [0, sticks[0]], 'y', trail.map((v) => [0, v[0]]), c, live);
+      drawStick(this.right.getContext('2d')!, fitCanvas(this.right), [sticks[1], 0], 'x', trail.map((v) => [v[1], 0]), c, live);
+      this.q('.r-time').textContent = `${fmt(time(d))} s`;
+      this.q('.r-speed').textContent = `${fmt(Math.sqrt(d.vx * d.vx + d.vy * d.vy))} m/s`;
+      this.q('.r-height').textContent = `${fmt(Math.max(0, d.y - LEG))} m`;
+      this.q('.r-batt').textContent = `${Math.round(d.charge * 100)}%`;
+    }
+
+    /** An aimed bird: a faint ring while it homes; once committed, its straight line ahead. */
+    drawAimed(ctx: CanvasRenderingContext2D, cam: Cam, b: P) {
+      const c = this.colors;
+      ctx.save();
+      ctx.strokeStyle = c.lava;
+      ctx.lineWidth = 1.2;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(cam.X(b.x), cam.Y(b.y), Math.max(9, 0.45 * cam.scale), 0, Math.PI * 2);
+      ctx.stroke();
+      if (!b.steer) {
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(cam.X(b.x), cam.Y(b.y));
+        ctx.lineTo(cam.X(b.x + b.vx * 1.5), cam.Y(b.y + b.vy * 1.5));
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /** Top left: where the pad is, as far as the pilot knows (its distance once it's in sight). */
+    hud(ctx: CanvasRenderingContext2D, seen: boolean) {
+      const c = this.colors;
+      const d = this.d;
+      const arrow = d.course.dir > 0 ? '→' : '←';
+      const text = seen ? `Pad ${fmt(distance(d))} m ${arrow}` : `Pad: over ${SIGHT} m ${arrow}`;
+      ctx.save();
+      ctx.font = '700 12px system-ui, sans-serif';
+      const w = ctx.measureText(text).width + 18;
+      ctx.fillStyle = c.paper;
+      ctx.globalAlpha = 0.92;
+      ctx.beginPath();
+      ctx.roundRect(36, 8, w, 24, 12); // clear of the height labels
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = seen ? c.flag : c.rule;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = seen ? c.flag : c.muted;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 45, 20.5);
+      ctx.restore();
+    }
+
+    /** The whole route on a strip: start, waypoints (by kind; faded once met), frogs, the pad,
+     * the drone, what the pilot can see (40 m either way) and the view's box. */
+    drawRoute(x: number, cam: Cam) {
+      const c = this.colors;
+      const d = this.d;
+      const co = d.course;
+      const { w, h, dpr } = fitCanvas(this.route);
+      const ctx = this.route.getContext('2d')!;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      const inset = 10;
+      const X = (v: number) => inset + ((v - co.world[0]) / (co.world[1] - co.world[0])) * (w - 2 * inset);
+      const mid = Math.round(h * 0.6) + 0.5;
+      ctx.fillStyle = c.flag;
+      ctx.globalAlpha = 0.1;
+      ctx.fillRect(X(x - SIGHT), 2, X(x + SIGHT) - X(x - SIGHT), h - 4);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = c.muted;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(Math.round(X(cam.cx - cam.vw / 2)) + 0.5, 3.5, X(cam.cx + cam.vw / 2) - X(cam.cx - cam.vw / 2), h - 7);
+      ctx.strokeStyle = c.rule;
+      ctx.beginPath();
+      ctx.moveTo(inset, mid);
+      ctx.lineTo(w - inset, mid);
+      ctx.stroke();
+      ctx.fillStyle = c.stone;
+      ctx.fillRect(X(co.start[0]), mid - 5, Math.max(3, X(co.start[1]) - X(co.start[0])), 8);
+      ctx.fillStyle = c.flag;
+      ctx.fillRect(X(co.target[0]), mid - 5, Math.max(3, X(co.target[1]) - X(co.target[0])), 8);
+      const sx = (co.start[0] + co.start[1]) / 2;
+      ctx.font = '700 11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      (co.encounters as [number, number, number[]][]).forEach(([at, kind], i) => {
+        const px = X(sx + co.dir * at);
+        ctx.globalAlpha = i < d.encNext ? 0.35 : 1;
+        const glyph = ['', 'v', 'vv', '▲', 'v▲', '···'][kind];
+        if (!glyph) {
+          ctx.strokeStyle = c.muted;
+          ctx.beginPath();
+          ctx.moveTo(Math.round(px) + 0.5, mid - 3);
+          ctx.lineTo(Math.round(px) + 0.5, mid + 3);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = kind === 3 ? c.lava : kind === 5 ? c.muted : c.ink;
+          if (kind === 4) {
+            ctx.fillText('v', px - 4, mid - 3);
+            ctx.fillStyle = c.lava;
+            ctx.fillText('▲', px + 4, mid - 3);
+          } else ctx.fillText(glyph, px, mid - 3);
+        }
+      });
+      ctx.globalAlpha = 1;
+      d.frogP.forEach((f: number[], k: number) => {
+        if (!d.frogOn[k]) return;
+        ctx.fillStyle = c.leaf;
+        ctx.beginPath();
+        ctx.arc(X(f[0]), mid - (k === 1 ? 12 : 9), 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.fillStyle = c.ink;
+      ctx.beginPath();
+      ctx.moveTo(X(x), mid + 1);
+      ctx.lineTo(X(x) - 5, mid + 9);
+      ctx.lineTo(X(x) + 5, mid + 9);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  customElements.define('rl-gauntlet', RlGauntlet);
+</script>

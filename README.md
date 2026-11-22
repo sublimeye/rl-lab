@@ -19,6 +19,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [011 Drone, part 2](https://sublimeye.github.io/rl-lab/posts/011-drone2/) | A vectorised simulator (hundreds of drones per numpy step), a 1D depth camera, birds, a moving pad, battery, sensor noise and delay; CAPS for smooth sticks |
 | [012 Dodge school](https://sublimeye.github.io/rl-lab/posts/012-dodge/) | Birds, falling rocks and a homing missile; an escape test for avoidable hits; curricula (a missile that speeds up, birds aimed at the drone) that teach dodging where random threats teach nothing |
 | [013 Watch, then go](https://sublimeye.github.io/rl-lab/posts/013-frogs/) | Air-frogs that strike on a rhythm; 3 s of memory lets a pilot learn to wait and land between strikes, with a slow-to-fast ramp; a crouch "tell" partly substitutes; a countdown head |
+| [014 The gauntlet](https://sublimeye.github.io/rl-lab/posts/014-gauntlet/) | One pilot, a 60-120 m flight to a pad it can't see, homing birds, the missile, flocks and air-frogs; difficulty dials, drills, closest-approach inputs, and a hand-written rule that dodges better than the trained pilot |
 
 ## Layout
 
@@ -71,9 +72,16 @@ experiments/013-frogs/
   train.py                PPO with labels dropped from the input, optional countdown head, LSTM, frog-rhythm ramp
   evaluate.py, export.py  test courses, a rhythm change, entry timing, probes; site data + parity fixture
   summarize.py            prints the numbers quoted in the post
+experiments/014-gauntlet/
+  gauntlet_env.py         post 13's fleet on long courses: 40 m sight, encounters at waypoints (aimed birds, two birds, the missile, a flock), frogs, closest-approach inputs
+  scripted.py             a cruise pilot that ignores threats and the escape test for its hits
+  train.py                PPO with difficulty dials (presence, missile speed, bird commit, frog beat), drill mixes, a cost for time
+  evaluate.py, export.py  test courses per encounter kind, frogs, blindfolds; site data + parity fixture
+  diagnostics.py          drills, frog drills, a flock-only pilot, a hand-written dodge rule, a reflex
+  summarize.py            prints the numbers quoted in the post
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
-  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace, Drone2Game, DodgeGame, FrogGame
+  src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace, Drone2Game, DodgeGame, FrogGame, GauntletGame
   src/lib/tag-sim.js      browser port of experiments/003-tag/tag_env.py, maps.py + the policy network
   src/lib/tag-sight.js    browser port of experiments/003-tag/sight.py (006)
   src/lib/tag-cone.js     browser port of experiments/003-tag/cone.py (007)
@@ -83,6 +91,7 @@ site/                     Astro blog, deployed to GitHub Pages
   src/lib/drone2-sim.js   browser port of experiments/011-drone2/fleet_env.py (one drone) + the camera and the pilots
   src/lib/dodge-sim.js    browser port of experiments/012-dodge/dodge_env.py (one drone, its threats, camera and pilots)
   src/lib/frog-sim.js     browser port of experiments/013-frogs/frog_env.py (+ frogs, memory and the countdown head)
+  src/lib/gauntlet-sim.js browser port of experiments/014-gauntlet/gauntlet_env.py (one drone, its pursuers, frogs and the pilot)
   test/                   node tests: the JS port must match trajectories and maps exported from Python
   public/data/            exported replays (committed, small JSON)
 ```

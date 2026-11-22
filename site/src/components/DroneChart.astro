@@ -61,7 +61,7 @@ const line = (ps: { x: number; v: number }[]) =>
 const fmtX = (v: number) => (x === 'steps' ? formatSteps(v) : Number.isInteger(v) || v >= 10 ? `${Math.round(v)} min` : `${v.toFixed(1)} min`);
 const xTicks =
   x === 'steps'
-    ? [10_000, 30_000, 100_000, 300_000, 1_000_000, 3_000_000, 10_000_000, 30_000_000].filter((t) => t >= lo && t <= hi)
+    ? [10_000, 30_000, 100_000, 300_000, 1_000_000, 3_000_000, 10_000_000, 30_000_000, 100_000_000, 300_000_000].filter((t) => t >= lo && t <= hi)
     : (() => {
         const step = hi > 60 ? 15 : hi > 20 ? 5 : hi > 8 ? 2 : 1;
         const out = [];

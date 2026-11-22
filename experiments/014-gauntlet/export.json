@@ -1,0 +1,10 @@
+{
+  "models": {
+    "final": ["final-s1", "Final pilot (seed 1)"],
+    "first": ["main-s1/ckpt_100000000", "First recipe (100M steps)"]
+  },
+  "table": ["final-s1", "final-s2", "main-s1", "drills-s1", "nodials-s1"],
+  "curves": {"final": ["final-s1", "final-s2"], "first": ["main-s1"]},
+  "levels": ["final-s1", "final-s2", "main-s1", "drills-s1"],
+  "parity": "final-s1"
+}

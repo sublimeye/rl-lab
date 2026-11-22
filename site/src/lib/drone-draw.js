@@ -235,9 +235,12 @@ export function drawScene(ctx, size, cam, course, s, c, opts) {
     ctx.globalAlpha = Math.min(0.5, Math.abs(opts.wind) / 4 + 0.1);
     ctx.lineWidth = 1;
     const speed = opts.wind * 1.4;
-    for (let i = 0; i < 26; i++) {
+    // opts.follow (a long course): the streaks tile the camera's view instead of a 24 m world
+    const span = opts.follow ? Math.ceil(cam.vw / 26 + 1) * 26 : 26;
+    const base = opts.follow ? Math.floor(cam.cx / 26) * 26 - span / 2 : -1;
+    for (let i = 0; i < span; i++) {
       const wy = WORLD.y0 + 1 + ((i * 0.618) % 1) * 12;
-      const wx = ((((i * 3.7 + opts.t * speed) % 26) + 26) % 26) - 1;
+      const wx = base + ((((i * 3.7 + opts.t * speed) % span) + span) % span);
       const x = cam.X(wx);
       const y = cam.Y(wy);
       ctx.beginPath();
@@ -443,4 +446,278 @@ function drawRays(ctx, cam, s, rays, c) {
     }
   }
   ctx.globalAlpha = 1;
+}
+
+// --- post 14: a long course ------------------------------------------------------------------
+
+/**
+ * A camera for a course wider than the screen: about `span` m across (less if the height
+ * doesn't fit: the view always shows y0..y1), following `at` with a lead of `lead` m, kept
+ * inside [x0, x1], eased from `prev`. Same shape as camera().
+ */
+export function follow(w, h, at, prev, { span, x0, x1, y0 = WORLD.y0, y1 = WORLD.y1, lead = 0 }) {
+  const scale = Math.min(w / span, h / (y1 - y0));
+  const vw = w / scale;
+  const vh = h / scale;
+  const clampC = (c, lo, hi, s) =>
+    hi - lo <= s ? (lo + hi) / 2 : Math.max(lo + s / 2, Math.min(hi - s / 2, c));
+  let cx = clampC(at.x + lead, x0, x1, vw);
+  let cy = clampC(at.y, y0, y1, vh);
+  if (prev && Math.abs(prev.cx - cx) < vw) {
+    cx = prev.cx + (cx - prev.cx) * 0.08;
+    cy = prev.cy + (cy - prev.cy) * 0.08;
+  }
+  return {
+    scale,
+    cx,
+    cy,
+    vw,
+    vh,
+    X: (x) => (x - cx) * scale + w / 2,
+    Y: (y) => h / 2 - (y - cy) * scale,
+  };
+}
+
+/** Body and eyes of a frog at the origin: rx, ry radii; along: eyes at the front (+x). */
+function frogBody(ctx, rx, ry, along, c) {
+  ctx.fillStyle = c.leaf;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = c.ink;
+  ctx.globalAlpha = 0.45;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = c.paper;
+  ctx.globalAlpha = 0.25;
+  ctx.beginPath();
+  if (along) ctx.ellipse(0, 0, rx * 0.6, ry * 0.35, 0, 0, Math.PI * 2);
+  else ctx.ellipse(0, ry * 0.35, rx * 0.6, ry * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  const er = Math.max(2.4, Math.min(rx, ry) * 0.34);
+  const eyes = along
+    ? [
+        [rx * 0.6, -ry * 0.5],
+        [rx * 0.6, ry * 0.5],
+      ]
+    : [
+        [-rx * 0.45, -ry * 0.8],
+        [rx * 0.45, -ry * 0.8],
+      ];
+  for (const [ex, ey] of eyes) {
+    for (const [col, k] of [
+      [c.leaf, 1],
+      [c.paper, 0.7],
+    ]) {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(ex, ey, er * k, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = c.shade;
+    ctx.beginPath();
+    ctx.arc(ex + (along ? er * 0.25 : 0), ey, er * 0.38, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/**
+ * Post 13's air-frog. f: {x, y, vx, vy, perchX, perchY, phase ("rest", "leap", "hold",
+ * "back")}. Resting it bobs with its legs folded; leaping or floating back it stretches along
+ * its velocity; holding, its legs dangle. Away from home a dashed ring marks its perch.
+ */
+export function drawFrog(ctx, cam, f, c) {
+  const r = Math.max(7, 0.3 * cam.scale);
+  ctx.save();
+  if (f.phase !== "rest") {
+    ctx.strokeStyle = c.leaf;
+    ctx.globalAlpha = 0.6;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(cam.X(f.perchX), cam.Y(f.perchY), r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+  ctx.translate(cam.X(f.x), cam.Y(f.y));
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = c.leaf;
+  ctx.lineWidth = Math.max(2, 0.07 * cam.scale);
+  const speed = Math.hypot(f.vx, f.vy);
+  ctx.beginPath();
+  if ((f.phase === "leap" || f.phase === "back") && speed > 0.5) {
+    ctx.rotate(-Math.atan2(f.vy, f.vx));
+    const st = 1 + Math.min(0.7, speed * 0.04);
+    for (const side of [-1, 1]) {
+      ctx.moveTo(-0.6 * r * st, side * 0.35 * r);
+      ctx.lineTo(-1.5 * r * st, side * 0.75 * r);
+      ctx.lineTo(-2.2 * r * st, side * 0.55 * r);
+      ctx.moveTo(0.6 * r * st, side * 0.4 * r);
+      ctx.lineTo(1.3 * r * st, side * 0.6 * r);
+    }
+    ctx.stroke();
+    frogBody(ctx, r * st, r / Math.sqrt(st), true, c);
+  } else {
+    for (const side of [-1, 1]) {
+      if (f.phase === "hold") {
+        ctx.moveTo(side * 0.6 * r, 0.45 * r);
+        ctx.lineTo(side * 1.3 * r, 1.0 * r);
+        ctx.lineTo(side * 1.25 * r, 1.6 * r);
+        ctx.moveTo(side * 0.5 * r, -0.1 * r);
+        ctx.lineTo(side * 1.25 * r, 0.25 * r);
+      } else {
+        ctx.moveTo(side * 0.55 * r, 0.35 * r);
+        ctx.lineTo(side * 1.25 * r, -0.05 * r);
+        ctx.lineTo(side * 1.05 * r, 0.8 * r);
+        ctx.lineTo(side * 1.45 * r, 0.85 * r);
+        ctx.moveTo(side * 0.35 * r, 0.5 * r);
+        ctx.lineTo(side * 0.45 * r, 0.9 * r);
+      }
+    }
+    ctx.stroke();
+    frogBody(ctx, r, r, false, c);
+  }
+  ctx.restore();
+}
+
+/** A frog's reach: a faint dashed band `reach` m either side of its column, from 0.5 m up to
+ * `top`, cut around the pillars in front of it. */
+export function drawReach(ctx, cam, col, reach, top, pillars, size, c) {
+  const x0 = cam.X(col - reach);
+  const x1 = cam.X(col + reach);
+  const yt = cam.Y(top);
+  const yb = cam.Y(0.5);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, size.w, size.h);
+  for (const q of pillars)
+    ctx.rect(cam.X(q.x0) - 2, cam.Y(q.top) - 4, (q.x1 - q.x0) * cam.scale + 4, size.h);
+  ctx.clip("evenodd");
+  ctx.fillStyle = c.leaf;
+  ctx.globalAlpha = 0.07;
+  ctx.fillRect(x0, yt, x1 - x0, yb - yt);
+  ctx.globalAlpha = 0.6;
+  ctx.strokeStyle = c.leaf;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 5]);
+  ctx.beginPath();
+  for (const x of [x0, x1]) {
+    ctx.moveTo(Math.round(x) + 0.5, yt);
+    ctx.lineTo(Math.round(x) + 0.5, yb);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Smoke behind the missile: pts oldest first, `n` the trail's full length; widens and fades. */
+export function drawSmoke(ctx, cam, pts, n, c) {
+  ctx.save();
+  ctx.strokeStyle = c.muted;
+  ctx.lineCap = "round";
+  for (let i = 1; i < pts.length; i++) {
+    const age = (pts.length - 1 - i) / n;
+    ctx.globalAlpha = 0.45 * (1 - age);
+    ctx.lineWidth = 2 + 5 * age;
+    ctx.beginPath();
+    ctx.moveTo(cam.X(pts[i - 1][0]), cam.Y(pts[i - 1][1]));
+    ctx.lineTo(cam.X(pts[i][0]), cam.Y(pts[i][1]));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** An arrow on the view's edge towards (x, y) on screen (when it's off the view). */
+export function edgeArrow(ctx, size, x, y, color, hollow = false) {
+  const ax = Math.max(14, Math.min(size.w - 14, x));
+  const ay = Math.max(14, Math.min(size.h - 14, y));
+  ctx.save();
+  ctx.translate(ax, ay);
+  ctx.rotate(Math.atan2(y - ay, x - ax));
+  ctx.beginPath();
+  ctx.moveTo(9, 0);
+  ctx.lineTo(-5, -6);
+  ctx.lineTo(-5, 6);
+  ctx.closePath();
+  if (hollow) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Post 12's missile: a dart along its velocity (m: {x, y, vx, vy}) with a flickering motor. */
+export function drawMissile(ctx, cam, m, c, t) {
+  const len = Math.max(18, 0.8 * cam.scale);
+  const wid = Math.max(3, 0.11 * cam.scale);
+  ctx.save();
+  ctx.translate(cam.X(m.x), cam.Y(m.y));
+  ctx.rotate(-Math.atan2(m.vy, m.vx));
+  ctx.fillStyle = c.lava;
+  ctx.globalAlpha = 0.85;
+  const flame = len * (0.28 + 0.12 * Math.sin(t * 40));
+  ctx.beginPath();
+  ctx.moveTo(-len / 2, -wid * 0.6);
+  ctx.lineTo(-len / 2 - flame, 0);
+  ctx.lineTo(-len / 2, wid * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = c.ink;
+  ctx.beginPath();
+  ctx.moveTo(len / 2, 0);
+  ctx.lineTo(len / 2 - wid * 2, -wid);
+  ctx.lineTo(-len / 2, -wid);
+  ctx.lineTo(-len / 2 - wid * 0.8, -wid * 2.2);
+  ctx.lineTo(-len / 2 + wid * 1.6, -wid);
+  ctx.lineTo(-len / 2 + wid * 1.6, wid);
+  ctx.lineTo(-len / 2 - wid * 0.8, wid * 2.2);
+  ctx.lineTo(-len / 2, wid);
+  ctx.lineTo(len / 2 - wid * 2, wid);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = c.lava;
+  ctx.beginPath();
+  ctx.moveTo(len / 2, 0);
+  ctx.lineTo(len / 2 - wid * 2, -wid);
+  ctx.lineTo(len / 2 - wid * 2, wid);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A warning pill in the top-right corner (row 0, 1, ... downwards), with a pulsing dot. */
+export function drawBadge(ctx, size, text, c, t, row = 0) {
+  ctx.save();
+  ctx.font = "700 12px system-ui, sans-serif";
+  const bw = ctx.measureText(text).width + 30;
+  const bh = 24;
+  const x = size.w - bw - 8;
+  const y = 8 + row * (bh + 6);
+  ctx.fillStyle = c.paper;
+  ctx.globalAlpha = 0.92;
+  ctx.beginPath();
+  ctx.roundRect(x, y, bw, bh, 12);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = c.lava;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = c.lava;
+  ctx.globalAlpha = 0.45 + 0.55 * Math.abs(Math.sin(t * 5));
+  ctx.beginPath();
+  ctx.arc(x + 13, y + bh / 2, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = c.ink;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x + 22, y + bh / 2 + 0.5);
+  ctx.restore();
 }
