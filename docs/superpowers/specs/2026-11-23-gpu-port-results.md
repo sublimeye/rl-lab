@@ -12,7 +12,7 @@ code. On a rented H200 the planner flies the 200 test courses in 85 s (MacBook, 
 2370 s) and a full DAgger run takes 14 min (MacBook: ~4.5 h for d1). The network alone stays at
 1-6/200 on both CPU and GPU. New: the *shield* (the planner's search limited to the network's
 top 5 moves, a full search only when all fail) lands 200/200 on the test courses with the
-GPU-trained network, needing the full search in 2% of decisions.
+GPU-trained network, needing the full search in 2% of decisions, and on the fresh courses too (200/200, 1.7%).
 
 ## What was built (experiments/016-gpu/)
 
@@ -81,7 +81,7 @@ the mixed pilot fall from ~130 landed to 3-11 as the network takes over).
 
 Shield, g1's final network, k = 5, numpy on the MacBook's 10 cores:
 - test courses 20000-20199: **200/200**, 1300 s, full searches 310 of 16,029 decisions (2%);
-- fresh courses 30000-30199: see below.
+- fresh courses 30000-30199: **200/200**, 1367 s, full searches 267 of 15,755 decisions (1.7%).
 
 So the network's top 5 holds a safe move 98% of the time: it learned a shortlist, not a choice.
 The shield costs ~half the planner's CPU here (the smoke test had suggested ~1/4.7).
@@ -91,15 +91,15 @@ The shield costs ~half the planner's CPU here (the smoke test had suggested ~1/4
 d1 (`pilot.py dagger --name d1 --rounds 6 --first 400 --flights 250`, in the main checkout) was
 paused with SIGSTOP and resumed with SIGCONT, losing nothing:
 - 14:38:52 - 15:01:08 (22 min 16 s), during round 4;
-- 15:21:55 - (see below), during round 5.
+- 15:21:55 - 15:44:54 (22 min 59 s), during round 5.
+In all 45 min 15 s.
 Subtract these from d1's logged times.
 
 ## Open items
 
-1. Shield on the fresh courses (running); then k = 3 and 2 (how much of the pilot can be the
-   network).
-2. Port the shield to the GPU (gpu_planner: candidates filtered by the network's top k; a full
-   search for drones whose every allowed plan fails).
+1. Shield with k = 3 and 2 (how much of the pilot can be the network).
+2. The shield is ported to the GPU (gpu_planner `allowed`, dagger_gpu shield mode); its check
+   against pilot.Teacher's numpy shield (check_shield.py) is in progress; not yet run on a GPU.
 3. A parity check that covers the dodge rounds.
 4. Network experiments from the saved 410k states (on the Mac's GPU, MPS): size, training
    length, weighting of dangerous moments.
