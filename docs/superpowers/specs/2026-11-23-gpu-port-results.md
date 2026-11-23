@@ -98,8 +98,10 @@ Subtract these from d1's logged times.
 ## Open items
 
 1. Shield with k = 3 and 2 (how much of the pilot can be the network).
-2. The shield is ported to the GPU (gpu_planner `allowed`, dagger_gpu shield mode); its check
-   against pilot.Teacher's numpy shield (check_shield.py) is in progress; not yet run on a GPU.
+2. The shield is ported to the GPU (gpu_planner `allowed`, dagger_gpu shield mode). Checked
+   against pilot.Teacher's numpy shield (check_shield.py, float64, random allowed moves so the
+   full search runs): 30/30 decisions identical, full searches 6 = 6, each move's best score
+   within 1.4e-14. Not yet run on a GPU.
 3. A parity check that covers the dodge rounds.
 4. Network experiments from the saved 410k states (on the Mac's GPU, MPS): size, training
    length, weighting of dangerous moments.
