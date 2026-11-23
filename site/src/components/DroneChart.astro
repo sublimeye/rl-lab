@@ -63,7 +63,7 @@ const xTicks =
   x === 'steps'
     ? [10_000, 30_000, 100_000, 300_000, 1_000_000, 3_000_000, 10_000_000, 30_000_000, 100_000_000, 300_000_000].filter((t) => t >= lo && t <= hi)
     : (() => {
-        const step = hi > 60 ? 15 : hi > 20 ? 5 : hi > 8 ? 2 : 1;
+        const step = hi > 150 ? 60 : hi > 60 ? 15 : hi > 20 ? 5 : hi > 8 ? 2 : 1;
         const out = [];
         for (let t = 0; t <= hi; t += step) out.push(t);
         return out;

@@ -1,0 +1,270 @@
+---
+title: "Taught by a planner"
+number: 15
+date: 2026-11-22
+summary: "A planner on copies of the simulator lands all 200 gauntlet courses. Copied into post 14's network with DAgger, it lands 1 or 2; fine-tuned with PPO from there, 22. Post 14's pilot, trained from scratch for the same time, got 33 and 17."
+---
+
+import GauntletGame from '../../components/GauntletGame.astro';
+import DroneChart from '../../components/DroneChart.astro';
+
+[Post 14](../014-gauntlet/)'s best pilot landed 33 of 200 gauntlet courses. Its closing idea was
+to teach a pilot from a scripted one first, then let PPO improve on it. This post does that, in
+three steps:
+1. **a teacher that can fly the gauntlet.** A planner that, every 0.2 s, copies the simulator
+   hundreds of times, flies each copy ahead with a different plan, and follows the best one;
+2. **copying it** into post 14's network (two layers of 256, the same inputs) with DAgger;
+3. **fine-tuning** the copy with PPO, kept close to the teacher.
+
+The courses, threats, inputs and the 200 test courses are post 14's.
+
+<GauntletGame
+  models={[
+    { src: '015-teacher/model-tuned.json', label: 'Fine-tuned (PPO)' },
+    { src: '015-teacher/model-taught.json', label: 'Taught (DAgger)' },
+    { src: '014-gauntlet/model-final.json', label: "Post 14's pilot" },
+  ]}
+  recorded={{ src: '015-teacher/planner-flights.json', label: 'Planner (recorded)' }}
+  caption="The planner can't run in a browser (a third of a CPU-second per decision), so its pick replays its recorded sticks on 24 of the test courses; New course steps through them. The networks fly any course. Flying it yourself: W and S (or up and down) for the throttle, A and D (or left and right) for the tilt."
+/>
+
+**Short answer:**
+- **The teacher works.** Looking further ahead, with sharp dodges and a wait beside the pad,
+  the planner lands **200 of 200** test courses (post 14's planner: 150). It still lands 200
+  with no foreknowledge of the waypoints and with a bias toward a plain cruise, to be easier to
+  copy.
+- **The copy doesn't.** Post 14's network fit to it with DAgger lands 1 or 2 of 200 after every
+  round. It flies the course but is late on its dodges: 29–39% of single birds hit it.
+- **PPO from the copy ends where PPO from scratch does.** Fine-tuned with post 14's school, it
+  lands **22 of 200** after 284 minutes; post 14's two seeds reached 33 and 17 in the same
+  time. Kept close to the teacher, it didn't improve at all. A bonus for clean dodges didn't
+  help (17).
+
+The target was 198 of 200. The best network here lands 22.
+
+## The teacher
+
+A planner sees what no network sees. It copies the whole simulator, so it knows where every bird
+in sight will steer and when every frog will strike. That makes it a privileged expert: a
+teacher, not a fair opponent for the network.
+
+I started from a planner I'd written at the end of post 14. It holds one of 30 plans (a
+cruise height and speed, or holding still) for a second, then the best of 30 more, looking 3.5 s
+ahead. It landed 150 of 200 test courses. It was hit twice, by the missile both times, and 48
+flights ran out of time:
+- 18 hovering beside the pad, under its frog;
+- 30 hovering mid-course, 26 of them in front of a waypoint.
+
+**Why it stalled: the horizon.** Its moves were gentle (it climbed and dived at 2.5 m/s at
+most), so it could not dodge the missile. Every plan that crossed a missile's waypoint early
+ended in a hit inside the 3.5 s look-ahead. A plan that crossed at the very end didn't, because
+the missile only arrived after the look-ahead ended. So the best plan was always to cross a
+little later, and the drone waited forever. One drone spent 30 s seven metres from the start.
+
+The new planner (`expert.py`) changes four things:
+- **Moves.** A plan is up to three moves in a row: cruise at a height and speed; hold the
+  current height; a **jink**, both sticks at full deflection for 0.3–0.9 s; land; or wait
+  beside the pad. The jinks can start after a delay of up to 3.8 s, so "cruise on, then jink
+  in 1.5 s" is a candidate too. Each decision flies 891 candidate plans 4.5 s ahead (1,366
+  near the pad).
+- **Putting a waypoint off saves nothing.** Every waypoint still ahead costs a fixed amount,
+  more for one that releases birds or a missile, and so does a bird or missile still chasing
+  the drone when the look-ahead ends. Crossing a waypoint early and dodging what comes out then
+  scores better than waiting.
+- **Looking further where it matters.** Fixed horizons always have an edge, so the planner
+  searches past it in three cases. For a plan that ends with a threat still after it, it tries
+  219 dodges for 3 s more. For one that ends near the pad, it tries 132 ways to wait and land.
+  For one that crosses a waypoint, it goes back to the moment the threat appears and searches
+  dodges from there. Before the last of these, a crossing late in the look-ahead got a deeper
+  search than an early one, and the drone sat on its start pillar.
+- **Landing under the frog.** The frog strikes at whatever is within 2 m of its column. The
+  planner waits 3.2 or 5 m from the pad, just off the pad's height, and lands in a gap between
+  strikes.
+
+What each change bought, on the 200 test courses:
+
+| Planner | Landed | Out of time | Hit |
+|---|---|---|---|
+| Post 14's | 150 | 48 | 2 |
+| Jinks, waypoint charges, deeper search at threats and the pad | 192 | 8 | 0 |
+| + the hover throttle for the drone's mass and charge | 194 | 6 | 0 |
+| + hold-height move, later jinks, more dodge searches | 198 | 2 | 0 |
+| + search from the moment a threat appears | **200** | 0 | 0 |
+
+It takes 512 s to fly all 200 courses on the laptop's 10 cores, about a third of a CPU-second
+per decision. Its flights take 15.0 s on average; post 14's pilot took 16.6 s on the courses it
+landed.
+
+The controllers under the moves cheat a little too. They know the wind and the drone's mass,
+and set the tilt and throttle for them. A network has to infer those from its sensors.
+
+## A teacher a network can copy
+
+The first copies were bad: trained on 400 of the planner's flights, the network landed 1 of
+200. Two things about the teacher made it hard to copy. The planner could fix both without
+landing fewer courses.
+
+**Coin tosses.** When nothing threatens, cruising at 1.5 m and at 11 m score about the same,
+and the planner picked whichever came out a hair ahead. A third of its throttle labels were
+full up or full down, and they flipped from one update to the next. A network fit to that
+learns the average, and the average of "dodge up" and "dodge down" is not dodging. The fix:
+among the plans within a **band** of the best score, the planner takes the one whose sticks
+right now are closest to a plain cruise (7 m up, 10 m/s). Where the choice doesn't matter, it
+always does the same thing; where it must swerve, it swerves least.
+
+To measure how copyable each teacher is, I let it fly 60 training courses, fit a fresh
+network to its sticks, and scored the network's sticks against the planner's on 20 other
+courses. Squared error, summed over the two sticks:
+
+| Band | Error on other courses | Planner landed (of 80) |
+|---|---|---|
+| 0 (the best plan, always) | 1.17 | 80 |
+| 4 | 0.87 | 80 |
+| 8 | 0.67 | 80 |
+| 16 | **0.53** | 80 |
+| 30 | 0.57 | 80 |
+
+With band 16 it still landed 200 of 200 test courses.
+
+**Foreknowledge.** The planner knew where every waypoint was and what each would release. Its
+best escapes from the missile started *before* the missile existed: a climb just before the
+waypoint, so the missile spawned aimed at the wrong place. Nothing in the network's inputs says a
+waypoint is coming. The fix: in the planner's copies, waypoints not yet reached release nothing.
+It sees only threats already flying, as the network does. It still landed **200 of 200**, and a
+little faster (512 s against 722 s). Its error on other courses: 0.49.
+
+The teacher used from here on has both.
+
+## Copying it: DAgger
+
+Copying the planner only on the planner's own flights (behaviour cloning) teaches nothing about
+recovering from the network's own mistakes. DAgger (Ross, Gordon & Bagnell, 2011) adds them:
+- **round 0:** the planner flies 400 training courses, and every state the network would have
+  seen is stored with the planner's sticks;
+- **each round after that:** the network flies 300 courses while the planner, following
+  along on the same drones, labels every update with what it would have done. In round *r*
+  the planner takes over each update with probability ½<sup>*r*</sup>;
+- **the fit:** the network is refit on everything so far.
+
+A full-deflection label only counts against the network if it falls short of full deflection:
+the drone clips the sticks anyway.
+
+| Round | Flown by | Its training flights landed | States so far | Test courses landed |
+|---|---|---|---|---|
+| 0 | the planner | 400 of 400 | 122,952 | 2 |
+| 1 | the network, the planner taking ½ of updates | 56 of 300 | 179,338 | 2 |
+| 2 | the network, ¼ | 12 of 300 | 230,705 | 2 |
+| 3 | the network, ⅛ | 4 of 300 | 283,039 | 1 |
+
+On the training flights, the network's own share of each flight grows, and the flights land
+less. On the test courses the copies land 1 or 2 of 200 in every round. With the earlier,
+foreknowing teacher it was 3, 0, 1, 0, 1 over five rounds.
+
+The copies fly the course, but they get hit. On courses with one bird, round 0's copy is hit by
+143 of the 492 birds it meets (29%), and round 3's by 163 of 415 (39%). On missile courses,
+round 0's copy is hit by 178 of 392 missiles (45%). Post
+14's pilot: 46 of 601 birds (8%) and 108 of 504 missiles (21%). On clear courses, with no
+threats at all, the copies land none: they never saw one. Round 0's copy goes off the course
+or above the ceiling on 99 of them and runs out of time on 90. A typical moment, on one bird course: a bird 1.5 s from passing 0.3 m off. The planner
+pushes the throttle up at once and is at full throttle within 0.2 s (0.75, 0.81, 0.87, 0.94,
+then 1). Over the same 0.4 s the copy's throttle stays at 0.13 or less (0.04, 0.04, 0.01, 0.03,
+0.02, 0.06, 0.11, 0.13). It eases in too late.
+
+Why the copy can't do what the teacher does:
+- **The aimed birds hide their commit.** A bird homes in on the drone until about a second
+  before contact, then commits to a straight line. Until then, the closest-approach inputs say
+  "dead on target" for every aimed bird. The planner dodges at the right moment because it
+  knows when the bird will commit. The network sees only that the bird is aimed at it.
+- **Exact timing doesn't survive copying.** The planner's dodges are as late and as small as
+  will do. A copy that's a little late, or a little short, is hit.
+- **Weighting the dangerous moments doesn't help.** Counting states with a threat in sight,
+  due within 2 s and within 2 m, ten or thirty times over left the copy hit by 24–28% of single
+  birds and 37–41% of missiles. Post 14's pilot was hit by 8% and 21%.
+- **Copying the planner ruins a pilot that works.** Starting from post 14's final pilot (33 of
+  200) and fitting it to the planner's sticks for 1,000 steps leaves 1 landed; 3,000 steps, 3;
+  10,000 steps, 0.
+
+## Fine-tuning with PPO
+
+The plan was to start PPO from the copy and keep it close to the teacher while it learns what
+copying couldn't give it. `finetune.py` starts from round 3's copy, with post 14's reward, and
+three guards so the first updates don't wreck what was taught:
+- **the critic learns alone first:** the network that rates states starts from nothing, so for
+  the first 30 updates only it trains;
+- **small exploration noise:** the sticks' noise starts at 0.15 or 0.3, not 1;
+- **an anchor:** every update pays for the squared distance between its sticks and a frozen
+  copy of the taught network, and refits the planner's own sticks on the 283,039 states DAgger
+  stored, as DAPG (Rajeswaran et al., 2018) does with demonstrations.
+
+And optionally a **dodge bonus**: 1 point for each aimed bird or missile the drone gets away
+from, against 20 for landing.
+
+**Kept close, it stays where it started.** On full test courses, with the anchor, the copy's
+sticks stayed within a mean squared distance of about 0.015 of the taught network's. Its training
+flights landed under 1%, and it landed 0–3 of the 200 test courses at every checkpoint up to
+75M steps (67 min), with or without the dodge bonus. Without the anchor it got worse: 0 of 200
+from 30M steps on, a quarter of its training flights running out of time.
+
+**Post 14's school helps, but not the anchor.** Post 14's pilot learned on a mix of drills and
+school courses with difficulty dials: each threat starts easy and is turned up as the pilot
+copes. Anchored, the copy never turned a dial up in 70M steps (53 min), and landed 0–4 of 200.
+A third of its training flights ended lost, off the course or above the ceiling. With the anchor
+off (as post 14 trained, but starting from the copy), the dials started turning within 8M steps.
+
+Without the anchor, two runs on post 14's school, one with the dodge bonus, each for 284
+minutes on 4 CPU threads (433M steps; post 14's runs did 483M in 280):
+
+<DroneChart
+  src="015-teacher/eval.json"
+  title="Full test courses landed"
+  x="minutes"
+  groups={[
+    { key: 'tuned', label: 'Fine-tuned from the copy' },
+    { key: 'post14', label: 'Post 14, from scratch' },
+  ]}
+  caption="Each point is the pilot at that checkpoint, tested on the 200 full test courses. The fine-tune's minutes leave out 27 minutes the laptop slept."
+/>
+
+The copy starts at 1 of 200 and drops to 0 while PPO pulls it apart: 0 from 10M to 30M steps.
+Then it climbs about as fast as post 14's pilot did from scratch: 9 by 32 minutes, 23 by
+110. From there it stays between 12 and 26 (half the checkpoints at 20 or more) and ends at 22.
+The dials end close to post 14's: both threats at full test difficulty, the frogs at 0.9 of
+the way to the test's beat (post 14: all the way), 40% of school courses real (post 14's two
+seeds: 40% and 50%). With the dodge bonus, the run peaks at 27 and ends at 17.
+
+Every test, the last checkpoint of each:
+
+| Course | Copy (DAgger round 3) | Fine-tuned | Fine-tuned, dodge bonus | Post 14's pilot |
+|---|---|---|---|---|
+| No threats | 0 | **200** | 199 | 192 |
+| A bird at every waypoint | 0 | 125 | **132** | 125 |
+| Two birds at every waypoint | 0 | 66 | 86 | **98** |
+| The missile at every waypoint | 0 | 71 | 64 | **72** |
+| A bird + the missile | 0 | 46 | 57 | **64** |
+| A flock at every waypoint | 0 | 73 | **76** | 70 |
+| The two frogs only | 3 | 22 | 28 | **57** |
+| The full gauntlet | 1 | 22 | 17 | **33** |
+
+The fine-tunes dodge about as well as post 14's pilot, and no better. A single bird hits the
+fine-tune 54 times in 577 (9%) and the dodge-bonus run 60 in 587 (10%), against post 14's 46 in
+601 (8%). The missile: 120 in 472 (25%), 128 in 471 (27%), against 108 in 504 (21%). What sets
+them apart is the frogs: on frog-only courses they land 22 and 28, post 14's pilot 57.
+
+## What I take from it
+
+- **A teacher that wins isn't enough; it has to be one a network can copy.** The planner went
+  from 150 to 200 of 200 by searching further, and lost nothing when it gave up foreknowledge
+  and coin-toss choices. But it wins with dodges that are as late and as small as will do,
+  timed by knowing when each bird commits. A copy that is slightly late is hit. Copying needs a
+  teacher that acts on what the student can see, with some margin.
+- **A start a little better than random is not a head start.** The copy lands 1 of 200, and PPO
+  first pulls it down to 0. After that it learns at post 14's pace and reaches post 14's level.
+  What DAgger taught it didn't carry into what PPO learned.
+- **Keeping it close to the teacher keeps it where it starts.** With the anchor, every run
+  stayed at 0–4 of 200. A copy that crashes isn't worth staying close to.
+- **The ceiling is the same.** Post 14's pilots and this one all level off between 17 and 33,
+  short on the frogs and on the missile. A better start doesn't move that. The next step is
+  probably on the inputs or the network: something that remembers a frog's beat over seconds,
+  or sees when a bird commits.
+- **198 of 200 would take more than this.** The planner shows the courses can be flown. No
+  network here comes close.

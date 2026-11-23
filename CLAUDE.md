@@ -12,7 +12,7 @@
 - Before pushing a site change: `npm run build` in `site/`, preview it, and check desktop, 390px
   mobile and dark mode.
 - Base path is `/rl-lab`: build links with `url()` from `site/src/lib.ts`, never hard-code `/`.
-- Playable experiments (003-tag, 008-flood, 009-beaver, 010-drone, 011-drone2, 012-dodge, 013-frogs, 014-gauntlet) run the trained network in the browser: the JS port in
+- Playable experiments (003-tag, 008-flood, 009-beaver, 010-drone, 011-drone2, 012-dodge, 013-frogs, 014-gauntlet, 015-teacher) run the trained network in the browser: the JS port in
   `site/src/lib/` must match the Python env. After changing either side, re-export the parity
   fixture (`export_parity` in `experiments/003-tag/evaluate.py`, and in `evaluate_maps.py` for
   random maps, in `evaluate_seek.py` for line of sight and the possibility map, in `evaluate_cone.py` for
@@ -23,5 +23,6 @@
   <runs...>` in `experiments/011-drone2/` and `site/src/lib/drone2-sim.js`; for 012 `evaluate.py
   --parity <state run> <camera run>` in `experiments/012-dodge/` and `site/src/lib/dodge-sim.js`; for 013 `evaluate.py --parity <memory run>
   <countdown run> <tell run>` in `experiments/013-frogs/` and `site/src/lib/frog-sim.js`; for 014 `evaluate.py --parity <run>` in `experiments/014-gauntlet/`
-  and `site/src/lib/gauntlet-sim.js`) and run
+  and `site/src/lib/gauntlet-sim.js`; 015 reuses 014's env and port: after changing either, re-record the planner's
+  flights with `publish.py --record 24` in `experiments/015-teacher/`, checked by `test/teacher-replay.test.mjs`) and run
   `npm test` in `site/`.

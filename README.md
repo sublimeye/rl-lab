@@ -20,6 +20,7 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [012 Dodge school](https://sublimeye.github.io/rl-lab/posts/012-dodge/) | Birds, falling rocks and a homing missile; an escape test for avoidable hits; curricula (a missile that speeds up, birds aimed at the drone) that teach dodging where random threats teach nothing |
 | [013 Watch, then go](https://sublimeye.github.io/rl-lab/posts/013-frogs/) | Air-frogs that strike on a rhythm; 3 s of memory lets a pilot learn to wait and land between strikes, with a slow-to-fast ramp; a crouch "tell" partly substitutes; a countdown head |
 | [014 The gauntlet](https://sublimeye.github.io/rl-lab/posts/014-gauntlet/) | One pilot, a 60-120 m flight to a pad it can't see, homing birds, the missile, flocks and air-frogs; difficulty dials, drills, closest-approach inputs, and a hand-written rule that dodges better than the trained pilot |
+| [015 Taught by a planner](https://sublimeye.github.io/rl-lab/posts/015-teacher/) | A look-ahead planner on copies of the simulator lands all 200 gauntlet courses; copying it into post 14's network (DAgger) and fine-tuning with PPO; what makes a teacher copyable, and what doesn't |
 
 ## Layout
 
@@ -79,6 +80,11 @@ experiments/014-gauntlet/
   evaluate.py, export.py  test courses per encounter kind, frogs, blindfolds; site data + parity fixture
   diagnostics.py          drills, frog drills, a flock-only pilot, a hand-written dodge rule, a reflex
   summarize.py            prints the numbers quoted in the post
+experiments/015-teacher/
+  expert.py               the planner: moves (cruise, jink, land, wait, level) flown ahead on copies of post 14's simulator, deepening, a copyable band, no foreknowledge of waypoints
+  dagger.py               DAgger: post 14's network copies the planner's sticks on the planner's and its own flights
+  finetune.py             PPO from the taught network, kept close to it and to the planner's labels; optional dodge bonus
+  publish.py              tests the pilots, records planner flights for the site, exports site data, prints the post's numbers
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
   src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace, Drone2Game, DodgeGame, FrogGame, GauntletGame

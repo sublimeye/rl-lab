@@ -12,15 +12,18 @@ interface Props {
   /** Trained pilots: path under public/data and a label. The model file's `predict` decides
    * whether the pilot also reads each pursuer's closest approach. */
   models: { src: string; label: string }[];
+  /** Recorded flights to replay (post 15's planner): the sticks it used on some test courses. */
+  recorded?: { src: string; label: string };
   seed?: number;
   caption?: string;
 }
-const { models, seed = 20_003, caption } = Astro.props;
+const { models, recorded, seed = 20_003, caption } = Astro.props;
 const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }));
+const recSrc = recorded ? url(`data/${recorded.src}`) : '';
 ---
 
 <figure class="gauntlet wide">
-  <rl-gauntlet data-models={JSON.stringify(sources)} data-seed={seed}>
+  <rl-gauntlet data-models={JSON.stringify(sources)} data-seed={seed} data-recorded={recSrc}>
     <div class="main">
       <div class="stage">
         <canvas
@@ -58,6 +61,7 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
           Pilot
           <select class="who">
             {models.map((m, i) => <option value={`net:${i}`}>{m.label}</option>)}
+            {recorded && <option value="rec">{recorded.label}</option>}
             <option value="you">You</option>
           </select>
         </label>
@@ -382,6 +386,12 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
   const fmt = (v: number, d = 1) => v.toFixed(d).replace('-0.0', '0.0');
   const padOf = (x0: number, x1: number, top: number) => ({ x0, x1, top, cx: (x0 + x1) / 2, half: (x1 - x0) / 2 });
   const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+  /** Recorded flights: base64 little-endian float32 (throttle, tilt) per update. */
+  const unpackFlights = (data: { flights: { seed: number; sticks: string }[] }) =>
+    data.flights.map((f) => {
+      const bin = Uint8Array.from(atob(f.sticks), (c) => c.charCodeAt(0));
+      return { seed: f.seed, sticks: new Float32Array(bin.buffer) };
+    });
 
   class RlGauntlet extends HTMLElement {
     q = <T extends Element>(sel: string) => this.querySelector(sel) as T;
@@ -392,6 +402,9 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
     sources: { src: string; label: string }[] = [];
     cache = new Map<string, any>();
     net: any = null;
+    rec: { seed: number; sticks: Float32Array }[] | null = null; // recorded flights, if replaying
+    recIdx = 0;
+    recT = 0;
     seed = 0;
     d: any = null;
     eyes: any = null;
@@ -474,7 +487,7 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
       const who = this.who();
       this.toggleAttribute('data-human', who === 'you');
       this.q<HTMLElement>('.autorow').hidden = who === 'you';
-      this.q<HTMLElement>('.blindrow').hidden = who === 'you';
+      this.q<HTMLElement>('.blindrow').hidden = who === 'you' || who === 'rec';
       this.q<HTMLElement>('.holdrow').hidden = who !== 'you';
       this.setButtons(false);
       try {
@@ -482,9 +495,15 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
           const src = this.sources[Number(who.slice(4))].src;
           if (!this.cache.has(src)) this.cache.set(src, unpackNet(await (await fetch(src)).json()));
           this.net = this.cache.get(src);
-        } else this.net = null;
+          this.rec = null;
+        } else if (who === 'rec') {
+          const src = this.dataset.recorded!;
+          if (!this.cache.has(src)) this.cache.set(src, unpackFlights(await (await fetch(src)).json()));
+          this.rec = this.cache.get(src);
+          this.net = null;
+        } else this.net = this.rec = null;
       } catch {
-        this.status('Could not load the network.');
+        this.status(who === 'rec' ? 'Could not load the recorded flights.' : 'Could not load the network.');
         return;
       }
       if (this.who() !== who) return; // the reader picked again while this one loaded
@@ -503,7 +522,8 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
     }
 
     newCourse() {
-      this.seed = Math.floor(Math.random() * 2 ** 31);
+      if (this.rec) this.recIdx = (this.recIdx + 1) % this.rec.length;
+      else this.seed = Math.floor(Math.random() * 2 ** 31);
       this.reset();
     }
 
@@ -515,6 +535,8 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
 
     reset() {
       const feat = this.features();
+      if (this.rec) this.seed = this.rec[this.recIdx].seed; // a recorded flight's test course
+      this.recT = 0;
       this.d = newDrone(makeCourse(this.seed, WEATHER.rough, feat), feat);
       this.eyes = newEyes(this.d, this.net ? 0.5 + Math.random() : 0, this.hide());
       this.obs = look(this.d, this.eyes);
@@ -578,6 +600,13 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
       }
     }
 
+    /** The recorded sticks for this update (the planner's, as it flew this course). */
+    replay(): [number, number] {
+      const st = this.rec![this.recIdx].sticks;
+      const t = Math.min(this.recT++, st.length / 2 - 1);
+      return [st[2 * t], st[2 * t + 1]];
+    }
+
     /** Altitude hold for people (see post 10): the throttle stick asks for a climb rate. */
     humanSticks(): [number, number] {
       const h = this.human;
@@ -618,7 +647,7 @@ const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }
         while (this.acc >= UPDATE && d.outcome === 0) {
           this.acc -= UPDATE;
           this.prev = this.snap();
-          const [thr, tilt] = this.isHuman() ? this.humanSticks() : netForward(this.net, this.obs);
+          const [thr, tilt] = this.isHuman() ? this.humanSticks() : this.rec ? this.replay() : netForward(this.net, this.obs);
           step(d, thr, tilt);
           this.obs = push(d, this.eyes);
           this.trail.push([d.x, d.y]);
