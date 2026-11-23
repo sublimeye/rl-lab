@@ -73,6 +73,8 @@ from gauntlet_env import (  # noqa: E402
 )
 
 TWO_PI = 2 * math.pi
+for _v in (P_HIT, fp.MARGIN_P):  # one value per kind (birds, then missiles): see step
+    assert len(set(_v[:K_BIRDS])) == 1 and len(set(_v[K_BIRDS:])) == 1
 W_BOB = 2 * math.pi / 1.7
 
 # per-copy constants: (name, kind) with kind f (float), i (int), b (bool)
@@ -409,9 +411,15 @@ def step(S: dict, C: dict, actions: torch.Tensor, P: dict) -> dict:
     """One stick update (3 physics steps) for every copy still flying; a new S. With
     C['ghost'], fair_planner's ghost checks follow, as in its copies."""
     S = dict(S)
-    dev, dtype = S["x"].device, S["x"].dtype
+    dev = S["x"].device
     bird = torch.arange(K_PURSUERS, device=dev) < K_BIRDS
-    p_hit = torch.as_tensor(P_HIT, device=dev, dtype=dtype)
+    x = S["x"]
+
+    def per_kind(v):  # (slots,) from a numpy per-slot array: made on the device (no copies
+        # from the CPU, which a CUDA graph can't capture)
+        return torch.where(bird, x.new_full((), float(v[0])), x.new_full((), float(v[-1])))
+
+    p_hit = per_kind(P_HIT)
     a = torch.clamp(actions, -1.0, 1.0)
     thr, tilt = a[:, 0], a[:, 1]
     start = S["outcome"] == FLYING
@@ -421,6 +429,6 @@ def step(S: dict, C: dict, actions: torch.Tensor, P: dict) -> dict:
     S["stick0"] = torch.where(start, thr, S["stick0"])
     S["stick1"] = torch.where(start, tilt, S["stick1"])
     if "ghost" in C:
-        near_r = p_hit + torch.as_tensor(fp.MARGIN_P, device=dev, dtype=dtype)
+        near_r = p_hit + per_kind(fp.MARGIN_P)
         _ghost(S, C, P, bird, near_r)
     return S
