@@ -9,7 +9,7 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 SSH="ssh -p $PORT -o StrictHostKeyChecking=accept-new"
 rsync -az --delete -e "$SSH" \
   --exclude .git --exclude .venv --exclude __pycache__ --exclude node_modules \
-  --exclude site/dist --exclude site/.astro --exclude 'experiments/*/runs/*.zip' \
+  --filter 'P experiments/016-gpu/runs/***' --exclude site/dist --exclude site/.astro --exclude 'experiments/*/runs/*.zip' \
   "$ROOT/" "$USER@$HOST:rl-lab/"
 $SSH "$USER@$HOST" 'set -e
   command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
