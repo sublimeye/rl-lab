@@ -84,8 +84,8 @@ def copies(f: Fleet, rows, rng, ghost: bool) -> Fleet:
     return g
 
 
-def fly_ahead(g: Fleet, horizon: int, rng, dtype, tol: float):
-    S, C = tf.from_numpy(g, dtype=dtype)
+def fly_ahead(g: Fleet, horizon: int, rng, dtype, tol: float, device="cpu"):
+    S, C = tf.from_numpy(g, device=device, dtype=dtype)
     P = tf.params(g.ph, g.feat.battery)
     moves = rng.integers(0, NM, g.n)
     kind = rng.random(g.n)
@@ -100,7 +100,7 @@ def fly_ahead(g: Fleet, horizon: int, rng, dtype, tol: float):
         a[random] = rng.uniform(-1.3, 1.3, (int(random.sum()), 2))
         n0, on0, sit0 = g.frog_n.copy(), g.p_on.copy(), (g.grounded == 1) & (g.outcome == FLYING)
         g.step(a)
-        S = tf.step(S, C, torch.as_tensor(a, dtype=dtype), P)
+        S = tf.step(S, C, torch.as_tensor(a, dtype=dtype, device=device), P)
         events["frog strikes"] += int((g.frog_n - n0).sum())
         events["pursuers gone"] += int((on0 & ~g.p_on).sum())
         events["sitting"] += int(sit0.sum())
@@ -113,7 +113,9 @@ def fly_ahead(g: Fleet, horizon: int, rng, dtype, tol: float):
     return worst, events, None
 
 
-def run(drones=4, n_copies=8, horizon=90, seed=0, dtype=torch.float64, tol=1e-9, log=print):
+def run(
+    drones=4, n_copies=8, horizon=90, seed=0, dtype=torch.float64, tol=1e-9, log=print, device="cpu"
+):
     rng = np.random.default_rng(seed)
     f = Fleet(drones, PH45, feat=FULL)
     course = 20_000 + 50 * seed
@@ -139,7 +141,7 @@ def run(drones=4, n_copies=8, horizon=90, seed=0, dtype=torch.float64, tol=1e-9,
                 pend = g.enc_next < g.n_enc
                 assert not (pend & (g.enc_at[np.arange(g.n), np.minimum(g.enc_next,
                             MAX_ENC - 1)] < 1e8)).any()  # fmt: skip
-                d, ev, bad = fly_ahead(g, horizon, rng, dtype, tol)
+                d, ev, bad = fly_ahead(g, horizon, rng, dtype, tol, device)
                 worst = max(worst, d)
                 events += ev
                 checks += 1
@@ -163,13 +165,16 @@ def main() -> None:
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--float32", action="store_true", help="float32 (outcomes may flip)")
     ap.add_argument("--threads", type=int, default=2)
+    ap.add_argument("--device", default="cpu")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
     dtype = torch.float32 if args.float32 else torch.float64
     tol = 1e-2 if args.float32 else 1e-9
     for s in args.seeds:
         t0 = time.time()
-        ok, worst, ev, checks = run(args.drones, args.copies, args.horizon, s, dtype, tol)
+        ok, worst, ev, checks = run(
+            args.drones, args.copies, args.horizon, s, dtype, tol, device=args.device
+        )
         verdict = "MATCH" if ok else "FAIL"
         print(f"seed {s}: {verdict}  {checks} checkpoints, largest float difference "
               f"{worst:.2e}  ({time.time() - t0:.0f} s)\n  {dict(ev)}", flush=True)  # fmt: skip
