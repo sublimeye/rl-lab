@@ -9,7 +9,7 @@ main checkout). Code: `experiments/016-gpu/` (new files only; 014/015/016-flawle
 
 The fair planner and pilot.py's DAgger now run on a GPU, with the same decisions as the numpy
 code. On a rented H200 the planner flies the 200 test courses in 85 s (MacBook, 10 cores:
-2370 s) and a full DAgger run takes 14 min (MacBook: ~4.5 h for d1). The network alone stays at
+2370 s) and a full DAgger run takes 14 min (MacBook: 4 h 26 min for d1). The network alone stays at
 1-6/200 on both CPU and GPU. New: the *shield* (the planner's search limited to the network's
 top 5 moves, a full search only when all fail) lands 200/200 on the test courses with the
 GPU-trained network, needing the full search in 2% of decisions, and on the fresh courses too (200/200, 1.7%).
@@ -56,7 +56,7 @@ tests).
 | Planner, test courses 20000-20199 | 2370 s, 200/200 (fair-t45-v6) | 85 s, 200/200 | 28x |
 | Planner, fresh courses 30000-30199 | 2361 s, 200/200 | 77 s, 200/200 | 31x |
 | DAgger, round 0 (planner, 400 courses) | 6504 s (d1) | 180 s (g1) | 36x |
-| DAgger, whole run (6 rounds) | ~4.5 h (d1, excluding pauses; estimate until it ends) | 14 min (g1) | ~19x |
+| DAgger, whole run (6 rounds) | 4 h 26 min (d1: 311 min logged, less 45 min paused) | 14 min (g1) | ~19x |
 
 - Step: 1.2 ns per copy-step at 1M copies in a CUDA graph (1.26 ms/step; the brief's 0.5 ms
   go/no-go line was not met, but the end-to-end target nearly was).
@@ -73,7 +73,7 @@ tests).
 | 2 | 1 | 6 |
 | 3 | 3 | 3 |
 | 4 | 6 | 4 |
-| 5 | 3 | (running) |
+| 5 | 3 | 3 |
 
 Same conclusion on both: the network alone doesn't learn to fly the gauntlet (held-out move
 accuracy 0.90-0.94; one wrong move in ten is fatal on a long course; training courses flown by
