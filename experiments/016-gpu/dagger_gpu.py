@@ -39,20 +39,19 @@ BODY = None
 
 
 class GPUTeacher(gp.GPUPlanner):
-    """pilot.Teacher (without the shield) on the GPU planner."""
+    """pilot.Teacher on the GPU planner (the shield's `allowed` is GPUPlanner's)."""
 
     def __init__(self, n, **kw):
         super().__init__(n, device=DEVICE, body=BODY, **kw)
         self.mscore = np.full((n, pilot.NM), pilot.ABSENT)
         self.decided = np.zeros(n, bool)
-        self.full_searches = 0
 
-    def _record(self, due, best, keep, drone_of, plans):
+    def _record(self, due, best, drone_of, plans):
         m1, t1, m2, t2, m3 = plans.unbind(1)
         now = torch.where(t1 > 0, m1, torch.where(t2 > 0, m2, m3))
         nm = pilot.NM
         ms = torch.full((len(due) * nm,), pilot.ABSENT, dtype=best.dtype, device=best.device)
-        ms = ms.scatter_reduce(0, (drone_of * nm + now)[keep], best[keep], "amax")
+        ms = ms.scatter_reduce(0, drone_of * nm + now, best, "amax")
         self.mscore[due] = ms.reshape(len(due), nm).cpu().numpy()
         self.decided[due] = True
 
@@ -70,8 +69,6 @@ class GPUTeacher(gp.GPUPlanner):
 
 def fly_many(seeds, mode, net=None, workers=10, chunk=4, **opts):
     """pilot.fly_many's flights, every chunk in one process, decided together."""
-    if mode == "shield":
-        raise NotImplementedError("the shield isn't ported")
     t0 = time.time()
     seeds = list(seeds)
     parts = [seeds[i : i + chunk] for i in range(0, len(seeds), chunk)]
@@ -106,7 +103,15 @@ def fly_many(seeds, mode, net=None, workers=10, chunk=4, **opts):
         x = x.astype(np.float32)
         if net is not None:
             logits, _ = net(x)
-        if labels:
+        if mode == "shield":  # the planner's search over the network's top k moves
+            due = pl.fresh | (pl.age >= pl.every)
+            if due.any():
+                top = np.argsort(-logits, 1)[:, : opts.get("k", 5)]
+                allowed = np.zeros((n, pilot.NM), bool)
+                allowed[np.arange(n)[:, None], top] = True
+                pl.allowed = allowed
+            m = pl.plan_now(f)
+        elif labels:
             label = pl.plan_now(f)
             m = label
             if mode == "dagger":
@@ -143,7 +148,7 @@ def fly_many(seeds, mode, net=None, workers=10, chunk=4, **opts):
                         "x": round(float(f.x[i]), 1),
                         "togo": round(float(abs(f.goal()[0][i] - f.x[i])), 1),
                         "hit_by": int(f.hit_enc[i])})  # fmt: skip
-    stats = {"decisions": pl.decisions, "full": 0, "cpu": time.time() - t0}
+    stats = {"decisions": pl.decisions, "full": pl.full_searches, "cpu": time.time() - t0}
     if not labels:
         return None, res, stats
     out = tuple(np.concatenate([np.concatenate(d[q]) for d in data if d[q]]) for q in range(4))

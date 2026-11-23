@@ -35,6 +35,15 @@ LEAPING = fp.LEAPING
 FROG_JITTER = tf.FROG_JITTER
 
 
+FAIL = -500.0  # a plan scoring under this fails in the copies (pilot.FAIL)
+
+
+def move_now(plans: np.ndarray) -> np.ndarray:
+    """The move each plan flies first (pilot.move_now)."""
+    m1, t1, m2, t2, m3 = plans.T
+    return np.where(t1 > 0, m1, np.where(t2 > 0, m2, m3))
+
+
 def _seg_rank(gid, key, mask, n_groups):
     """For rows in mask: their rank within their group, ordered by key descending (ties: row
     order, as numpy's stable argsort of -key). Others: a large number."""
@@ -84,6 +93,8 @@ class GPUPlanner(fp.FairPlanner):
         self.failed_set = torch.as_tensor(FAILED, device=device)
         self.hostile_kind = expert.HOSTILE_PER_KIND
         self.stats = Counter()  # how often each search ran (copies searched from)
+        self.allowed: np.ndarray | None = None  # the shield: (n, moves) the network allows
+        self.full_searches = 0
         self.check = None  # a hook: (f, due, near, chosen) -> the plans to keep
 
     # --- the air: FairPlanner.fit, every gust period at once -------------------------------
@@ -150,10 +161,26 @@ class GPUPlanner(fp.FairPlanner):
                     gb.ghost[r, k, j] = (lo + j * (b_lo - jit), hi + j * (b_hi + jit) + LEAPING)
         return gb
 
-    def gpu_decide(self, f, due, near):
-        """New plans for drones `due` of the real fleet f (near: their frog hypotheses)."""
+    def _candidates_for(self, af, i):
+        """Drone i's candidates, as Planner.evaluate builds them; with the shield (allowed),
+        only plans whose move now the network allows (pilot.Teacher.candidates)."""
+        gx, _ = af.goal()
+        k_h = int(np.argmin(np.abs(np.array(expert.HEIGHTS) - af.y[i])))
+        c = self.candidates(abs(gx[i] - af.x[i]) < expert.PAD_NEAR, k_h)
+        if self.allowed is not None and not self.allowed[i].all():
+            ok = self.allowed[i][move_now(c)]
+            c = c[ok] if ok.any() else c
+        if not self.fresh[i]:  # what is left of the last plan, first in line
+            p = self.plan[i].copy()
+            p[1] -= self.age[i]
+            p[3] -= self.age[i]
+            c = np.concatenate([p[None], c])
+        return c
+
+    def _score(self, af, due, near):
+        """Every candidate of drones `due` scored (the worst over its hypotheses): per-plan
+        tensors (plans, score, sticks now, drone index q), grouped by drone in order."""
         dev, dt = self.device, self.dtype
-        af = self.assumed(f)  # what numpy's _decide decides on
         # groups: near drones x hyps, the rest x 1 (the middle hypothesis)
         mid = (self.hyps - 1) // 2
         drones, hs, slot = [], [], []
@@ -164,18 +191,7 @@ class GPUPlanner(fp.FairPlanner):
                 slot.append(q)
         drones, hs, slot = np.array(drones), np.array(hs), np.array(slot)
         gb = self.beliefs(af, drones, hs)
-        # candidates per group (what is left of the last plan first, for a drone not fresh)
-        gx, _ = af.goal()
-        cands = []
-        for i in due:
-            k_h = int(np.argmin(np.abs(np.array(expert.HEIGHTS) - af.y[i])))
-            c = self.candidates(abs(gx[i] - af.x[i]) < expert.PAD_NEAR, k_h)
-            if not self.fresh[i]:
-                p = self.plan[i].copy()
-                p[1] -= self.age[i]
-                p[3] -= self.age[i]
-                c = np.concatenate([p[None], c])
-            cands.append(c)
+        cands = [self._candidates_for(af, int(i)) for i in due]
         sizes = np.array([len(cands[q]) for q in slot])
         plans_np = np.concatenate([cands[q] for q in slot])
         gid_np = np.repeat(np.arange(len(slot)), sizes)
@@ -190,8 +206,8 @@ class GPUPlanner(fp.FairPlanner):
         gid = torch.as_tensor(gid_np, device=dev)
         plans = torch.as_tensor(plans_np, device=dev)
         S, C = tf.take(S0, C0, gid)
-        sc = self._evaluate(S, C, P, plans, gid, len(slot), torch.as_tensor(pend0, dtype=dt,
-                            device=dev)[gid])  # fmt: skip
+        pend = torch.as_tensor(pend0, dtype=dt, device=dev)[gid]
+        sc = self._evaluate(S, C, P, plans, gid, len(slot), pend)
         # the worst over each drone's hypotheses: groups of one drone hold the same plans
         first_group = np.zeros(len(slot), np.int64)
         for q in range(len(due)):
@@ -205,28 +221,59 @@ class GPUPlanner(fp.FairPlanner):
         best = torch.full_like(sc, float("inf")).scatter_reduce(0, canon_row, sc, "amin")
         keep = canon_row == torch.arange(len(gid_np), device=dev)  # one row per drone's plan
         drone_of = torch.as_tensor(slot, device=dev)[gid]
-        self._record(due, best, keep, drone_of, plans)
-        # the choice (FairPlanner._decide)
-        s = best
-        lead = torch.zeros(len(gid_np), dtype=torch.bool, device=dev)
-        lead[torch.as_tensor(offs[first_group], device=dev)] = True
-        not_fresh = torch.as_tensor(~self.fresh[due], device=dev)[drone_of]
-        s = torch.where(lead & not_fresh, s + self.loyal, s)
+        return plans[keep], best[keep], self._act0[keep], drone_of[keep]
+
+    def gpu_decide(self, f, due, near):
+        """New plans for drones `due` of the real fleet f (near: their frog hypotheses)."""
+        dev, dt = self.device, self.dtype
+        af = self.assumed(f)  # what numpy's _decide decides on
+        plans, best, act0, drone_of = self._score(af, due, near)
         n_d = len(due)
+        if self.allowed is not None:  # the shield: every allowed plan fails -> a full search
+            neg = torch.full((n_d,), -float("inf"), dtype=dt, device=dev)
+            gmax = neg.scatter_reduce(0, drone_of, best, "amax").cpu().numpy()
+            bad = (gmax < FAIL) & ~self.allowed[due].all(1)
+            if bad.any():
+                self.full_searches += int(bad.sum())
+                keep_allowed = self.allowed
+                self.allowed = keep_allowed.copy()
+                self.allowed[due[bad]] = True
+                q_bad = np.nonzero(bad)[0]
+                p2, b2, a2, d2 = self._score(af, due[bad], near[bad])
+                self.allowed = keep_allowed
+                d2 = torch.as_tensor(q_bad, device=dev)[d2]
+                stay = ~torch.as_tensor(bad, device=dev)[drone_of]
+                plans = torch.cat([plans[stay], p2])
+                best, act0 = torch.cat([best[stay], b2]), torch.cat([act0[stay], a2])
+                drone_of = torch.cat([drone_of[stay], d2])
+                order = torch.argsort(drone_of, stable=True)
+                plans, best, act0, drone_of = (
+                    plans[order],
+                    best[order],
+                    act0[order],
+                    drone_of[order],
+                )
+        self._record(due, best, drone_of, plans)
+        # the choice (FairPlanner._decide)
+        lead = torch.ones_like(drone_of, dtype=torch.bool)
+        lead[1:] = drone_of[1:] != drone_of[:-1]  # each drone's first plan: the last plan's rest
+        not_fresh = torch.as_tensor(~self.fresh[due], device=dev)[drone_of]
+        s = torch.where(lead & not_fresh, best + self.loyal, best)
         neg = torch.full((n_d,), -float("inf"), dtype=dt, device=dev)
-        smax = neg.scatter_reduce(0, drone_of[keep], s[keep], "amax")[drone_of]
+        smax = neg.scatter_reduce(0, drone_of, s, "amax")[drone_of]
         g2 = af.take(due)
         gxx, _ = g2.goal()
         g2.dir = np.where(gxx >= g2.x, 1.0, -1.0)
         canon = torch.as_tensor(expert.control(g2, np.full(n_d, expert.CANON)), device=dev,
                                 dtype=dt)[drone_of]  # fmt: skip
-        d = ((self._act0 - canon) ** 2).sum(1)
-        banded = (smax > -500) if self.band else torch.zeros_like(keep)
-        elig = keep & torch.where(banded, s >= smax - self.band, s == smax)
+        d = ((act0 - canon) ** 2).sum(1)
+        banded = (smax > -500) if self.band else torch.zeros_like(lead)
+        elig = torch.where(banded, s >= smax - self.band, s == smax)
         dkey = torch.where(banded, d, torch.zeros_like(d))
         pick = _seg_first(drone_of, [dkey, -s], elig, n_d)
         chosen = plans[pick].cpu().numpy()
-        self.last_gpu = {"best": best, "keep": keep, "drone_of": drone_of, "plans": plans}
+        self.last_gpu = {"best": best, "keep": torch.ones_like(lead), "drone_of": drone_of,
+                         "plans": plans}  # fmt: skip
         if self.check is not None:  # e.g. check_planner.py: numpy's decision, to compare
             chosen = self.check(f, due, near, chosen)
         self.plan[due] = chosen
@@ -234,7 +281,7 @@ class GPUPlanner(fp.FairPlanner):
         self.fresh[due] = False
         self.decisions += len(due)
 
-    def _record(self, due, best, keep, drone_of, plans) -> None:
+    def _record(self, due, best, drone_of, plans) -> None:
         """A hook: every candidate's score (the worst over hypotheses) before the choice."""
 
     # --- Planner.evaluate, as tensors ----------------------------------------------------------
