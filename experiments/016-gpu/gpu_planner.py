@@ -205,6 +205,7 @@ class GPUPlanner(fp.FairPlanner):
         best = torch.full_like(sc, float("inf")).scatter_reduce(0, canon_row, sc, "amin")
         keep = canon_row == torch.arange(len(gid_np), device=dev)  # one row per drone's plan
         drone_of = torch.as_tensor(slot, device=dev)[gid]
+        self._record(due, best, keep, drone_of, plans)
         # the choice (FairPlanner._decide)
         s = best
         lead = torch.zeros(len(gid_np), dtype=torch.bool, device=dev)
@@ -232,6 +233,9 @@ class GPUPlanner(fp.FairPlanner):
         self.age[due] = 0
         self.fresh[due] = False
         self.decisions += len(due)
+
+    def _record(self, due, best, keep, drone_of, plans) -> None:
+        """A hook: every candidate's score (the worst over hypotheses) before the choice."""
 
     # --- Planner.evaluate, as tensors ----------------------------------------------------------
     def _rollout(self, S, C, P, plans, H):
