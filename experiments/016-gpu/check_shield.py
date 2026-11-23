@@ -60,6 +60,7 @@ class ShieldChecker(cp.Checker):
         pl.plan[:], pl.age[:], pl.fresh[:] = snap[0], snap[1], snap[2]
         pl.decisions = snap[3]
         self.np_full += ref_full - snap[4]
+        pl.full_searches = snap[4]  # numpy's searches aren't the GPU's
         # the GPU's best score per move (as recorded for the danger head) vs numpy's
         d = np.abs(np.where(ref_ms > pilot.ABSENT + 1, ref_ms, 0) - np.where(
             self.gpu_ms[due] > pilot.ABSENT + 1, self.gpu_ms[due], 0))  # fmt: skip
