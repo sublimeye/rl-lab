@@ -21,6 +21,8 @@ Small reinforcement-learning experiments, trained on a laptop and replayed in th
 | [013 Watch, then go](https://sublimeye.github.io/rl-lab/posts/013-frogs/) | Air-frogs that strike on a rhythm; 3 s of memory lets a pilot learn to wait and land between strikes, with a slow-to-fast ramp; a crouch "tell" partly substitutes; a countdown head |
 | [014 The gauntlet](https://sublimeye.github.io/rl-lab/posts/014-gauntlet/) | One pilot, a 60-120 m flight to a pad it can't see, homing birds, the missile, flocks and air-frogs; difficulty dials, drills, closest-approach inputs, and a hand-written rule that dodges better than the trained pilot |
 | [015 Taught by a planner](https://sublimeye.github.io/rl-lab/posts/015-teacher/) | A look-ahead planner on copies of the simulator lands all 200 gauntlet courses; copying it into post 14's network (DAgger) and fine-tuning with PPO; what makes a teacher copyable, and what doesn't |
+| [016 All 200, fairly](https://sublimeye.github.io/rl-lab/posts/016-flawless/) | A planner that knows only what a pilot could lands all 200 (and 200 new courses) with a 45° drone; a network copying it lands 1-6 alone, 400 of 400 as a shortlist for a short search; the planner and the training ported to a rented GPU |
+| [017 Flying solo](https://sublimeye.github.io/rl-lab/posts/017-solo/) | Why post 16's copy failed, read from its saved flights before training anything (it memorised them; a pilot that ignores every threat did as well); fitting "any safe move" instead of the planner's pick; then PPO over the 59 moves on a laptop: 162 of 200 test courses and 163 of 200 fresh ones with no planner at flight time |
 
 ## Layout
 
@@ -85,6 +87,22 @@ experiments/015-teacher/
   dagger.py               DAgger: post 14's network copies the planner's sticks on the planner's and its own flights
   finetune.py             PPO from the taught network, kept close to it and to the planner's labels; optional dodge bonus
   publish.py              tests the pilots, records planner flights for the site, exports site data, prints the post's numbers
+experiments/016-flawless/
+  fair_planner.py         post 15's planner without what a pilot can't know: frog timing from strikes seen, the air and mass estimated from the drone's own motion
+  pilot.py                a network that picks one of the planner's 59 moves (DAgger); alone, or as a shortlist for the planner's search (the shield)
+experiments/016-gpu/
+  torch_fleet.py, torch_rollout.py, gpu_planner.py   the simulator's step, the look-ahead and the fair planner in PyTorch, batched
+  dagger_gpu.py, fly_gpu.py, cpu_pilots.py           post 16's DAgger and flights on a GPU; numpy tests of the pilots
+  parity.py, check_planner.py, check_shield.py       checks against the numpy code
+  export_016.py           recorded flights and the numbers post 16 quotes
+  remote.sh               copy the repo to a rented GPU box and install
+experiments/017-solo/
+  diagnose.py             why post 16's copy fails, from its saved flights and networks (nothing trained)
+  refit.py                refits on those flights with whole flights held out: the planner's pick, any safe move, regularisation
+  sensitivity.py          the planner deciding twice, the second time from a world nudged by the sensors' noise
+  solo_env.py, solo_net.py   the gauntlet flown in moves with no planner (frog-strike memory, still-air controller); the network as numpy
+  train.py                PPO over the 59 moves, from a safe-move copy or from nothing (8 processes x 1024 drones, the network on the Mac's GPU)
+  solo_eval.py, publish.py, summarize.py   tests, recorded flights + site data, the numbers the post quotes
 site/                     Astro blog, deployed to GitHub Pages
   src/content/posts/      one .mdx post per experiment
   src/components/         Replay (canvas player), OutcomeChart, EvalChart, StartMaps, TagGame, MapGallery, SeekGame, SeekFrames, ConeGame, FloodGame, FloodReplay, FloodChart, BeaverGame, BeaverChart, DroneGame, DroneChart, StickTrace, Drone2Game, DodgeGame, FrogGame, GauntletGame
