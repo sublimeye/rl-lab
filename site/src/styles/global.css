@@ -209,6 +209,21 @@ th {
   font-weight: 600;
 }
 
+/* A post's optional longer read (post 16 on): folded away under a one-line summary. */
+details.more {
+  margin: 2.5rem 0 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+details.more > summary {
+  cursor: pointer;
+  color: var(--link);
+  font-weight: 600;
+}
+details.more[open] > summary {
+  margin-bottom: 1.25rem;
+}
+
 /* Lets a figure break out of the text column on wide screens. */
 .wide {
   width: min(var(--wide), 100vw - 2rem);

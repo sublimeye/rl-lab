@@ -12,18 +12,22 @@ interface Props {
   /** Trained pilots: path under public/data and a label. The model file's `predict` decides
    * whether the pilot also reads each pursuer's closest approach. */
   models: { src: string; label: string }[];
-  /** Recorded flights to replay (post 15's planner): the sticks it used on some test courses. */
-  recorded?: { src: string; label: string };
+  /** Recorded flights to replay (post 15's planner, post 16's pilots): the sticks each used on
+   * some test courses. One pilot or several. */
+  recorded?: { src: string; label: string } | { src: string; label: string }[];
+  /** The drone's tilt limit in degrees (post 16's drone: 45); post 14's 30 if not given. */
+  tilt?: number;
   seed?: number;
   caption?: string;
 }
-const { models, recorded, seed = 20_003, caption } = Astro.props;
+const { models, recorded, tilt, seed = 20_003, caption } = Astro.props;
 const sources = models.map((m) => ({ src: url(`data/${m.src}`), label: m.label }));
-const recSrc = recorded ? url(`data/${recorded.src}`) : '';
+const recs = recorded ? (Array.isArray(recorded) ? recorded : [recorded]) : [];
+const recSrcs = JSON.stringify(recs.map((r) => url(`data/${r.src}`)));
 ---
 
 <figure class="gauntlet wide">
-  <rl-gauntlet data-models={JSON.stringify(sources)} data-seed={seed} data-recorded={recSrc}>
+  <rl-gauntlet data-models={JSON.stringify(sources)} data-seed={seed} data-recorded={recSrcs} data-tilt={tilt ?? ''}>
     <div class="main">
       <div class="stage">
         <canvas
@@ -61,7 +65,7 @@ const recSrc = recorded ? url(`data/${recorded.src}`) : '';
           Pilot
           <select class="who">
             {models.map((m, i) => <option value={`net:${i}`}>{m.label}</option>)}
-            {recorded && <option value="rec">{recorded.label}</option>}
+            {recs.map((r, i) => <option value={`rec:${i}`}>{r.label}</option>)}
             <option value="you">You</option>
           </select>
         </label>
@@ -345,6 +349,7 @@ const recSrc = recorded ? url(`data/${recorded.src}`) : '';
     FULL,
     LEG,
     OUTCOMES,
+    PHYSICS,
     P_KIND,
     SIGHT,
     WEATHER,
@@ -403,6 +408,7 @@ const recSrc = recorded ? url(`data/${recorded.src}`) : '';
     cache = new Map<string, any>();
     net: any = null;
     rec: { seed: number; sticks: Float32Array }[] | null = null; // recorded flights, if replaying
+    ph: any = null; // the drone's physics (post 16's tilts further)
     recIdx = 0;
     recT = 0;
     seed = 0;
@@ -434,6 +440,8 @@ const recSrc = recorded ? url(`data/${recorded.src}`) : '';
       this.right = this.q('.right');
       this.sources = JSON.parse(this.dataset.models!);
       this.seed = Number(this.dataset.seed);
+      const tilt = Number(this.dataset.tilt);
+      this.ph = tilt ? { ...PHYSICS, tiltMax: (tilt * Math.PI) / 180 } : PHYSICS;
       this.q('.restart').addEventListener('click', () => this.reset());
       this.q('.newmap').addEventListener('click', () => this.newCourse());
       this.q('.who').addEventListener('change', () => this.load());
@@ -487,7 +495,7 @@ const recSrc = recorded ? url(`data/${recorded.src}`) : '';
       const who = this.who();
       this.toggleAttribute('data-human', who === 'you');
       this.q<HTMLElement>('.autorow').hidden = who === 'you';
-      this.q<HTMLElement>('.blindrow').hidden = who === 'you' || who === 'rec';
+      this.q<HTMLElement>('.blindrow').hidden = who === 'you' || who.startsWith('rec:');
       this.q<HTMLElement>('.holdrow').hidden = who !== 'you';
       this.setButtons(false);
       try {
@@ -496,14 +504,15 @@ const recSrc = recorded ? url(`data/${recorded.src}`) : '';
           if (!this.cache.has(src)) this.cache.set(src, unpackNet(await (await fetch(src)).json()));
           this.net = this.cache.get(src);
           this.rec = null;
-        } else if (who === 'rec') {
-          const src = this.dataset.recorded!;
+        } else if (who.startsWith('rec:')) {
+          const src = JSON.parse(this.dataset.recorded!)[Number(who.slice(4))];
           if (!this.cache.has(src)) this.cache.set(src, unpackFlights(await (await fetch(src)).json()));
           this.rec = this.cache.get(src);
+          this.recIdx %= this.rec!.length; // the same course, if another pilot flew it too
           this.net = null;
         } else this.net = this.rec = null;
       } catch {
-        this.status(who === 'rec' ? 'Could not load the recorded flights.' : 'Could not load the network.');
+        this.status(who.startsWith('rec:') ? 'Could not load the recorded flights.' : 'Could not load the network.');
         return;
       }
       if (this.who() !== who) return; // the reader picked again while this one loaded
@@ -537,7 +546,7 @@ const recSrc = recorded ? url(`data/${recorded.src}`) : '';
       const feat = this.features();
       if (this.rec) this.seed = this.rec[this.recIdx].seed; // a recorded flight's test course
       this.recT = 0;
-      this.d = newDrone(makeCourse(this.seed, WEATHER.rough, feat), feat);
+      this.d = newDrone(makeCourse(this.seed, WEATHER.rough, feat, this.ph), feat, this.ph);
       this.eyes = newEyes(this.d, this.net ? 0.5 + Math.random() : 0, this.hide());
       this.obs = look(this.d, this.eyes);
       this.prev = this.snap();

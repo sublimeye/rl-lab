@@ -24,5 +24,6 @@
   --parity <state run> <camera run>` in `experiments/012-dodge/` and `site/src/lib/dodge-sim.js`; for 013 `evaluate.py --parity <memory run>
   <countdown run> <tell run>` in `experiments/013-frogs/` and `site/src/lib/frog-sim.js`; for 014 `evaluate.py --parity <run>` in `experiments/014-gauntlet/`
   and `site/src/lib/gauntlet-sim.js`; 015 reuses 014's env and port: after changing either, re-record the planner's
-  flights with `publish.py --record 24` in `experiments/015-teacher/`, checked by `test/teacher-replay.test.mjs`) and run
-  `npm test` in `site/`.
+  flights with `publish.py --record 24` in `experiments/015-teacher/`, checked by `test/teacher-replay.test.mjs`; 016 replays
+  recorded flights through the same port with a 45-degree tilt: re-record with `export_016.py --record 24` in
+  `experiments/016-gpu/`, checked by `test/flawless-replay.test.mjs`) and run `npm test` in `site/`.

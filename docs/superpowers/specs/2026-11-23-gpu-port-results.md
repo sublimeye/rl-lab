@@ -97,7 +97,8 @@ Subtract these from d1's logged times.
 
 ## Open items
 
-1. Shield with k = 3 and 2 (how much of the pilot can be the network).
+1. Shield with k = 3 (test courses): 199/200 (1 crash), 1224 s, full searches 387 of 16,383;
+   a shorter shortlist saves little time. k = 2 not run.
 2. The shield is ported to the GPU (gpu_planner `allowed`, dagger_gpu shield mode). Checked
    against pilot.Teacher's numpy shield (check_shield.py, float64, random allowed moves so the
    full search runs): 30/30 decisions identical, full searches 6 = 6, each move's best score
@@ -105,9 +106,17 @@ Subtract these from d1's logged times.
 3. A parity check that covers the dodge rounds.
 4. Network experiments from the saved 410k states (on the Mac's GPU, MPS): size, training
    length, weighting of dangerous moments.
-5. Recorded shield flights as data for the 016 post's page.
+5. Done: post 16 (`site/src/content/posts/016-flawless.mdx`) with recorded shield, network and
+   planner flights on 24 test courses (`export_016.py --record 24`: 24/24, 1/24, 24/24),
+   replayed exactly by the browser port at 45 deg (`site/test/flawless-replay.test.mjs`).
 
 ## Merging the two threads (not done yet)
+
+Update, 16:30: at the user's request this branch now also holds the CPU thread's
+`experiments/016-flawless/` code (pilot.py restyled for CI's ruff only) and its plan document,
+so the post and its code are together. The main checkout still has untracked copies of those
+files (identical except pilot.py's formatting): move them aside there before merging, or git
+refuses to overwrite them.
 
 - Nothing is merged or pushed. `gpu-port` holds only `experiments/016-gpu/` and this file.
 - The CPU thread's `experiments/016-flawless/` and `2026-11-23-flawless-plan.md` exist only

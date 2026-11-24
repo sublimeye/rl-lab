@@ -1,0 +1,227 @@
+---
+title: "All 200, fairly"
+number: 16
+date: 2026-11-23
+summary: "A planner that knows only what a pilot could lands all 200 gauntlet courses, and 200 new ones, once the drone may tilt to 45°. A network trained on it still lands 1 to 6 on its own. Used as a shortlist for a short search, it lands 400 of 400. A rented GPU ran the planner 28x faster and a full training run 19x faster than my laptop."
+---
+
+import GauntletGame from '../../components/GauntletGame.astro';
+
+[Post 15](../015-teacher/)'s planner landed all 200 gauntlet courses, but its copies of the
+simulator knew things no pilot can: when each frog would strike, the wind, the gusts to come,
+the drone's mass. Its best student, a network, landed 22. This post asks two questions:
+1. **Can a planner land all 200 knowing only what a pilot could?**
+2. **Can a network learn to fly from it?**
+
+The courses, threats and 200 test courses are [post 14](../014-gauntlet/)'s.
+
+**New here? The words in this post, in plain terms:**
+- **Course (the gauntlet).** A simulated flight of 60–120 m over water, from a start pillar to
+  a landing pad, past birds and missiles that chase the drone and "frogs" that leap at it.
+- **Pilot.** Whatever decides, 20 times a second, how hard the drone's motors push and how far
+  it leans.
+- **Planner.** A pilot that thinks ahead by trial: every 0.2 s it imagines about a thousand ways
+  the next few seconds could go, each in a copy of the simulator, and picks the one that goes best. It works, but
+  it's slow.
+- **Fair.** The planner may only use what a real pilot could know: what it has seen, and what it
+  can feel from its own motion.
+- **Network.** A small neural network: a fast formula with many tuned numbers that maps what the
+  drone senses to a decision, learned from examples instead of written by hand.
+- **Training (DAgger).** The network flies, the planner says what it would have done at each
+  moment, and the network is adjusted to agree, round after round.
+- **Shield.** The two together: the network suggests its 5 best moves, and the planner checks
+  only those, which is far less work than checking everything.
+- **CPU and GPU.** A laptop's processor does a few things at a time; a graphics card (GPU) does
+  thousands of small identical things at once, which suits imagining many flights in parallel.
+
+<GauntletGame
+  models={[]}
+  recorded={[
+    { src: '016-flawless/shield-flights.json', label: 'Shield (recorded)' },
+    { src: '016-flawless/network-flights.json', label: 'Network alone (recorded)' },
+    { src: '016-flawless/planner-flights.json', label: 'Fair planner (recorded)' },
+  ]}
+  tilt={45}
+  caption="On the first 24 test courses, the shield and the fair planner each land all 24; the network alone lands 1 (10 birds, 8 frogs, 4 missiles, 1 off the course). The planner can't run in a browser, so each pilot replays the sticks it flew. New course steps through the 24, and switching pilot keeps the course. To fly it yourself: W and S (or up and down) for the throttle, A and D (or left and right) for the tilt; this drone leans to 45°."
+/>
+
+**Short answer:**
+- **The planner can, with a nimbler drone.** Knowing only what it has seen, it lands 168 of 200
+  with post 14's 30° tilt limit. With 45° and three fixes it lands **200 of 200**, and 200 of
+  200 on new courses.
+- **A network alone can't.** Trained on the planner's choices, it lands **1 to 6** of 200 after
+  every round.
+- **A network plus a short check can.** The *shield* searches only the network's 5 favourite
+  moves and falls back on a full search when all of them fail. It lands **200 of 200** on the
+  test courses and **200 of 200** on new ones. The full search ran in 2% of decisions.
+- **A rented GPU made it fast.** The planner flies the 200 courses in 85 s instead of 40
+  minutes; a full training run takes 14 minutes instead of 4½ hours.
+
+## A planner that knows only what a pilot knows
+
+Post 15's planner copies the simulator every 0.2 s, flies each copy ahead with a different
+plan (a cruise, a sharp dodge, a landing run, a wait beside the pad), and follows the best.
+Two things in those copies were unfair, so I took them away:
+- **Frogs.** They strike on a 3–4 s beat, each strike up to 0.1 s off it. The copies now know
+  only the strikes the drone has seen (within 40 m), which bound the next one to an interval.
+  Each plan is flown under three timings in that interval and scores by its worst.
+- **The air and the mass.** The copies now use estimates. Each update is replayed in still air;
+  how far the real drone's motion differs gives its mass and the air's push.
+
+| Planner, 200 test courses | Landed |
+|---|---|
+| Fair, 30° tilt limit (post 14's drone) | 168 |
+| Fair, 45° | 180 |
+| + a frog owns its column while a strike could be on its way; waits past the pad | 193 |
+| + margins round every threat in the copies; higher waits by the pad | 199 |
+| + the tie-break toward a plain cruise heads to the pad | **200** |
+| Same planner, 200 new courses | **200** |
+
+**Agility mattered at the pad.** The pad's frog leaves a quiet window of about a second after
+each strike, and the planner knows the strike's timing only to ±0.35 s. From a safe spot beside
+the pad, a drone limited to 30° needs about 1.5 s to dash in and stop; at 45°, about 1.05 s. By
+the end the extra tilt was worth less: the final planner at 30° lands 198.
+
+I tuned these fixes on the test courses' failures, so the new courses are the real test.
+
+## Can a network learn it?
+
+Post 15 taught a network the planner's *sticks*. Averaging discrete choices (dodge up or down,
+wait or go) broke even plain flying. This time the network picks one of the planner's **59
+moves**, and post 15's controller flies it. It also gets what the planner believes: the air's
+push, its mass, and when each frog may strike next. Training is DAgger, as in post 15: the
+planner flies 400 courses, then the network flies more and more of each round's courses while
+the planner labels every state.
+
+| Round | Network alone, CPU run | Network alone, GPU run |
+|---|---|---|
+| 0 (planner's flights) | 4 | 1 |
+| 1 | 4 | 4 |
+| 2 | 6 | 1 |
+| 3 | 3 | 3 |
+| 4 | 4 | 6 |
+| 5 | 3 | 3 |
+
+It picks the planner's move in 90–94% of held-out states, but a flight is hundreds of decisions
+and the gauntlet forgives few. As the network took over the training flights, fewer landed:
+128 of 250 in round 1, 4 in round 5.
+
+**The shield.** Every 0.2 s, the planner searches only the plans that start with one of the
+network's 5 top moves. If every one of them fails in the copies, it runs the full search.
+
+| Shield (the GPU run's final network) | Landed | Full searches |
+|---|---|---|
+| 200 test courses | **200** | 310 of 16,029 decisions |
+| 200 new courses | **200** | 267 of 15,755 |
+| 200 test courses, top 3 moves only | 199 | 387 of 16,383 |
+
+So the network learned a shortlist, not a choice: a safe move is among its top 5 about 98% of
+the time. On my laptop the shield takes about half the planner's time (1,300 s against 2,370 s
+for 200 courses). Cutting the shortlist to 3 moves lost one course and saved only 6% of the
+time (1,224 s).
+
+## CPU and GPU
+
+The same training ran twice: on my laptop's 10 CPU cores (250 flights a round) and, ported to
+PyTorch, on a rented H200 GPU (300 a round). The GPU copy makes the same decisions as the
+numpy code: checked decision by decision, every chosen plan matched. It runs all drones' copies
+in one batch, in single precision. Both runs reach the same result, 1 to 6 landed alone. The
+GPU's took **14 minutes** against **4 h 26 min**, about $1 of rental.
+
+## What's next
+
+The shield still leans on the planner's search, at half the planner's cost, and a shorter
+shortlist barely helps. Next: find where the shield's time goes, train a network that is right
+more often (more data, the dangerous moments weighted more), and run the shield on a cheaper
+GPU.
+
+<details class="more">
+<summary>About 5 more minutes, if you're interested: how each piece works</summary>
+
+### What the planner believes about frogs
+
+From the strikes it has seen, the next strike falls in an interval. One strike seen: the beat
+could be anything in the course's range (3–4 s), so the interval is about 1.5 s wide. Two or more:
+the beat is measured, up to the 0.1 s jitter and the 0.05 s it takes to see a strike start.
+None seen yet: it may strike any moment, within a beat of the frog coming into sight.
+
+Flying each plan under three timings (the interval's start, middle and end) wasn't enough: a
+strike can come at any moment in between. So the copies also get a guarantee: from the
+earliest possible start of each of the next three strikes until a leap started at the latest
+would have landed, the frog owns its column, 2.8 m either side. A copy found there then counts as caught. Where the
+frog holds and how it goes back is still judged under the three timings.
+
+At 30° the fair planner's 32 failures were 15 timeouts, 12 frog hits, 3 birds and 2 drones
+lost off the world's edge. All 15 timeouts ended 12.5 m past the pad, at the world's edge:
+drones that overshot it and never came back (the tie-break below). Of the 12 frog hits, 4 were
+at the pad and 8 at the mid-route frog. Hence the 45° drone (its dash under the pad's frog fits
+the quiet window), and waits on the far side of the pad too, so a drone that overshot or
+arrived during a strike can still set up a landing.
+
+### The air and the mass, from the drone's own motion
+
+Each update, the planner keeps the drone's state and sticks, and at the next update replays
+them in still air with a mass of 1. How far the real climb rate differs gives the mass at once
+(to about 0.004). How far the sideways speed differs gives the air's push, about 0.03 m/s²
+accurate after a few seconds. The push is fitted as a steady wind plus a sine (the gusts) over
+the last 10 s, trying every period from 2 to 5 s. The copies and the controller then fly in
+that estimated air.
+
+### Margins, because the copies' air is only an estimate
+
+A plan that only just misses a bird in a copy may not miss it for real, because the copy flies
+in estimated air. So the copies count a pass within 0.25 m of a bird's hit radius as a hit,
+0.4 m for missiles and 0.3 m for frogs, and land only within 90% of the landing limits (80%
+made the tall pads unlandable). The waits by the pad moved up to 1.2 and 2.5 m above it, so a
+frog leaping at a waiting drone holds above the way in, not across it. The landing controller
+now tilts at most 80% of the 20° touchdown limit; post 15's cap, 0.6 of the tilt limit, was 27°
+at 45°.
+
+### The tie-break that sent drones off the edge
+
+Post 15 made its planner easier to copy: among plans scoring within 16 points of the best, it
+takes the one whose sticks are closest to a plain cruise along the route. Past the pad (an
+overshoot), "along the route" points away from it, and drones hovered at the world's edge until
+time ran out. Turning the tie-break off landed 196, with drones stalling mid-route on near-ties.
+Pointing the plain cruise at the pad landed all 200.
+
+### The network
+
+Its inputs are post 14's 318 (the drone, its route, up to 4 pursuers with their closest
+approach, 3 s of each frog's motion) plus 32: the air's estimated push now, in 0.5 s and in 1 s,
+the wind, gust, period and mass, for each frog whether it was seen, where it is, the next two
+strike windows and how many strikes it has seen, and the move made last. Three layers (512,
+512, 256) and two heads: which of the 59 moves the planner would pick, and for each move whether
+every plan starting with it fails in the planner's copies (a danger sense, so far unused).
+
+DAgger: round 0, the planner flies 400 training courses and labels every update; then five
+rounds in which the network flies new courses, taking each update's move from the planner with
+probability 0.5, 0.25, 0.125 and so on, the planner labelling every state. After each round the
+network is refit on everything (8,000 steps) and flies the 200 test courses alone.
+
+### The GPU port
+
+90% of the planner's time went into one function: stepping a copy of the simulator, about 2 µs
+per copy per update on a laptop core. A decision for 250 drones is hundreds of thousands of
+copies, over a million near a frog, flown 90 updates ahead, then deeper searches from the most promising ones.
+
+On the GPU, each copy is one row of a tensor, and every branch in the simulator (on the pillar
+or flying, a frog's strike due, a touch on a pad) is a mask rather than a list of indices.
+torch.compile fuses the update into a handful of kernels. The deeper searches (dodges for
+copies a bird or missile still chases at the end, wait-then-land for copies near the pad) and
+the final choice became segment operations over (drone, frog timing) groups instead of Python
+loops.
+
+Before trusting it:
+- **one update**, in double precision against numpy: 12 random courses × 320 copies × 90
+  updates, every number within 6×10⁻¹⁴ and every outcome identical;
+- **whole decisions**, from the same states: 315 decisions (the shield's among them), every
+  chosen plan identical, every candidate's score within 1.5×10⁻¹³;
+- **flights**: the GPU planner lands 200 of 200 test courses and 200 of 200 new ones.
+
+On the H200, an update for a million copies takes 1.26 ms (1.2 ns per copy). The training
+run's first round, the planner flying 400 courses, took 180 s on the GPU and 6,504 s on the
+laptop. The rental cost about $4.60 for the whole session, most of it building and testing. A
+full training run is about $1 at the H200's $3.89/hour and should be under that on a cheaper H100.
+
+</details>

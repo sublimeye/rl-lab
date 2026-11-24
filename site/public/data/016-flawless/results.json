@@ -1,0 +1,251 @@
+{
+ "planner": [
+  {
+   "label": "30 deg: frogs from strikes seen, air estimated",
+   "run": "fair-v1",
+   "landed": 168,
+   "n": 200,
+   "outcomes": {
+    "landed": 168,
+    "frog": 12,
+    "timeout": 15,
+    "lost": 2,
+    "bird": 3
+   },
+   "seconds": 2026
+  },
+  {
+   "label": "45 deg",
+   "run": "fair-t45",
+   "landed": 180,
+   "n": 200,
+   "outcomes": {
+    "landed": 180,
+    "frog": 17,
+    "timeout": 2,
+    "missile": 1
+   },
+   "seconds": 1454
+  },
+  {
+   "label": "+ the frog's column owned during a possible strike; waits past the pad",
+   "run": "fair-t45-ghost",
+   "landed": 193,
+   "n": 200,
+   "outcomes": {
+    "landed": 193,
+    "timeout": 5,
+    "crashed": 1,
+    "missile": 1
+   },
+   "seconds": 4012
+  },
+  {
+   "label": "+ margins round every threat; higher waits",
+   "run": "fair-t45-v4",
+   "landed": 199,
+   "n": 200,
+   "outcomes": {
+    "landed": 199,
+    "crashed": 1
+   },
+   "seconds": 2976
+  },
+  {
+   "label": "band off (no preference for a plain cruise)",
+   "run": "fair-t45-v5",
+   "landed": 196,
+   "n": 200,
+   "outcomes": {
+    "landed": 196,
+    "missile": 1,
+    "timeout": 3
+   },
+   "seconds": 2779
+  },
+  {
+   "label": "+ the band's cruise heads to the pad",
+   "run": "fair-t45-v6",
+   "landed": 200,
+   "n": 200,
+   "outcomes": {
+    "landed": 200
+   },
+   "seconds": 2370
+  }
+ ],
+ "planner_fresh": {
+  "landed": 200,
+  "n": 200,
+  "outcomes": {
+   "landed": 200
+  },
+  "seconds": 2361
+ },
+ "planner_30deg": {
+  "landed": 198,
+  "n": 200,
+  "outcomes": {
+   "landed": 198,
+   "timeout": 1,
+   "missile": 1
+  },
+  "seconds": 2882
+ },
+ "gpu_planner": {
+  "test": {
+   "landed": 200,
+   "n": 200,
+   "outcomes": {
+    "landed": 200
+   },
+   "seconds": 85,
+   "decisions": 15559
+  },
+  "fresh": {
+   "landed": 200,
+   "n": 200,
+   "outcomes": {
+    "landed": 200
+   },
+   "seconds": 77
+  },
+  "device": "NVIDIA H200 NVL"
+ },
+ "dagger": {
+  "cpu": [
+   {
+    "round": 0,
+    "train_flights": 400,
+    "train_landed": 400,
+    "test_landed": 4,
+    "accuracy": 0.9085,
+    "minutes": 110.8
+   },
+   {
+    "round": 1,
+    "train_flights": 250,
+    "train_landed": 128,
+    "test_landed": 4,
+    "accuracy": 0.9013,
+    "minutes": 151.7
+   },
+   {
+    "round": 2,
+    "train_flights": 250,
+    "train_landed": 36,
+    "test_landed": 6,
+    "accuracy": 0.9302,
+    "minutes": 183.8
+   },
+   {
+    "round": 3,
+    "train_flights": 250,
+    "train_landed": 12,
+    "test_landed": 3,
+    "accuracy": 0.9366,
+    "minutes": 210.6
+   },
+   {
+    "round": 4,
+    "train_flights": 250,
+    "train_landed": 11,
+    "test_landed": 4,
+    "accuracy": 0.944,
+    "minutes": 263.8
+   },
+   {
+    "round": 5,
+    "train_flights": 250,
+    "train_landed": 4,
+    "test_landed": 3,
+    "accuracy": 0.9445,
+    "minutes": 310.7
+   }
+  ],
+  "gpu": [
+   {
+    "round": 0,
+    "train_flights": 400,
+    "train_landed": 400,
+    "test_landed": 1,
+    "accuracy": 0.9089,
+    "minutes": 3.6
+   },
+   {
+    "round": 1,
+    "train_flights": 300,
+    "train_landed": 134,
+    "test_landed": 4,
+    "accuracy": 0.9028,
+    "minutes": 5.9
+   },
+   {
+    "round": 2,
+    "train_flights": 300,
+    "train_landed": 31,
+    "test_landed": 1,
+    "accuracy": 0.9186,
+    "minutes": 8.0
+   },
+   {
+    "round": 3,
+    "train_flights": 300,
+    "train_landed": 17,
+    "test_landed": 3,
+    "accuracy": 0.9341,
+    "minutes": 10.1
+   },
+   {
+    "round": 4,
+    "train_flights": 300,
+    "train_landed": 3,
+    "test_landed": 6,
+    "accuracy": 0.9416,
+    "minutes": 11.9
+   },
+   {
+    "round": 5,
+    "train_flights": 300,
+    "train_landed": 8,
+    "test_landed": 3,
+    "accuracy": 0.9409,
+    "minutes": 13.9
+   }
+  ],
+  "cpu_paused_minutes": 45.25
+ },
+ "shield": {
+  "k5-20000": {
+   "landed": 200,
+   "n": 200,
+   "outcomes": {
+    "landed": 200
+   },
+   "seconds": 1300,
+   "decisions": 16029,
+   "full": 310
+  },
+  "k5-30000": {
+   "landed": 200,
+   "n": 200,
+   "outcomes": {
+    "landed": 200
+   },
+   "seconds": 1367,
+   "decisions": 15755,
+   "full": 267
+  },
+  "k3-20000": {
+   "landed": 199,
+   "n": 200,
+   "outcomes": {
+    "landed": 199,
+    "crashed": 1
+   },
+   "seconds": 1224,
+   "decisions": 16383,
+   "full": 387
+  }
+ }
+}
