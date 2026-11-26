@@ -193,9 +193,9 @@ One kind of encounter at every waypoint, 200 test courses each, hits per encount
   commands, from the drone's true state. Post 14's network worked the sticks itself, on a 30°
   drone, and landed 33: a different pilot, not a like-for-like match.
 
-Three more ideas didn't help: practising the courses it had failed, restarting practice just
-before its own failures, and rewinding failures to find the move that would have saved them.
-They are in the details below.
+Four more ideas didn't help: practising the courses it had failed, restarting practice just
+before its own failures, rewinding failures to find the move that would have saved them, and
+practising nearer to the way it is flown. They are in the details below.
 
 ## What I take from it
 
@@ -330,6 +330,13 @@ at checks 20 million decisions apart.
 - **Restarting practice just before its own failures** (half of its practice flights began
   2 to 6 s before a recent failure of its own, same drone, course and moment): 1,943 of 2,000
   dev courses after 30 minutes, against 1,958 for plain practice run beside it.
+- **Practising nearer to the way it is flown.** The final pilot takes its top move but
+  practises by drawing moves, and the two part exactly where it dies: its failed flights,
+  wound back 2 s, survive 26% of the time by the top move and 73% drawing moves. So I let
+  practice sharpen toward the top move (its scores divided by a temperature falling from 1 to
+  0.3) for 30 minutes: 1,941 of 2,000 dev courses, against 1,961 for plain practice beside
+  it. Plain practice itself had flattened by then: 1,939, 1,958, 1,961 over those two
+  half-hours.
 - **Second tries,** next.
 
 The final pilot is the plain-practice run of that last comparison. It was chosen on the dev

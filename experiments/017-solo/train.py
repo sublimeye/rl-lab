@@ -169,6 +169,9 @@ def main() -> None:
     ap.add_argument("--ent", type=float, default=0.01)
     ap.add_argument("--ent-end", type=float, default=None, help="decay linearly to this")
     ap.add_argument("--clip", type=float, default=0.2)
+    ap.add_argument("--temp", type=float, default=1.0,
+                    help="practice draws its moves at this temperature (scores/temp)")  # fmt: skip
+    ap.add_argument("--temp-end", type=float, default=None, help="falling linearly to this")
     ap.add_argument("--gamma", type=float, default=0.995, help="per update (0.05 s)")
     ap.add_argument("--lam", type=float, default=0.95)
     ap.add_argument("--init", default=None, help="start the actor from this network (.npz)")
@@ -266,8 +269,10 @@ def main() -> None:
                   for m in lin]  # fmt: skip
         return SoloNet(layers, mean, std)
 
+    temp = args.temp  # under 1, practice flies nearer to the top move it will be flown by
+
     def logits_of(x, near):
-        lg = actor((x - mean_t) / std_t)
+        lg = actor((x - mean_t) / std_t) / temp
         return lg.masked_fill(pad[None] & ~near[:, None], -1e9)
 
     aux = None
@@ -308,6 +313,8 @@ def main() -> None:
         if args.lr_end is not None:
             for group in opt.param_groups:
                 group["lr"] = args.lr_end + (args.lr - args.lr_end) * left
+        if args.temp_end is not None:
+            temp = args.temp_end + (args.temp - args.temp_end) * left
         ent_w = args.ent
         if args.ent_end is not None:
             ent_w = args.ent_end + (args.ent - args.ent_end) * left

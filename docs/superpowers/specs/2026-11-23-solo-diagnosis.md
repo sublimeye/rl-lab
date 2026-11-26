@@ -340,3 +340,39 @@ Every lever tried, in one list: the reward (kept), deciding every 0.2 s (kept), 
 courses in the mix (kept), replaying failed courses (no gain), a larger learning rate (worse),
 second tries fitted to rewound moments (memorised), practice restarts from rewound failures
 (no gain). No GPU was rented; the cost was nothing but the laptop's time.
+
+## Fifth look (2026-11-25, after the user asked to keep going): it practises one way and flies another
+
+The final pilot (k3a), flown by its top move, on 2,000 unused courses 4 times each (only the
+sensors' noise differs; rewind.py --hold 4 --temp 0): 97.3% landed. 1,858 courses landed all 4
+times, 95 three times, 27 twice, 13 once, 7 never (a same-odds pilot: 1,793 / 199 / 8 / 0 / 0).
+Its failed flights (48), wound back and flown on 32 times:
+
+| Wound back | Flown on by its top move | Flown on drawing its moves |
+|---|---|---|
+| 1 s | 11% alive | 57% |
+| 2 s | 26% | 73% |
+| 3 s | 36% | 80% |
+| 8 s | 63% | 88% |
+
+With one decision (0.2 s) replaced and the top move after that, the best alternative leaves it
+alive 91-95% of the time (picked on half the copies, scored on the other half), and about two
+thirds of the moves on offer mostly live. At flight time no temperature beats the top move
+(2,000 courses: 1,952 at 0; 1,943 at 0.15; 1,938 at 0.3; 1,931 at 0.5; 1,914 at 1).
+
+**Hypothesis.** Practice draws every move from the probabilities (entropy about 1.7), and PPO
+improves the pilot that draws. The pilot that is flown takes the top move, and nothing ever
+flew or corrected that one. Where the two differ, the top-move pilot dies in places the
+drawing pilot mostly survives, so the lesson exists but practice never meets it. Practising
+closer to the top move (scores divided by a temperature that falls from 1 to 0.3) should make
+practice meet, and fix, the flown pilot's failures.
+
+J. **Practise as it flies** (k4b against k4a): two runs side by side from k3a, 30 minutes each on
+   half the laptop: k4a as before, k4b with the practice temperature falling from 1 to 0.3.
+   *Kill:* k4b's top-move pilot not at least 1 point above k4a's on 2,000 dev courses.
+- **J, practise as it flies (k4b against k4a): worse, dropped.** 30 minutes each from k3a on
+  half the laptop (59M decisions each). 2,000 dev courses, top move: k3a 1,958; k4a (plain)
+  1,961; k4b (practice temperature falling from 1 to 0.3) 1,941. The hypothesis is refuted as
+  tested. Plain practice has also flattened: 1,939 -> 1,958 -> 1,961 over two 30-minute legs.
+  The final pilot stays k3a (k4a is not distinguishably better and was not flown on the test
+  or fresh courses). Runs stopped here: the laptop was at 21% battery.
