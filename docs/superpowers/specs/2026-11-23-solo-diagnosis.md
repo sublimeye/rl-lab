@@ -137,3 +137,206 @@ Route A passed its line first. No GPU was rented; the session cost nothing.
 
 Test 3, fresh 5 (its own flight loop). A scripted pilot that ignores every threat: test 4,
 fresh 4, clear courses 198.
+
+---
+
+# Second diagnosis, 2026-11-24: what still kills the pilot practice made (written before more training)
+
+The user's reply to 162/163: not another post where the drone gets hit; can it land all 200, and
+land on a pad with no frog? So b1 was taken apart the same way post 16's copy was, before any
+new run. Code: `rewind.py` (courses 50000-50999, used for nothing else). Nothing below is
+trained.
+
+## What was measured (b1, moves drawn, unless said)
+
+1. **The same courses fail, at the same place.** 1,000 courses flown 8 times each, with
+   different draws and sensor noise: 80.7% landed. 450 courses landed all 8 times (a pilot with
+   the same odds on every course: 180) and 63 landed at most twice (the same-odds pilot: 1).
+   On those the flights end at the same spot by the same threat, 6-8 times of 8.
+2. **A failed flight is not lost early, and not saved by a second try either.** 178 failed
+   flights wound back and flown on 32 times each: still alive 4 s past the original end when
+   wound back 0.5 / 1 / 2 / 3 / 5 / 8 s: 23 / 37 / 51 / 56 / 59 / 60%. Flights with under a 10%
+   chance left: 52% at 0.5 s, 11% at 2 s, 7% at 3 s. So 3 s before the end nearly every flight
+   still had a way out, and the pilot finds it about half the time; from 8 s back it still dies
+   40% of the time (a whole flight: 19%).
+3. **What kills it** (8,000 flights): birds 570, missiles 413, frogs 376 (mid-route 175, the
+   pad's 201), crashes 145, left the course 21, water 20. By encounter: bird + missile 409,
+   flock 226, two birds 156, missile 127, one bird 65.
+4. **Always taking its top move is worse**, at every temperature between: 750 / 763 / 775 / 813
+   / 822 of 1,000 at temperature 0 / 0.25 / 0.5 / 0.75 / 1 (frogs catch the top-move pilot 94
+   times, the drawing one 47).
+5. **It sprints.** It holds the full-throttle, full-tilt jink in 34% of its updates and is over
+   10 m/s (the move table's fastest cruise) 36% of the time, over 12 m/s 22%. Its landings on
+   the test courses take 12.6 s; the planner's (200 of 200) 15.5 s; the copy it started from
+   23.7 s. Where nothing is in sight it picks the sprint with probability 1.00.
+6. **Taking the sprint away at flight time doesn't help**: 774-783 of 1,000 against 822 (it
+   never practised without it).
+7. **The courses can be flown**: the planner lands 34 of the 35 courses b1 landed at most once
+   in 8 (one missile hit 2 m from the pad). Told to assume still air and the average mass, as
+   the solo pilot's controller does, it lands 31 (two crashes on the pad, a frog, a missile).
+
+## Hypothesis
+
+It was paid to hurry. Post 14's reward (0.3 a metre, +20 landed, -10 failed, 0.2 a second) is
+discounted by 0.995 an update, which makes a reward one second away worth 10% less. Estimate,
+from those numbers: mid-course the future is worth about 25, so a second costs about 2.5 and a
+death about 35; a 7% chance of dying is a fair price for one second saved. Over four encounters
+and a frog or two that is the 16-19% it loses. PPO did what it was paid for: it is faster than
+the planner. And it cannot find out that slower is safer, because in open air it never draws
+anything but the sprint.
+
+Prediction: the same start (the safe-move copy), the same PPO, and a reward that pays for
+landing and nothing for speed (discount 0.9998 an update, no charge for time, -50 for a failure
+or for running out the 60 s) gives slower flights and clearly more landings at the same number
+of decisions.
+
+## Attempts, in order, each with a kill line (1,000 dev courses at each check)
+
+D. **Paid to land** (c1): as b1 but for the reward above. *Kill:* at 20 minutes not at least
+   3 points above b1 at the same number of decisions (b1: 76% of 400 at 20.6 min), or no slower.
+E. **Practise what kills it** (c2): D, and half of each drone's new courses are ones it failed
+   the last time it flew them (kept until it lands them). *Kill:* at 20 minutes not at least
+   3 points above c1 at the same number of decisions.
+F. **The long run**: what D and E leave standing, a quarter of the courses with no frog on the
+   pad (b1 lands 0 of 200 of those), the learning rate decaying. Target before the test and
+   fresh courses are flown (once): 99% of 1,000 dev courses. Landing exactly 200 of 200 needs
+   under one failure in a thousand flights; that is the aim, not a promise.
+
+Not chosen first: labels from the planner on b1's own flights (route B, a rented GPU): it would
+teach dodges, but item 5 says the trouble starts before the dodge; kept for after F if specific
+encounters still kill it. A bigger network: no evidence yet that size is the limit.
+
+## Results of the second round (added as the runs finished)
+
+Dev checks are 1,000 courses, moves drawn; b1's were 400 courses, so its shares carry about
++-2 points and these about +-1.3.
+
+- **D, paid to land (c1): passed.** The same start and PPO as b1, 20 minutes (70.8M decisions).
+  At the same number of decisions, c1 against b1: 44.1 / 45.8% at 9.8M, 60.9 / 58.3% at 19.7M,
+  66.7 / 63.0% at 29.5M, 70.2 / 63.3% at 39.3M, 74.1 / 65.0% at 49.2M, 77.4 / 70.5% at 59.0M,
+  79.0 / 73.0% at 68.8M; 810 of 1,000 at the end (b1 at 78.6M: 75.8%). Taking the top move it
+  is further ahead: 72-74% against b1's 62-65% at 59-69M. Its landings take 22 s (b1 at the
+  end: 12.6 s on the test courses). New failure: 1% of its flights run out the 60 s.
+  A first try was cut to about 3 minutes by the laptop going to sleep on battery
+  (`runs/c1-cut-short`); the trainer's clock now stops during sleep and the run was repeated.
+- **E, practising what it failed (c2): no gain, dropped.** c1 plus replay of failed courses
+  (half of the new courses), 20 minutes: 44.0, 59.3, 63.9, 70.5, 76.2, 78.2, 79.0% at c1's
+  checks and 806 of 1,000 at the end against c1's 810. Under its kill line. (At a 20% failure
+  rate half of any batch of courses is being failed anyway; the lever could matter when
+  failures are rare. Not tested.)
+- **Where the trainer's time goes** (measured): one process steps 1,024 drones in 10.6 ms
+  (10 us a drone), and eight of them with the network on the Mac's GPU gather 178,000 decisions
+  a second; the PPO update manages 260-370,000 sample-passes a second, so three passes over
+  each round's 393,000 decisions take about 60% of the time. The simulator is not the limit on
+  this laptop; the network update is.
+- **F, the long run (f1), stopped at 36 minutes.** From c1, a quarter of the courses with no
+  frog on the pad. Dev (1,000, drawn) 798 at its start, then 802, 835, 806, 853, 869, 863, 878
+  every 19.7M decisions (137.6M in all, 208M with c1's). Open pads (200 dev courses): 0, 0, 0,
+  140, 170, 183, 177, 185. So it learned the unguarded pad by itself, between 39M and 59M
+  decisions; before that it hovered where the pad comes into sight (40 m out) until the 60 s ran
+  out. Stopped because of what follows.
+- **A larger learning rate (h1): worse.** From f1's network at 98M decisions, 3e-4 instead of
+  about 8e-5: 825 and 832 at the two checks where f1 itself had 863 and 878.
+- **Extrapolation (an estimate, not a measurement).** In the c1-f1 line the failure share fell
+  from 29.8% at 39M decisions to 12.2% at 208M: about (decisions)^-0.5. On that line 1% needs
+  roughly 100 times more flying (around 20 billion decisions: days on this laptop, hours on a
+  rented box). More of the same practice is not the way to "never hit".
+
+## Third look: does the next move decide a failed flight? (rewind.py, part "moves")
+
+f1's network, 400 courses, the 50 flights that failed, each wound back 1, 2 and 3 s. From each
+point every move on offer (about 48) was tried as the next move, held 0.3 s, on 8 copies each,
+with the network flying on as usual. Share still alive 4 s after the original end:
+
+| Wound back | Next move drawn as it does | Its top move | The best next move* |
+|---|---|---|---|
+| 1 s | 53% | 54% | 78% |
+| 2 s | 65% | 63% | 85% |
+| 3 s | 67% | 69% | 84% |
+
+*picked on 4 of the copies, scored on the other 4, so luck doesn't flatter it. The best and
+worst next move differ by 64-83 points of survival, and about half to two thirds of the moves
+on offer mostly survive.
+
+**Hypothesis.** Practice (PPO) learns each decision from one flight's outcome, and nine
+flights in ten teach it nothing about dying. The simulator can answer the question directly:
+rewind a failed flight, try every next move, and see which live. Fitting the network to put
+its probability on the moves that lived, at those moments, should remove a large share of the
+failures per pass, far faster than practice. It is still only a network at flight time; the
+copies are used in training only, as the planner's were in post 16.
+
+G. **Second tries** (retry.py): fly a few thousand courses, rewind the failures 1, 2 and 3 s,
+   try every move (4 copies), fit, repeat. *Kill:* after the first pass, on failed flights it
+   was not fitted to, survival at the rewound moments not up by 5 points, or 2,000 dev courses
+   not up by 1.5 points.
+- **G, second tries (g1, one pass): failed its kill line.** 8,000 courses flown by f1's
+  network, 854 failures, 2,562 rewound moments, every move tried on 4 copies (3.4 minutes).
+  Fitted moments: expected survival 62% -> 79%. Failed flights held out of the fit: 61.7% ->
+  63.0% (the line was +5). 2,000 dev courses: 1,778 -> 1,750. It memorised the moments it was
+  shown, as post 16's copy memorised its flights.
+
+## Fourth look: why each decision teaches so little
+
+f1's network (rewind.py on `runs/f1-r350`): 88.6% of 8,000 flights landed; 569 of 1,000 courses
+landed 8 times of 8 (a same-odds pilot: 381) and 34 at most 3 times. Its moves drawn at
+temperature 0 / 0.25 / 0.5 / 0.75: 827 / 864 / 883 / 883 of 1,000. One course it fails 8 times of
+8 (50850), looked at update by update: a flock of three comes head-on, one bird level with the
+drone and two about 2 m below. For the two seconds before the hit the network's probabilities are
+split between holding its height (about 50%) and a cruise 5 m lower (12-26%); it draws a new move
+every 0.05 s, so it does some of each and sinks slowly into the lower birds. Held longer without
+retraining its moves are useless (2,000 dev courses: 1,778 with a move per update, 1,623 held 2
+updates, 1,132 held 4): it has learned to steer by mixing moves.
+
+**Hypothesis.** Twenty decisions a second, each drawn afresh, means no single decision matters:
+the outcome hangs on what it does for the next second, not the next 0.05 s. That makes each
+decision's share of the credit tiny (slow practice), makes "try something else" last 0.05 s
+(no exploring a dive), and lets two good answers average into a bad one. The planner decides
+every 0.2 s and its plans hold their first move 0.6 s. Deciding every 0.2 s (a move held 4
+updates) should make practice both faster per decision and better at these moments.
+
+H. **Decide every 0.2 s** (k1): c1's recipe (from the safe-move copy, paid to land), the move
+   held 4 updates, a quarter of the courses with open pads. *Kill:* at 20 minutes not above
+   c1's 81% of dev courses at 20 minutes.
+- **H, decide every 0.2 s (k1): passed.** c1's recipe with the move held 4 updates (and a
+  quarter of the courses with open pads), 20 minutes, 59.0M decisions (49,500 a second, each
+  now 0.2 s of flight). Dev (1,000), top move / drawn: 568 / 508 at 3.3 min, 725 / 689 at 6.7,
+  807 / 779 at 10.0, 856 / 816 at 13.2, 873 / 793 at 16.5, **892 / 831 at 19.8**. c1 at 20
+  minutes: 737 / 810; the c1-f1 line needed 56 minutes (208M decisions) for 848 / 878. Always
+  taking the top move is now the better pilot. Open pads: 0 of 200 until 16.5 min, 90 at 19.8.
+  Continued as k2 (60 minutes, the learning rate decaying to 3e-5).
+- **k2 (k1 carried on, 60 minutes awake; the laptop slept through most of a night in the
+  middle).** Dev (1,000), top move / drawn: 914 / 882, 947 / 907, 958 / 936, 957 / 943, 957 /
+  940, 965 / 954 at 6.4, 12.8, 19.5, 30.2, 42.9, 56.0 minutes, **971 / 963 at the end**
+  (125.8M decisions; 184.8M with k1's, 428 days of flight at 0.2 s a decision). Open pads
+  (200 dev courses, drawn): 94 at its start, then 174, 172, 183, 192, 189, 192.
+- **k2 on the test and fresh courses, flown once (top move, a move held 0.2 s): 193 and 195 of
+  200** (moves drawn: 190 and 191). The gauntlet with no frog on the pad, test seeds: 189 (188
+  drawn). One kind of encounter at every waypoint, top move, hits per encounter: bird 0 of
+  667, two birds 5 of 666, missile 0 of 667, bird + missile 8 of 665, flock 4 of 665; frogs
+  only 197 of 200 landed; no threats at all 195 (5 run out the 60 s; 200 of 200 with moves
+  drawn). Test failures: 3 birds, 2 missiles, 1 frog, 1 water; fresh: 4 birds, 1 frog.
+
+I. **Practice restarts** (written before the run): a share of new practice flights begin 2 to
+   6 s before one of the fleet's own recent failures (the same drone, course and moment), the
+   rest as usual. k1's top-move pilot fails the same courses every time (of 500 courses flown
+   4 times, 381 always land and 22 never), so its failures are places, not dice. Two runs
+   side by side from k2, 30 minutes each at half the laptop: k3a without, k3b with half of the
+   new flights restarted. *Kill:* k3b not at least 1 point above k3a on 2,000 dev courses.
+- **I, practice restarts (k3b against k3a): no gain, dropped.** 30 minutes each from k2, four
+  processes each (59M decisions each). 2,000 dev courses, top move: k2 1,939; k3a (plain) 1,958;
+  k3b (half of the new flights restarted) 1,943. Under its kill line.
+- **The final pilot is k3a**, chosen on the dev courses: k1 (20 min) + k2 (60 min) + k3a (30
+  min on half the laptop) = 110 minutes, 241.4M decisions, 559 days of flight. Flown once (top
+  move, a move held 0.2 s): **test 194 of 200, fresh 190 of 200**; the gauntlet with no frog
+  on the pad 193; no threats at all 200; frogs only 199; hits per encounter: bird 1 of 667,
+  two birds 7 of 662, missile 2 of 667, bird + missile 6 of 664, flock 6 of 662. Its 16
+  failures on test and fresh: 6 frogs, 6 birds, 1 missile, 2 left the course, 1 water. (k2,
+  the same line 30 minutes earlier, also flown once: 193 and 195. Paid to hurry, b1, on the
+  gauntlet with no frog on the pad: 0 of 200.)
+- **Not reached:** 200 of 200. On the 0.2 s line the dev failures halved from 10.8% to 5.3% in
+  13 minutes and again to about 2.4% in 77 more.
+
+Every lever tried, in one list: the reward (kept), deciding every 0.2 s (kept), open-pad
+courses in the mix (kept), replaying failed courses (no gain), a larger learning rate (worse),
+second tries fitted to rewound moments (memorised), practice restarts from rewound failures
+(no gain). No GPU was rented; the cost was nothing but the laptop's time.

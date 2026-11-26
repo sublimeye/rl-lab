@@ -7,7 +7,8 @@ Tests, 200 fixed courses each (45 degree drone, rough weather):
 - test: the gauntlet's test courses 20000-20199 (post 14's);
 - fresh: 30000-30199 (post 16's validation courses);
 - one kind of course at a time, on the test seeds (post 14's table): no threats, one encounter
-  kind at every waypoint with no frogs, the two frogs alone.
+  kind at every waypoint with no frogs, the two frogs alone, the gauntlet with no frog on the
+  pad.
 Each is flown twice: the network's top move every decision, and a move drawn from its
 distribution (seeded, so repeatable).
 """
@@ -33,7 +34,7 @@ from solo_net import load  # noqa: E402
 
 from gauntlet_env import CLEAR, ENCOUNTERS  # noqa: E402
 
-TEST, FRESH = 20_000, 30_000
+TEST, FRESH, DEV = 20_000, 30_000, 40_000
 
 
 def only(k: int):
@@ -46,6 +47,7 @@ KINDS = {
     "clear": replace(CLEAR, predict=True),
     **{ENCOUNTERS[k]: only(k) for k in range(1, len(ENCOUNTERS))},
     "frogs": replace(CLEAR, predict=True, route_frog=1.0, guard=1.0),
+    "open pad": replace(se.FEAT, guard=0.0),  # the gauntlet with no frog guarding the pad
 }
 
 
@@ -102,6 +104,7 @@ def main() -> None:
     ap.add_argument("--name", required=True)
     ap.add_argument("--hold", type=int, default=1)
     ap.add_argument("--kinds", action="store_true", help="also one kind of course at a time")
+    ap.add_argument("--dev", type=int, default=0, help="fly this many dev courses instead")
     ap.add_argument("--workers", type=int, default=10)
     args = ap.parse_args()
     net = "scripted" if args.net == "scripted" else load(HERE / args.net)
@@ -110,6 +113,11 @@ def main() -> None:
         for mode in ("top",) if net == "scripted" else ("top", "sampled"):
             smp = mode == "sampled"
             r = res[mode] = {}
+            if args.dev:  # choosing between networks: the test and fresh courses stay unflown
+                r["dev"] = run(net, DEV, hold=args.hold, sampled=smp, pool=pool, n=args.dev)
+                print(f"{args.name} {mode:7s} dev  : landed {r['dev']['landed']}/{args.dev} "
+                      f"{r['dev']['outcomes']}", flush=True)  # fmt: skip
+                continue
             for tag, first in (("test", TEST), ("fresh", FRESH)):
                 r[tag] = run(net, first, hold=args.hold, sampled=smp, pool=pool)
                 print(f"{args.name} {mode:7s} {tag:5s}: landed {r[tag]['landed']}/200 "
@@ -123,7 +131,8 @@ def main() -> None:
                           f"{r[kind]['outcomes']}" + (f"; hit by {hit} of {met}" if k else ""),
                           flush=True)  # fmt: skip
     (HERE / "runs").mkdir(exist_ok=True)
-    (HERE / "runs" / f"eval-{args.name}.json").write_text(json.dumps(res))
+    tag = f"dev-{args.name}" if args.dev else f"eval-{args.name}"
+    (HERE / "runs" / f"{tag}.json").write_text(json.dumps(res))
 
 
 if __name__ == "__main__":

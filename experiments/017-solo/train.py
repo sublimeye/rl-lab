@@ -4,10 +4,12 @@ and the only teacher is how the flight ends.
 uv run experiments/017-solo/train.py --name m1 --minutes 45
 uv run experiments/017-solo/train.py --name m2 --init runs/refit-x.npz --bc 0.5   # from a copy
 
-Eight processes each step 1024 drones (solo_env.SoloEnv); the network runs on the Mac's GPU.
+Eight processes each step 1024 drones (solo_env.SoloEnv); the network runs on the GPU (the
+Mac's, or a rented box's: more --workers there).
 A course is, at random: a full test-like course (40%), a dodge drill (30%: 20-50 m, a waypoint
 every 8-14 m, no frogs) or a frog drill (30%: 15-35 m, the pad's frog, half the time another).
-Every so often the pilot flies the 200 dev courses (40000-40199) with its top move, no noise.
+Every so often the pilot flies dev courses (40000 up) alone: its top move, and its moves drawn.
+The clock is the monotonic one, which stops while the laptop sleeps: --minutes are minutes awake.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ import sys
 import time
 from collections import Counter, deque
 from dataclasses import replace
-from multiprocessing import Pipe, Process
+from multiprocessing import get_context, shared_memory
 from pathlib import Path
 
 import numpy as np
@@ -31,81 +33,122 @@ import solo_env as se  # noqa: E402
 from solo_net import SoloNet, load, save  # noqa: E402
 
 RUNS = HERE / "runs"
+MP = get_context("spawn")  # (a forked child of a process that has touched the GPU is trouble)
 DEV, TEST, FRESH = 40_000, 20_000, 30_000
 CALM = (1.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 SCHOOL = replace(se.FEAT, route=(15.0, 130.0), first=(6.0, 12.0), spacing=(12.0, 20.0))
 DODGE = replace(SCHOOL, route=(20.0, 50.0), first=(4.0, 8.0), spacing=(8.0, 14.0),
                 route_frog=0.0, guard=0.0)  # fmt: skip
 FROGS = replace(SCHOOL, route=(15.0, 35.0), mix=CALM, route_frog=0.5, guard=1.0)
+OPEN_PAD = replace(se.FEAT, guard=0.0)  # no frog on the pad
 MIXES = {
     "drills": [(0.4, se.FEAT), (0.3, DODGE), (0.3, FROGS)],
     "test": [(1.0, se.FEAT)],
+    # the test's courses, and a quarter of them with no frog guarding the pad
+    "wide": [(0.75, se.FEAT), (0.25, OPEN_PAD)],
 }
-DRILLS = ("course", "dodge", "frogs")
+NAMES = {"drills": ("course", "dodge", "frogs"), "test": ("course",),
+         "wide": ("course", "open pad")}  # fmt: skip
 
 
-def worker(conn, n: int, seed: int, hold: int, mix: str) -> None:
+def _shared(names, total: int):
+    """The arrays every process sees: each drone's inputs, move, reward, done, near the pad."""
+    shms = [shared_memory.SharedMemory(name=nm) for nm in names]
+    kinds = ((total, se.DIM), np.float32), (total, np.int64), (total, np.float32), \
+        (total, np.bool_), (total, np.bool_)  # fmt: skip
+    return shms, [np.ndarray(shape, dt, m.buf) for (shape, dt), m in zip(kinds, shms, strict=True)]
+
+
+def worker(conn, names, total: int, lo: int, n: int, seed: int, hold: int, mix: str, reward,
+           replay: float, timeout: float, again: float) -> None:  # fmt: skip
     os.environ["OMP_NUM_THREADS"] = "1"
-    env = se.SoloEnv(n, se.FEAT, MIXES[mix], seed, hold)
-    x = env.reset()
+    shms, (X, A, R, D, NEAR) = _shared(names, total)
+    me = slice(lo, lo + n)
+    env = se.SoloEnv(n, se.FEAT, MIXES[mix], seed, hold, reward=reward, replay=replay,
+                     timeout=timeout, again=again)  # fmt: skip
 
     def near():
         f = env.fleet
         return np.abs(f.goal()[0] - f.x) < se.PAD_NEAR
 
-    conn.send((x, near()))
-    while True:
-        moves = conn.recv()
-        if moves is None:
-            break
-        x, r, d, ended = env.step(moves)
-        conn.send((x, r, d, near(), [(e["outcome"], e["drill"]) for e in ended]))
+    X[me], NEAR[me] = env.reset(), near()
+    conn.send([])
+    while conn.recv() is not None:
+        x, r, d, ended = env.step(A[me].copy())
+        X[me], R[me], D[me], NEAR[me] = x, r, d, near()
+        conn.send([(e["outcome"], e["drill"]) for e in ended])
+    for m in shms:
+        m.close()
 
 
 class Fleet:
-    """The worker processes as one big vectorised env."""
+    """The worker processes as one big vectorised env. They write into shared memory, so a
+    step moves no arrays between processes: x, near (and step's rewards and dones) are views
+    that the next step overwrites."""
 
-    def __init__(self, workers: int, n: int, seed: int, hold: int, mix: str):
+    def __init__(self, workers: int, n: int, seed: int, hold: int, mix: str, reward=se.REWARD,
+                 replay: float = 0.0, timeout: float = 0.0, again: float = 0.0):  # fmt: skip
+        self.n, self.total = n, n * workers
+        sizes = (self.total * se.DIM * 4, self.total * 8, self.total * 4, self.total, self.total)
+        self.shms = [shared_memory.SharedMemory(create=True, size=k) for k in sizes]
+        names = [m.name for m in self.shms]
+        self._mine, arrays = _shared(names, self.total)
+        self.x, self.a, self.r, self.d, self.near = arrays
         self.conns, self.procs = [], []
         for w in range(workers):
-            a, b = Pipe()
-            p = Process(target=worker, args=(b, n, seed * 1000 + w, hold, mix), daemon=True)
+            a, b = MP.Pipe()
+            args = (b, names, self.total, w * n, n, seed * 1000 + w, hold, mix, reward, replay,
+                    timeout, again)  # fmt: skip
+            p = MP.Process(target=worker, args=args, daemon=True)
             p.start()
             self.conns.append(a)
             self.procs.append(p)
-        self.n, self.total = n, n * workers
-        first = [c.recv() for c in self.conns]
-        self.x = np.concatenate([f[0] for f in first])
-        self.near = np.concatenate([f[1] for f in first])
+        for c in self.conns:
+            c.recv()
 
     def step(self, moves: np.ndarray):
-        for w, c in enumerate(self.conns):
-            c.send(moves[w * self.n : (w + 1) * self.n])
-        out = [c.recv() for c in self.conns]
-        self.x = np.concatenate([o[0] for o in out])
-        self.near = np.concatenate([o[3] for o in out])
-        ended = sum((o[4] for o in out), [])
-        return np.concatenate([o[1] for o in out]), np.concatenate([o[2] for o in out]), ended
+        self.a[:] = moves
+        for c in self.conns:
+            c.send(1)
+        ended = sum((c.recv() for c in self.conns), [])
+        return self.r, self.d, ended
 
     def close(self) -> None:
         for c in self.conns:
             c.send(None)
+        for p in self.procs:
+            p.join(5)
+        for m in self._mine:
+            m.close()
+        for m in self.shms:
+            m.close()
+            m.unlink()
 
 
 def _dev_job(job):
-    seeds, net, hold, sampled = job
+    seeds, net, hold, sampled, feat = job
     os.environ["OMP_NUM_THREADS"] = "1"
     if not sampled:
-        return se.fly(net.act, seeds, hold=hold)[0]
-    rng = np.random.default_rng(seeds[0])
-    return se.fly(lambda x, mask: net.sample(x, mask, rng), seeds, hold=hold)[0]
+        out, f = se.fly(net.act, seeds, feat, hold=hold)
+    else:
+        rng = np.random.default_rng(seeds[0])
+        out, f = se.fly(lambda x, mask: net.sample(x, mask, rng), seeds, feat, hold=hold)
+    return out, (f.ticks * f.ph.dt).tolist()
 
 
-def fly_alone(net: SoloNet, first: int, hold: int, pool, n: int = 200, sampled=False) -> Counter:
+def fly_alone(net: SoloNet, first: int, hold: int, pool, n: int = 200, sampled=False,
+              feat=se.FEAT) -> Counter:  # fmt: skip
     """The network alone on n fixed courses: its top move, or (sampled) a move drawn from its
-    distribution, every decision."""
-    jobs = [(list(range(first + i, first + i + 25)), net, hold, sampled) for i in range(0, n, 25)]
-    return Counter(sum(pool.map(_dev_job, jobs), []))
+    distribution, every decision. The outcomes, and under "seconds" the landed flights' mean
+    time."""
+    jobs = [(list(range(first + i, first + i + 25)), net, hold, sampled, feat)
+            for i in range(0, n, 25)]  # fmt: skip
+    parts = pool.map(_dev_job, jobs)
+    outs, secs = sum((p[0] for p in parts), []), sum((p[1] for p in parts), [])
+    c = Counter(outs)
+    t = [s for o, s in zip(outs, secs, strict=True) if o == "landed"]
+    c["seconds"] = round(float(np.mean(t)), 2) if t else 0.0
+    return c
 
 
 def main() -> None:
@@ -113,6 +156,7 @@ def main() -> None:
     ap.add_argument("--name", required=True)
     ap.add_argument("--minutes", type=float, default=45.0)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--eval-workers", type=int, default=8)
     ap.add_argument("--envs", type=int, default=1024, help="drones per worker")
     ap.add_argument("--hold", type=int, default=2, help="updates a move is held")
     ap.add_argument("--steps", type=int, default=32, help="decisions per drone per round")
@@ -123,6 +167,7 @@ def main() -> None:
     ap.add_argument("--epochs", type=int, default=3)
     ap.add_argument("--batch", type=int, default=16384)
     ap.add_argument("--ent", type=float, default=0.01)
+    ap.add_argument("--ent-end", type=float, default=None, help="decay linearly to this")
     ap.add_argument("--clip", type=float, default=0.2)
     ap.add_argument("--gamma", type=float, default=0.995, help="per update (0.05 s)")
     ap.add_argument("--lam", type=float, default=0.95)
@@ -135,14 +180,26 @@ def main() -> None:
     ap.add_argument("--dev-n", type=int, default=400, help="dev courses flown at each check")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--cpu", action="store_true")
+    # the reward (the defaults are post 14's: paid by the metre, charged by the second)
+    ap.add_argument("--landed", type=float, default=se.REWARD.landed)
+    ap.add_argument("--failed", type=float, default=se.REWARD.failed)
+    ap.add_argument("--time", type=float, default=se.REWARD.time, help="charged per update")
+    ap.add_argument("--timeout", type=float, default=0.0, help="paid when the 60 s run out")
+    ap.add_argument("--again", type=float, default=0.0,
+                    help="share of new flights begun 2-6 s before a recent failure")  # fmt: skip
+    ap.add_argument("--replay", type=float, default=0.0,
+                    help="share of new courses that were failed the last time flown")  # fmt: skip
     args = ap.parse_args()
-
-    from multiprocessing import Pool
 
     import torch as th
 
     th.manual_seed(args.seed)
-    dev = "mps" if th.backends.mps.is_available() and not args.cpu else "cpu"
+    dev = "cpu"
+    if th.cuda.is_available() and not args.cpu:
+        dev = "cuda"
+        th.set_float32_matmul_precision("high")
+    elif th.backends.mps.is_available() and not args.cpu:
+        dev = "mps"
     out = RUNS / args.name
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.json").write_text(json.dumps(vars(args)))
@@ -153,8 +210,10 @@ def main() -> None:
         logf.write(msg + "\n")
         logf.flush()
 
-    fleet = Fleet(args.workers, args.envs, args.seed, args.hold, args.mix)
-    pool = Pool(8)
+    reward = replace(se.REWARD, landed=args.landed, failed=args.failed, time=args.time)
+    fleet = Fleet(args.workers, args.envs, args.seed, args.hold, args.mix, reward, args.replay,
+                  args.timeout, args.again)  # fmt: skip
+    pool = MP.Pool(args.eval_workers)
     N, T = fleet.total, args.steps
     gamma = args.gamma**args.hold
     pad = th.from_numpy(se.PAD_MOVES).to(dev)
@@ -239,15 +298,19 @@ def main() -> None:
     V = th.zeros((T + 1, N), device=dev)
     R = th.zeros((T, N), device=dev)
     DN = th.zeros((T, N), device=dev)
-    recent = {k: deque(maxlen=4000) for k in range(len(DRILLS))}
-    t_start, decisions, it, best = time.time(), 0, 0, -1
+    names = NAMES[args.mix]
+    recent = {k: deque(maxlen=4000) for k in range(len(names))}
+    t_start, decisions, it, best = time.monotonic(), 0, 0, -1
     hist = []
-    while time.time() - t_start < args.minutes * 60:
+    while time.monotonic() - t_start < args.minutes * 60:
         it += 1
+        left = 1.0 - (time.monotonic() - t_start) / (args.minutes * 60)
         if args.lr_end is not None:
-            left = 1.0 - (time.time() - t_start) / (args.minutes * 60)
             for group in opt.param_groups:
                 group["lr"] = args.lr_end + (args.lr - args.lr_end) * left
+        ent_w = args.ent
+        if args.ent_end is not None:
+            ent_w = args.ent_end + (args.ent - args.ent_end) * left
         with th.no_grad():
             for t in range(T):
                 x = th.from_numpy(fleet.x).to(dev)
@@ -290,7 +353,7 @@ def main() -> None:
                 pg = -th.min(ratio * ad, ratio.clamp(1 - args.clip, 1 + args.clip) * ad).mean()
                 v = critic((fx[idx] - mean_t) / std_t)[:, 0]
                 vl = 0.5 * (v - fret[idx]).pow(2).mean()
-                loss = vl if it <= args.warm else pg - args.ent * ent + vl
+                loss = vl if it <= args.warm else pg - ent_w * ent + vl
                 if aux is not None and it > args.warm:
                     loss = loss + args.bc * bc_loss()
                 opt.zero_grad()
@@ -300,8 +363,8 @@ def main() -> None:
                 stats += (pg.item(), vl.item(), ent.item(), (flp[idx] - lp).mean().item())
                 k += 1
         pg_m, vl_m, ent_m, kl_m = stats / k
-        mins = (time.time() - t_start) / 60
-        share = {DRILLS[k]: (np.mean([o == "landed" for o in v]) if v else 0.0)
+        mins = (time.monotonic() - t_start) / 60
+        share = {names[k]: (np.mean([o == "landed" for o in v]) if v else 0.0)
                  for k, v in recent.items()}  # fmt: skip
         row = {"round": it, "minutes": round(mins, 2), "decisions": decisions,
                "landed": {k: round(float(v), 3) for k, v in share.items()},
@@ -311,17 +374,26 @@ def main() -> None:
             top = fly_alone(net, DEV, args.hold, pool, args.dev_n)
             smp = fly_alone(net, DEV, args.hold, pool, args.dev_n, sampled=True)
             row["dev_top"], row["dev_sampled"] = dict(top), dict(smp)
+            if args.mix == "wide":  # and the same pilot where no frog guards the pad
+                row["dev_open"] = dict(fly_alone(net, DEV, args.hold, pool, 200, True, OPEN_PAD))
             save(net, out / "last.npz")
             save(numpy_net(critic), out / "critic.npz")
             if max(top["landed"], smp["landed"]) > best:
                 best = max(top["landed"], smp["landed"])
                 save(net, out / "best.npz")
-            log(f"{it:5d} {mins:6.1f} min {decisions / 1e6:7.1f}M decisions "
+            log(
+                f"{it:5d} {mins:6.1f} min {decisions / 1e6:7.1f}M decisions "
                 f"({decisions / (mins * 60):,.0f}/s)  training flights landed "
-                + " ".join(f"{k} {v:.2f}" for k, v in share.items() if recent[DRILLS.index(k)])
+                + " ".join(f"{k} {v:.2f}" for k, v in share.items() if recent[names.index(k)])
                 + f"  entropy {ent_m:.2f} kl {kl_m:.4f} v {vl_m:.3f}"
                 + f"  | {args.dev_n} dev courses: top move {top['landed']}, sampled "
-                f"{smp['landed']}  {dict(smp)}")  # fmt: skip
+                f"{smp['landed']} ({smp['seconds']} s a landing)  {dict(smp)}"
+                + (
+                    f"  open pads: {row['dev_open'].get('landed', 0)}/200"
+                    if "dev_open" in row
+                    else ""
+                )
+            )
         hist.append(row)
         (out / "train.json").write_text(json.dumps(hist))
     final = numpy_net()

@@ -1996,6 +1996,37 @@
      "lost_ceiling": 0,
      "lost_past_pad": 0,
      "seconds_landed": 10.94
+    },
+    "open pad": {
+     "landed": 0,
+     "n": 200,
+     "outcomes": {
+      "crashed": 33,
+      "lost": 153,
+      "missile": 3,
+      "frog": 7,
+      "water": 1,
+      "bird": 3
+     },
+     "met": [
+      117,
+      120,
+      124,
+      80,
+      125,
+      89
+     ],
+     "hit_by": [
+      0,
+      0,
+      2,
+      1,
+      2,
+      1
+     ],
+     "lost_ceiling": 5,
+     "lost_past_pad": 148,
+     "seconds_landed": null
     }
    },
    "sampled": {
@@ -2258,6 +2289,1194 @@
      "lost_ceiling": 0,
      "lost_past_pad": 0,
      "seconds_landed": 11.57
+    },
+    "open pad": {
+     "landed": 0,
+     "n": 200,
+     "outcomes": {
+      "crashed": 25,
+      "lost": 152,
+      "missile": 9,
+      "frog": 10,
+      "bird": 4
+     },
+     "met": [
+      114,
+      119,
+      123,
+      78,
+      124,
+      88
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      2,
+      8,
+      3
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 151,
+     "seconds_landed": null
+    }
+   }
+  },
+  "k2": {
+   "top": {
+    "test": {
+     "landed": 193,
+     "n": 200,
+     "outcomes": {
+      "landed": 193,
+      "missile": 2,
+      "bird": 3,
+      "frog": 1,
+      "water": 1
+     },
+     "met": [
+      119,
+      121,
+      126,
+      82,
+      125,
+      89
+     ],
+     "hit_by": [
+      0,
+      1,
+      2,
+      1,
+      1,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 21.59
+    },
+    "fresh": {
+     "landed": 195,
+     "n": 200,
+     "outcomes": {
+      "landed": 195,
+      "bird": 4,
+      "frog": 1
+     },
+     "met": [
+      124,
+      102,
+      130,
+      79,
+      121,
+      95
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      4
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 22.02
+    },
+    "clear": {
+     "landed": 195,
+     "n": 200,
+     "outcomes": {
+      "landed": 195,
+      "timeout": 5
+     },
+     "met": [
+      667,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 15.86
+    },
+    "bird": {
+     "landed": 195,
+     "n": 200,
+     "outcomes": {
+      "landed": 195,
+      "timeout": 5
+     },
+     "met": [
+      0,
+      667,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 18.17
+    },
+    "two birds": {
+     "landed": 188,
+     "n": 200,
+     "outcomes": {
+      "landed": 188,
+      "bird": 5,
+      "lost": 3,
+      "timeout": 3,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      0,
+      666,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      5,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 3,
+     "seconds_landed": 19.16
+    },
+    "missile": {
+     "landed": 196,
+     "n": 200,
+     "outcomes": {
+      "landed": 196,
+      "lost": 1,
+      "timeout": 3
+     },
+     "met": [
+      0,
+      0,
+      0,
+      667,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 1,
+     "seconds_landed": 16.92
+    },
+    "bird + missile": {
+     "landed": 184,
+     "n": 200,
+     "outcomes": {
+      "landed": 184,
+      "crashed": 4,
+      "missile": 6,
+      "bird": 2,
+      "lost": 1,
+      "timeout": 3
+     },
+     "met": [
+      0,
+      0,
+      0,
+      0,
+      665,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      8,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 1,
+     "seconds_landed": 18.74
+    },
+    "flock": {
+     "landed": 190,
+     "n": 200,
+     "outcomes": {
+      "landed": 190,
+      "bird": 4,
+      "timeout": 4,
+      "lost": 1,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      665
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      4
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 1,
+     "seconds_landed": 23.29
+    },
+    "frogs": {
+     "landed": 197,
+     "n": 200,
+     "outcomes": {
+      "crashed": 1,
+      "landed": 197,
+      "frog": 1,
+      "lost": 1
+     },
+     "met": [
+      665,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 0,
+     "seconds_landed": 17.58
+    },
+    "open pad": {
+     "landed": 189,
+     "n": 200,
+     "outcomes": {
+      "landed": 189,
+      "lost": 3,
+      "missile": 2,
+      "crashed": 2,
+      "frog": 1,
+      "timeout": 2,
+      "water": 1
+     },
+     "met": [
+      119,
+      121,
+      126,
+      82,
+      125,
+      89
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      2,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 3,
+     "seconds_landed": 18.7
+    }
+   },
+   "sampled": {
+    "test": {
+     "landed": 190,
+     "n": 200,
+     "outcomes": {
+      "landed": 190,
+      "frog": 4,
+      "water": 2,
+      "missile": 3,
+      "bird": 1
+     },
+     "met": [
+      119,
+      120,
+      126,
+      81,
+      125,
+      89
+     ],
+     "hit_by": [
+      0,
+      0,
+      1,
+      1,
+      2,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 23.24
+    },
+    "fresh": {
+     "landed": 191,
+     "n": 200,
+     "outcomes": {
+      "landed": 191,
+      "frog": 5,
+      "lost": 1,
+      "bird": 3
+     },
+     "met": [
+      124,
+      103,
+      128,
+      79,
+      125,
+      93
+     ],
+     "hit_by": [
+      0,
+      0,
+      3,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 0,
+     "seconds_landed": 23.18
+    },
+    "clear": {
+     "landed": 200,
+     "n": 200,
+     "outcomes": {
+      "landed": 200
+     },
+     "met": [
+      667,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 15.63
+    },
+    "bird": {
+     "landed": 199,
+     "n": 200,
+     "outcomes": {
+      "landed": 199,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      667,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 18.42
+    },
+    "two birds": {
+     "landed": 182,
+     "n": 200,
+     "outcomes": {
+      "landed": 182,
+      "bird": 15,
+      "lost": 2,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      0,
+      660,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      15,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 1,
+     "seconds_landed": 20.31
+    },
+    "missile": {
+     "landed": 199,
+     "n": 200,
+     "outcomes": {
+      "landed": 199,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      667,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 17.34
+    },
+    "bird + missile": {
+     "landed": 188,
+     "n": 200,
+     "outcomes": {
+      "landed": 188,
+      "crashed": 2,
+      "missile": 7,
+      "lost": 2,
+      "bird": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      0,
+      667,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      8,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 2,
+     "seconds_landed": 19.03
+    },
+    "flock": {
+     "landed": 192,
+     "n": 200,
+     "outcomes": {
+      "landed": 192,
+      "bird": 5,
+      "lost": 2,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      661
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      5
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 2,
+     "seconds_landed": 23.41
+    },
+    "frogs": {
+     "landed": 196,
+     "n": 200,
+     "outcomes": {
+      "landed": 196,
+      "frog": 3,
+      "crashed": 1
+     },
+     "met": [
+      664,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 19.15
+    },
+    "open pad": {
+     "landed": 188,
+     "n": 200,
+     "outcomes": {
+      "crashed": 3,
+      "landed": 188,
+      "bird": 3,
+      "missile": 5,
+      "frog": 1
+     },
+     "met": [
+      119,
+      121,
+      126,
+      81,
+      125,
+      89
+     ],
+     "hit_by": [
+      0,
+      0,
+      2,
+      1,
+      4,
+      1
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 20.13
+    }
+   }
+  },
+  "k3a": {
+   "top": {
+    "test": {
+     "landed": 194,
+     "n": 200,
+     "outcomes": {
+      "landed": 194,
+      "frog": 2,
+      "lost": 1,
+      "missile": 1,
+      "bird": 2
+     },
+     "met": [
+      119,
+      123,
+      125,
+      83,
+      126,
+      90
+     ],
+     "hit_by": [
+      0,
+      0,
+      1,
+      0,
+      2,
+      0
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 0,
+     "seconds_landed": 21.13
+    },
+    "fresh": {
+     "landed": 190,
+     "n": 200,
+     "outcomes": {
+      "landed": 190,
+      "frog": 4,
+      "bird": 4,
+      "water": 1,
+      "lost": 1
+     },
+     "met": [
+      121,
+      105,
+      128,
+      79,
+      123,
+      94
+     ],
+     "hit_by": [
+      0,
+      1,
+      1,
+      0,
+      1,
+      1
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 0,
+     "seconds_landed": 21.06
+    },
+    "clear": {
+     "landed": 200,
+     "n": 200,
+     "outcomes": {
+      "landed": 200
+     },
+     "met": [
+      667,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 14.84
+    },
+    "bird": {
+     "landed": 199,
+     "n": 200,
+     "outcomes": {
+      "landed": 199,
+      "bird": 1
+     },
+     "met": [
+      0,
+      667,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      1,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 16.09
+    },
+    "two birds": {
+     "landed": 187,
+     "n": 200,
+     "outcomes": {
+      "landed": 187,
+      "bird": 7,
+      "lost": 4,
+      "crashed": 2
+     },
+     "met": [
+      0,
+      0,
+      662,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      7,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 4,
+     "seconds_landed": 17.29
+    },
+    "missile": {
+     "landed": 195,
+     "n": 200,
+     "outcomes": {
+      "landed": 195,
+      "lost": 2,
+      "missile": 2,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      667,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      2,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 2,
+     "seconds_landed": 16.17
+    },
+    "bird + missile": {
+     "landed": 191,
+     "n": 200,
+     "outcomes": {
+      "landed": 191,
+      "missile": 4,
+      "crashed": 2,
+      "bird": 2,
+      "lost": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      0,
+      664,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      6,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 1,
+     "seconds_landed": 17.5
+    },
+    "flock": {
+     "landed": 192,
+     "n": 200,
+     "outcomes": {
+      "landed": 192,
+      "bird": 6,
+      "water": 1,
+      "lost": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      662
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      6
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 1,
+     "seconds_landed": 20.35
+    },
+    "frogs": {
+     "landed": 199,
+     "n": 200,
+     "outcomes": {
+      "landed": 199,
+      "frog": 1
+     },
+     "met": [
+      667,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 17.23
+    },
+    "open pad": {
+     "landed": 193,
+     "n": 200,
+     "outcomes": {
+      "landed": 193,
+      "frog": 1,
+      "bird": 2,
+      "lost": 1,
+      "crashed": 3
+     },
+     "met": [
+      119,
+      123,
+      125,
+      83,
+      126,
+      90
+     ],
+     "hit_by": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 1,
+     "seconds_landed": 18.16
+    }
+   },
+   "sampled": {
+    "test": {
+     "landed": 192,
+     "n": 200,
+     "outcomes": {
+      "landed": 192,
+      "missile": 5,
+      "bird": 3
+     },
+     "met": [
+      118,
+      123,
+      125,
+      83,
+      124,
+      89
+     ],
+     "hit_by": [
+      0,
+      0,
+      3,
+      2,
+      3,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 22.61
+    },
+    "fresh": {
+     "landed": 195,
+     "n": 200,
+     "outcomes": {
+      "landed": 195,
+      "missile": 2,
+      "frog": 1,
+      "water": 1,
+      "bird": 1
+     },
+     "met": [
+      124,
+      105,
+      129,
+      79,
+      124,
+      95
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      2,
+      1
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 22.26
+    },
+    "clear": {
+     "landed": 200,
+     "n": 200,
+     "outcomes": {
+      "landed": 200
+     },
+     "met": [
+      667,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 14.81
+    },
+    "bird": {
+     "landed": 199,
+     "n": 200,
+     "outcomes": {
+      "landed": 199,
+      "bird": 1
+     },
+     "met": [
+      0,
+      667,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      1,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 16.74
+    },
+    "two birds": {
+     "landed": 181,
+     "n": 200,
+     "outcomes": {
+      "crashed": 3,
+      "landed": 181,
+      "bird": 14,
+      "lost": 2
+     },
+     "met": [
+      0,
+      0,
+      661,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      14,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 2,
+     "seconds_landed": 18.51
+    },
+    "missile": {
+     "landed": 198,
+     "n": 200,
+     "outcomes": {
+      "landed": 198,
+      "missile": 1,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      667,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 16.4
+    },
+    "bird + missile": {
+     "landed": 193,
+     "n": 200,
+     "outcomes": {
+      "landed": 193,
+      "bird": 2,
+      "missile": 2,
+      "water": 1,
+      "lost": 1,
+      "crashed": 1
+     },
+     "met": [
+      0,
+      0,
+      0,
+      0,
+      666,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      4,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 1,
+     "seconds_landed": 18.02
+    },
+    "flock": {
+     "landed": 189,
+     "n": 200,
+     "outcomes": {
+      "landed": 189,
+      "bird": 11
+     },
+     "met": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      660
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      11
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 21.1
+    },
+    "frogs": {
+     "landed": 200,
+     "n": 200,
+     "outcomes": {
+      "landed": 200
+     },
+     "met": [
+      667,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "hit_by": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 18.33
+    },
+    "open pad": {
+     "landed": 186,
+     "n": 200,
+     "outcomes": {
+      "landed": 186,
+      "lost": 2,
+      "missile": 7,
+      "bird": 3,
+      "crashed": 2
+     },
+     "met": [
+      118,
+      123,
+      125,
+      83,
+      124,
+      89
+     ],
+     "hit_by": [
+      0,
+      0,
+      3,
+      4,
+      3,
+      0
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 2,
+     "seconds_landed": 18.93
     }
    }
   },
@@ -2996,6 +4215,5778 @@
    }
   }
  },
+ "dev": {
+  "k2": {
+   "top": {
+    "dev": {
+     "landed": 1939,
+     "n": 2000,
+     "outcomes": {
+      "landed": 1939,
+      "frog": 14,
+      "bird": 28,
+      "lost": 2,
+      "missile": 14,
+      "water": 3
+     },
+     "met": [
+      1376,
+      1195,
+      1230,
+      871,
+      1235,
+      875
+     ],
+     "hit_by": [
+      0,
+      0,
+      9,
+      6,
+      15,
+      12
+     ],
+     "lost_ceiling": 2,
+     "lost_past_pad": 0,
+     "seconds_landed": 21.71
+    }
+   },
+   "sampled": {
+    "dev": {
+     "landed": 1900,
+     "n": 2000,
+     "outcomes": {
+      "landed": 1900,
+      "frog": 19,
+      "bird": 45,
+      "missile": 26,
+      "lost": 3,
+      "water": 5,
+      "crashed": 2
+     },
+     "met": [
+      1359,
+      1191,
+      1220,
+      867,
+      1234,
+      873
+     ],
+     "hit_by": [
+      0,
+      6,
+      20,
+      9,
+      24,
+      12
+     ],
+     "lost_ceiling": 3,
+     "lost_past_pad": 0,
+     "seconds_landed": 22.8
+    }
+   }
+  },
+  "k3a": {
+   "top": {
+    "dev": {
+     "landed": 1958,
+     "n": 2000,
+     "outcomes": {
+      "landed": 1958,
+      "missile": 10,
+      "bird": 17,
+      "frog": 13,
+      "water": 1,
+      "lost": 1
+     },
+     "met": [
+      1377,
+      1200,
+      1230,
+      869,
+      1237,
+      880
+     ],
+     "hit_by": [
+      0,
+      0,
+      7,
+      3,
+      10,
+      7
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 0,
+     "seconds_landed": 20.98
+    }
+   },
+   "sampled": {
+    "dev": {
+     "landed": 1919,
+     "n": 2000,
+     "outcomes": {
+      "landed": 1919,
+      "bird": 32,
+      "missile": 25,
+      "frog": 20,
+      "lost": 1,
+      "water": 2,
+      "crashed": 1
+     },
+     "met": [
+      1374,
+      1194,
+      1231,
+      872,
+      1239,
+      876
+     ],
+     "hit_by": [
+      0,
+      3,
+      18,
+      8,
+      22,
+      6
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 0,
+     "seconds_landed": 22.14
+    }
+   }
+  },
+  "k3b": {
+   "top": {
+    "dev": {
+     "landed": 1943,
+     "n": 2000,
+     "outcomes": {
+      "landed": 1943,
+      "missile": 16,
+      "frog": 11,
+      "bird": 26,
+      "lost": 1,
+      "crashed": 2,
+      "water": 1
+     },
+     "met": [
+      1374,
+      1193,
+      1232,
+      873,
+      1238,
+      875
+     ],
+     "hit_by": [
+      0,
+      1,
+      9,
+      4,
+      17,
+      11
+     ],
+     "lost_ceiling": 1,
+     "lost_past_pad": 0,
+     "seconds_landed": 21.2
+    }
+   },
+   "sampled": {
+    "dev": {
+     "landed": 1925,
+     "n": 2000,
+     "outcomes": {
+      "landed": 1925,
+      "missile": 19,
+      "water": 1,
+      "frog": 21,
+      "bird": 33,
+      "crashed": 1
+     },
+     "met": [
+      1366,
+      1195,
+      1226,
+      872,
+      1234,
+      872
+     ],
+     "hit_by": [
+      0,
+      2,
+      16,
+      9,
+      20,
+      5
+     ],
+     "lost_ceiling": 0,
+     "lost_past_pad": 0,
+     "seconds_landed": 22.07
+    }
+   }
+  }
+ },
+ "rewinds": {
+  "b1": {
+   "net": "runs/b1/last.npz",
+   "n": 1000,
+   "reps": 8,
+   "again": {
+    "landed_share": 0.806875,
+    "outcomes": {
+     "landed": 6455,
+     "bird": 570,
+     "frog": 376,
+     "missile": 413,
+     "crashed": 145,
+     "lost": 21,
+     "water": 20
+    },
+    "courses_by_landings": [
+     15,
+     20,
+     28,
+     32,
+     70,
+     86,
+     120,
+     179,
+     450
+    ],
+    "if_all_courses_alike": [
+     0.0,
+     0.1,
+     0.9,
+     7.9,
+     41.3,
+     138.0,
+     288.2,
+     344.0,
+     179.7
+    ],
+    "frog": {
+     "route": 175,
+     "pad": 201
+    },
+    "hit_by": {
+     "flock": 226,
+     "two birds": 156,
+     "bird + missile": 409,
+     "bird": 65,
+     "missile": 127
+    },
+    "landed_by_course": {
+     "bird + missile x0": [
+      0.845,
+      474
+     ],
+     "bird + missile x1": [
+      0.792,
+      388
+     ],
+     "bird + missile x2": [
+      0.722,
+      122
+     ],
+     "bird + missile x2+": [
+      0.688,
+      16
+     ],
+     "bird x0": [
+      0.791,
+      525
+     ],
+     "bird x1": [
+      0.818,
+      355
+     ],
+     "bird x2": [
+      0.843,
+      105
+     ],
+     "bird x2+": [
+      0.85,
+      15
+     ],
+     "flock x0": [
+      0.814,
+      637
+     ],
+     "flock x1": [
+      0.809,
+      299
+     ],
+     "flock x2": [
+      0.728,
+      57
+     ],
+     "flock x2+": [
+      0.696,
+      7
+     ],
+     "length 100-120": [
+      0.791,
+      365
+     ],
+     "length 60-80": [
+      0.828,
+      329
+     ],
+     "length 80-100": [
+      0.803,
+      306
+     ],
+     "missile x0": [
+      0.825,
+      614
+     ],
+     "missile x1": [
+      0.786,
+      328
+     ],
+     "missile x2": [
+      0.732,
+      48
+     ],
+     "missile x2+": [
+      0.762,
+      10
+     ],
+     "route frog 0": [
+      0.837,
+      497
+     ],
+     "route frog 1": [
+      0.778,
+      503
+     ],
+     "two birds x0": [
+      0.818,
+      500
+     ],
+     "two birds x1": [
+      0.802,
+      383
+     ],
+     "two birds x2": [
+      0.776,
+      106
+     ],
+     "two birds x2+": [
+      0.773,
+      11
+     ]
+    },
+    "n": 1000,
+    "reps": 8
+   },
+   "temps": {
+    "0.0": {
+     "landed": 750,
+     "bird": 63,
+     "frog": 94,
+     "crashed": 23,
+     "missile": 55,
+     "water": 11,
+     "lost": 4
+    },
+    "0.25": {
+     "landed": 763,
+     "missile": 58,
+     "frog": 91,
+     "crashed": 22,
+     "bird": 58,
+     "water": 4,
+     "lost": 4
+    },
+    "0.5": {
+     "landed": 775,
+     "bird": 66,
+     "missile": 50,
+     "frog": 73,
+     "crashed": 23,
+     "lost": 6,
+     "water": 7
+    },
+    "0.75": {
+     "frog": 57,
+     "landed": 813,
+     "missile": 46,
+     "bird": 60,
+     "crashed": 16,
+     "water": 6,
+     "lost": 2
+    }
+   },
+   "rewind": {
+    "back_s": [
+     0.5,
+     1.0,
+     2.0,
+     3.0,
+     5.0,
+     8.0
+    ],
+    "k": 32,
+    "flights": 178,
+    "by_outcome": {
+     "all": {
+      "flights": 178,
+      "drawn": [
+       0.232,
+       0.365,
+       0.511,
+       0.564,
+       0.587,
+       0.602
+      ],
+      "drawn_doomed": [
+       0.522,
+       0.298,
+       0.112,
+       0.067,
+       0.064,
+       0.029
+      ],
+      "top": [
+       0.225,
+       0.348,
+       0.529,
+       0.54,
+       0.578,
+       0.577
+      ],
+      "top_doomed": [
+       0.713,
+       0.567,
+       0.365,
+       0.315,
+       0.21,
+       0.147
+      ]
+     },
+     "bird": {
+      "flights": 65,
+      "drawn": [
+       0.247,
+       0.387,
+       0.534,
+       0.576,
+       0.607,
+       0.642
+      ],
+      "drawn_doomed": [
+       0.431,
+       0.2,
+       0.092,
+       0.046,
+       0.054,
+       0.0
+      ],
+      "top": [
+       0.262,
+       0.414,
+       0.508,
+       0.499,
+       0.583,
+       0.653
+      ],
+      "top_doomed": [
+       0.677,
+       0.477,
+       0.415,
+       0.4,
+       0.179,
+       0.086
+      ]
+     },
+     "frog": {
+      "flights": 47,
+      "drawn": [
+       0.227,
+       0.364,
+       0.561,
+       0.644,
+       0.658,
+       0.688
+      ],
+      "drawn_doomed": [
+       0.511,
+       0.34,
+       0.085,
+       0.043,
+       0.079,
+       0.0
+      ],
+      "top": [
+       0.227,
+       0.286,
+       0.64,
+       0.577,
+       0.611,
+       0.632
+      ],
+      "top_doomed": [
+       0.723,
+       0.702,
+       0.277,
+       0.277,
+       0.263,
+       0.13
+      ]
+     },
+     "missile": {
+      "flights": 42,
+      "drawn": [
+       0.097,
+       0.186,
+       0.329,
+       0.386,
+       0.427,
+       0.462
+      ],
+      "drawn_doomed": [
+       0.786,
+       0.571,
+       0.238,
+       0.167,
+       0.1,
+       0.12
+      ],
+      "top": [
+       0.108,
+       0.189,
+       0.407,
+       0.501,
+       0.472,
+       0.47
+      ],
+      "top_doomed": [
+       0.833,
+       0.738,
+       0.452,
+       0.333,
+       0.3,
+       0.2
+      ]
+     },
+     "crashed": {
+      "flights": 20,
+      "drawn": [
+       0.447,
+       0.645,
+       0.686,
+       0.722,
+       0.681,
+       0.597
+      ],
+      "drawn_doomed": [
+       0.35,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "top": [
+       0.331,
+       0.606,
+       0.567,
+       0.675,
+       0.697,
+       0.518
+      ],
+      "top_doomed": [
+       0.6,
+       0.25,
+       0.25,
+       0.1,
+       0.05,
+       0.235
+      ]
+     },
+     "lost": {
+      "flights": 3,
+      "drawn": [
+       0.521,
+       0.479,
+       0.594,
+       0.604,
+       0.812,
+       0.719
+      ],
+      "drawn_doomed": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "top": [
+       0.375,
+       0.521,
+       0.667,
+       0.656,
+       0.547,
+       0.469
+      ],
+      "top_doomed": [
+       0.333,
+       0.0,
+       0.333,
+       0.333,
+       0.0,
+       0.0
+      ]
+     },
+     "water": {
+      "flights": 1,
+      "drawn": [
+       0.0,
+       0.531,
+       0.594,
+       0.156,
+       0.906,
+       0.719
+      ],
+      "drawn_doomed": [
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "top": [
+       0.0,
+       0.0,
+       0.594,
+       0.125,
+       1.0,
+       0.438
+      ],
+      "top_doomed": [
+       1.0,
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "speed": {
+    "as trained": {
+     "landed": 822,
+     "n": 1000,
+     "outcomes": {
+      "landed": 822,
+      "bird": 65,
+      "frog": 47,
+      "missile": 42,
+      "crashed": 20,
+      "lost": 3,
+      "water": 1
+     },
+     "speed_mean": 7.39,
+     "over_10": 0.362,
+     "over_12": 0.22,
+     "sprint_share": 0.336,
+     "seconds_landed": 12.43,
+     "top_moves": [
+      [
+       "jink(1, 1)",
+       0.336
+      ],
+      [
+       "jink(-1, 1)",
+       0.084
+      ],
+      [
+       "wait(3.2, 2.5)",
+       0.054
+      ],
+      [
+       "land(7, 0)",
+       0.045
+      ],
+      [
+       "land(5, 0)",
+       0.038
+      ]
+     ]
+    },
+    "no sprint in open air": {
+     "landed": 781,
+     "n": 1000,
+     "outcomes": {
+      "landed": 781,
+      "bird": 84,
+      "missile": 51,
+      "frog": 51,
+      "crashed": 26,
+      "water": 4,
+      "lost": 3
+     },
+     "speed_mean": 7.01,
+     "over_10": 0.261,
+     "over_12": 0.134,
+     "sprint_share": 0.237,
+     "seconds_landed": 13.07,
+     "top_moves": [
+      [
+       "jink(1, 1)",
+       0.237
+      ],
+      [
+       "jink(-1, 1)",
+       0.09
+      ],
+      [
+       "cruise(11, 10)",
+       0.081
+      ],
+      [
+       "cruise(9, 10)",
+       0.056
+      ],
+      [
+       "wait(3.2, 2.5)",
+       0.05
+      ]
+     ]
+    },
+    "no sprint over 10 m/s": {
+     "landed": 783,
+     "n": 1000,
+     "outcomes": {
+      "landed": 783,
+      "missile": 50,
+      "bird": 56,
+      "frog": 83,
+      "crashed": 26,
+      "water": 2
+     },
+     "speed_mean": 6.71,
+     "over_10": 0.157,
+     "over_12": 0.0,
+     "sprint_share": 0.251,
+     "seconds_landed": 13.65,
+     "top_moves": [
+      [
+       "jink(1, 1)",
+       0.251
+      ],
+      [
+       "jink(-1, 1)",
+       0.111
+      ],
+      [
+       "cruise(11, 10)",
+       0.067
+      ],
+      [
+       "cruise(9, 10)",
+       0.052
+      ],
+      [
+       "wait(3.2, 2.5)",
+       0.045
+      ]
+     ]
+    },
+    "no sprint": {
+     "landed": 774,
+     "n": 1000,
+     "outcomes": {
+      "landed": 774,
+      "frog": 66,
+      "bird": 74,
+      "crashed": 17,
+      "missile": 62,
+      "water": 7
+     },
+     "speed_mean": 6.07,
+     "over_10": 0.0,
+     "over_12": 0.0,
+     "sprint_share": 0.0,
+     "seconds_landed": 14.95,
+     "top_moves": [
+      [
+       "cruise(11, 10)",
+       0.148
+      ],
+      [
+       "cruise(9, 10)",
+       0.122
+      ],
+      [
+       "jink(-1, 1)",
+       0.105
+      ],
+      [
+       "cruise(7, 10)",
+       0.062
+      ],
+      [
+       "land(7, 0)",
+       0.042
+      ]
+     ]
+    }
+   },
+   "planner": {
+    "courses": 35,
+    "landed_at_most": 1,
+    "estimated": {
+     "landed": 34,
+     "failed": [
+      [
+       50638,
+       "missile",
+       2.1
+      ]
+     ]
+    },
+    "nominal": {
+     "landed": 31,
+     "failed": [
+      [
+       50117,
+       "crashed",
+       0.3
+      ],
+      [
+       50202,
+       "crashed",
+       0.9
+      ],
+      [
+       50520,
+       "frog",
+       2.6
+      ],
+      [
+       50526,
+       "missile",
+       3.8
+      ]
+     ]
+    }
+   },
+   "failures_by_course_landings": {
+    "0": 120,
+    "1": 140,
+    "2": 168,
+    "3": 160,
+    "4": 280,
+    "5": 258,
+    "6": 240,
+    "7": 179,
+    "8": 0
+   }
+  },
+  "f1-r350": {
+   "net": "runs/f1-r350/last.npz",
+   "moves": {
+    "k": 8,
+    "first_hold": 6,
+    "courses": 400,
+    "by_back": {
+     "1.0": {
+      "states": 50,
+      "alive_as_flown": 0.53,
+      "alive_top_move": 0.535,
+      "alive_best_move": 0.78,
+      "moves_mostly_alive": 0.484,
+      "moves_offered": 48.6,
+      "best_minus_worst": 0.828
+     },
+     "2.0": {
+      "states": 50,
+      "alive_as_flown": 0.652,
+      "alive_top_move": 0.63,
+      "alive_best_move": 0.85,
+      "moves_mostly_alive": 0.612,
+      "moves_offered": 48.2,
+      "best_minus_worst": 0.703
+     },
+     "3.0": {
+      "states": 50,
+      "alive_as_flown": 0.671,
+      "alive_top_move": 0.685,
+      "alive_best_move": 0.835,
+      "moves_mostly_alive": 0.642,
+      "moves_offered": 47.4,
+      "best_minus_worst": 0.642
+     }
+    }
+   },
+   "again": {
+    "n": 1000,
+    "reps": 8,
+    "landed_share": 0.88625,
+    "outcomes": {
+     "landed": 7090,
+     "bird": 352,
+     "frog": 205,
+     "missile": 252,
+     "crashed": 58,
+     "water": 28,
+     "timeout": 8,
+     "lost": 7
+    },
+    "courses_by_landings": [
+     3,
+     3,
+     10,
+     18,
+     30,
+     56,
+     116,
+     195,
+     569
+    ],
+    "if_all_courses_alike": [
+     0.0,
+     0.0,
+     0.0,
+     0.7,
+     7.2,
+     45.1,
+     175.5,
+     390.8,
+     380.6
+    ],
+    "frog": {
+     "route": 83,
+     "pad": 122
+    },
+    "hit_by": {
+     "flock": 94,
+     "two birds": 163,
+     "missile": 108,
+     "bird + missile": 208,
+     "bird": 31
+    },
+    "landed_by_course": {
+     "bird + missile x0": [
+      0.907,
+      474
+     ],
+     "bird + missile x1": [
+      0.876,
+      388
+     ],
+     "bird + missile x2": [
+      0.837,
+      122
+     ],
+     "bird + missile x2+": [
+      0.906,
+      16
+     ],
+     "bird x0": [
+      0.885,
+      525
+     ],
+     "bird x1": [
+      0.876,
+      355
+     ],
+     "bird x2": [
+      0.924,
+      105
+     ],
+     "bird x2+": [
+      0.908,
+      15
+     ],
+     "flock x0": [
+      0.885,
+      637
+     ],
+     "flock x1": [
+      0.891,
+      299
+     ],
+     "flock x2": [
+      0.882,
+      57
+     ],
+     "flock x2+": [
+      0.875,
+      7
+     ],
+     "length 100-120": [
+      0.882,
+      365
+     ],
+     "length 60-80": [
+      0.903,
+      329
+     ],
+     "length 80-100": [
+      0.873,
+      306
+     ],
+     "missile x0": [
+      0.895,
+      614
+     ],
+     "missile x1": [
+      0.873,
+      328
+     ],
+     "missile x2": [
+      0.846,
+      48
+     ],
+     "missile x2+": [
+      0.95,
+      10
+     ],
+     "route frog 0": [
+      0.915,
+      497
+     ],
+     "route frog 1": [
+      0.858,
+      503
+     ],
+     "two birds x0": [
+      0.901,
+      500
+     ],
+     "two birds x1": [
+      0.88,
+      383
+     ],
+     "two birds x2": [
+      0.837,
+      106
+     ],
+     "two birds x2+": [
+      0.932,
+      11
+     ]
+    }
+   },
+   "temps": {
+    "0.0": {
+     "landed": 827,
+     "water": 6,
+     "lost": 18,
+     "frog": 39,
+     "bird": 51,
+     "timeout": 3,
+     "missile": 38,
+     "crashed": 18
+    },
+    "0.25": {
+     "landed": 864,
+     "frog": 30,
+     "bird": 51,
+     "missile": 30,
+     "crashed": 10,
+     "water": 6,
+     "lost": 9
+    },
+    "0.5": {
+     "landed": 883,
+     "bird": 63,
+     "missile": 24,
+     "frog": 18,
+     "crashed": 4,
+     "lost": 5,
+     "water": 3
+    },
+    "0.75": {
+     "landed": 883,
+     "bird": 48,
+     "frog": 21,
+     "missile": 38,
+     "water": 1,
+     "lost": 5,
+     "crashed": 4
+    }
+   },
+   "rewind": {
+    "back_s": [
+     0.5,
+     1.0,
+     2.0,
+     3.0,
+     5.0,
+     8.0
+    ],
+    "k": 32,
+    "flights": 120,
+    "by_outcome": {
+     "all": {
+      "flights": 120,
+      "drawn": [
+       0.333,
+       0.485,
+       0.608,
+       0.668,
+       0.725,
+       0.753
+      ],
+      "drawn_doomed": [
+       0.392,
+       0.233,
+       0.108,
+       0.05,
+       0.027,
+       0.012
+      ],
+      "top": [
+       0.359,
+       0.545,
+       0.584,
+       0.693,
+       0.751,
+       0.788
+      ],
+      "top_doomed": [
+       0.592,
+       0.383,
+       0.292,
+       0.183,
+       0.107,
+       0.047
+      ]
+     },
+     "bird": {
+      "flights": 52,
+      "drawn": [
+       0.442,
+       0.629,
+       0.74,
+       0.748,
+       0.754,
+       0.774
+      ],
+      "drawn_doomed": [
+       0.231,
+       0.077,
+       0.019,
+       0.019,
+       0.022,
+       0.032
+      ],
+      "top": [
+       0.486,
+       0.695,
+       0.678,
+       0.817,
+       0.859,
+       0.807
+      ],
+      "top_doomed": [
+       0.442,
+       0.231,
+       0.212,
+       0.058,
+       0.022,
+       0.032
+      ]
+     },
+     "frog": {
+      "flights": 19,
+      "drawn": [
+       0.24,
+       0.383,
+       0.553,
+       0.646,
+       0.747,
+       0.806
+      ],
+      "drawn_doomed": [
+       0.526,
+       0.316,
+       0.105,
+       0.053,
+       0.056,
+       0.0
+      ],
+      "top": [
+       0.199,
+       0.452,
+       0.572,
+       0.714,
+       0.766,
+       0.938
+      ],
+      "top_doomed": [
+       0.789,
+       0.474,
+       0.421,
+       0.158,
+       0.167,
+       0.0
+      ]
+     },
+     "missile": {
+      "flights": 34,
+      "drawn": [
+       0.17,
+       0.245,
+       0.388,
+       0.531,
+       0.647,
+       0.684
+      ],
+      "drawn_doomed": [
+       0.618,
+       0.471,
+       0.235,
+       0.059,
+       0.0,
+       0.0
+      ],
+      "top": [
+       0.238,
+       0.347,
+       0.409,
+       0.477,
+       0.659,
+       0.671
+      ],
+      "top_doomed": [
+       0.706,
+       0.559,
+       0.412,
+       0.412,
+       0.176,
+       0.08
+      ]
+     },
+     "crashed": {
+      "flights": 8,
+      "drawn": [
+       0.609,
+       0.836,
+       0.91,
+       0.934,
+       0.957,
+       0.895
+      ],
+      "drawn_doomed": [
+       0.125,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "top": [
+       0.609,
+       0.73,
+       0.891,
+       0.898,
+       0.957,
+       0.914
+      ],
+      "top_doomed": [
+       0.375,
+       0.25,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     },
+     "water": {
+      "flights": 5,
+      "drawn": [
+       0.294,
+       0.519,
+       0.594,
+       0.612,
+       0.662,
+       0.65
+      ],
+      "drawn_doomed": [
+       0.4,
+       0.2,
+       0.2,
+       0.2,
+       0.0,
+       0.0
+      ],
+      "top": [
+       0.2,
+       0.6,
+       0.506,
+       0.538,
+       0.325,
+       0.794
+      ],
+      "top_doomed": [
+       0.8,
+       0.4,
+       0.2,
+       0.2,
+       0.0,
+       0.0
+      ]
+     },
+     "timeout": {
+      "flights": 1,
+      "drawn": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.281
+      ],
+      "drawn_doomed": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       0.0
+      ],
+      "top": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.031,
+       0.0
+      ],
+      "top_doomed": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     },
+     "lost": {
+      "flights": 1,
+      "drawn": [
+       0.219,
+       0.531,
+       0.531,
+       0.406,
+       0.812,
+       0.906
+      ],
+      "drawn_doomed": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "top": [
+       0.0,
+       0.0,
+       0.375,
+       1.0,
+       0.0,
+       0.781
+      ],
+      "top_doomed": [
+       1.0,
+       1.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "hold": 1,
+   "temp": 1.0,
+   "holds": {
+    "1": {
+     "landed": 880,
+     "bird": 52,
+     "frog": 19,
+     "missile": 34,
+     "crashed": 8,
+     "water": 5,
+     "timeout": 1,
+     "lost": 1
+    },
+    "2": {
+     "landed": 822,
+     "bird": 45,
+     "crashed": 40,
+     "frog": 48,
+     "missile": 34,
+     "water": 10,
+     "lost": 1
+    },
+    "4": {
+     "frog": 151,
+     "landed": 539,
+     "bird": 78,
+     "crashed": 125,
+     "missile": 60,
+     "water": 35,
+     "timeout": 3,
+     "lost": 9
+    }
+   },
+   "trace": {
+    "seed": 50850,
+    "outcome": "bird",
+    "rows": [
+     {
+      "t": 0.0,
+      "to_go": 87.2,
+      "height": 1.12,
+      "climb": 0.0,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "cruise(3, 4)",
+        0.12
+       ],
+       [
+        "cruise(7, 4)",
+        0.11
+       ],
+       [
+        "cruise(5, 7)",
+        0.11
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.05,
+      "to_go": 87.2,
+      "height": 1.12,
+      "climb": 0.0,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "cruise(3, 4)",
+        0.14
+       ],
+       [
+        "cruise(5, 7)",
+        0.11
+       ],
+       [
+        "cruise(7, 4)",
+        0.11
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.1,
+      "to_go": 87.2,
+      "height": 1.13,
+      "climb": 0.17,
+      "move": "cruise(5, 0)",
+      "top": [
+       [
+        "cruise(3, 7)",
+        0.14
+       ],
+       [
+        "cruise(3, 4)",
+        0.12
+       ],
+       [
+        "cruise(5, 7)",
+        0.11
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.15,
+      "to_go": 87.2,
+      "height": 1.15,
+      "climb": 0.49,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "cruise(3, 7)",
+        0.19
+       ],
+       [
+        "cruise(7, 10)",
+        0.12
+       ],
+       [
+        "jink(1, 1)",
+        0.1
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.2,
+      "to_go": 87.2,
+      "height": 1.18,
+      "climb": 0.87,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "cruise(3, 7)",
+        0.16
+       ],
+       [
+        "cruise(5, 7)",
+        0.15
+       ],
+       [
+        "cruise(7, 10)",
+        0.11
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.25,
+      "to_go": 87.2,
+      "height": 1.24,
+      "climb": 1.27,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "cruise(3, 7)",
+        0.2
+       ],
+       [
+        "cruise(7, 10)",
+        0.13
+       ],
+       [
+        "cruise(5, 7)",
+        0.12
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.3,
+      "to_go": 87.2,
+      "height": 1.32,
+      "climb": 1.64,
+      "move": "cruise(9, 7)",
+      "top": [
+       [
+        "cruise(3, 7)",
+        0.2
+       ],
+       [
+        "cruise(7, 10)",
+        0.16
+       ],
+       [
+        "cruise(5, 7)",
+        0.12
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.35,
+      "to_go": 87.1,
+      "height": 1.41,
+      "climb": 1.97,
+      "move": "cruise(3, 4)",
+      "top": [
+       [
+        "cruise(7, 10)",
+        0.2
+       ],
+       [
+        "cruise(3, 7)",
+        0.15
+       ],
+       [
+        "jink(1, 1)",
+        0.14
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.4,
+      "to_go": 87.0,
+      "height": 1.52,
+      "climb": 2.2,
+      "move": "cruise(5, 7)",
+      "top": [
+       [
+        "cruise(7, 10)",
+        0.21
+       ],
+       [
+        "jink(1, 1)",
+        0.18
+       ],
+       [
+        "cruise(5, 7)",
+        0.12
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.45,
+      "to_go": 86.9,
+      "height": 1.63,
+      "climb": 2.39,
+      "move": "cruise(5, 7)",
+      "top": [
+       [
+        "cruise(7, 10)",
+        0.22
+       ],
+       [
+        "jink(1, 1)",
+        0.2
+       ],
+       [
+        "cruise(5, 10)",
+        0.14
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.5,
+      "to_go": 86.8,
+      "height": 1.76,
+      "climb": 2.56,
+      "move": "cruise(9, 0)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.26
+       ],
+       [
+        "cruise(7, 10)",
+        0.23
+       ],
+       [
+        "cruise(5, 10)",
+        0.16
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.55,
+      "to_go": 86.6,
+      "height": 1.89,
+      "climb": 2.71,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.3
+       ],
+       [
+        "cruise(7, 10)",
+        0.24
+       ],
+       [
+        "cruise(5, 10)",
+        0.17
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.6,
+      "to_go": 86.4,
+      "height": 2.03,
+      "climb": 2.9,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.27
+       ],
+       [
+        "cruise(7, 10)",
+        0.23
+       ],
+       [
+        "cruise(5, 10)",
+        0.21
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.65,
+      "to_go": 86.2,
+      "height": 2.18,
+      "climb": 3.04,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.37
+       ],
+       [
+        "cruise(7, 10)",
+        0.21
+       ],
+       [
+        "cruise(5, 10)",
+        0.19
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.7,
+      "to_go": 86.0,
+      "height": 2.34,
+      "climb": 3.12,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.43
+       ],
+       [
+        "cruise(7, 10)",
+        0.22
+       ],
+       [
+        "cruise(5, 10)",
+        0.16
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.75,
+      "to_go": 85.8,
+      "height": 2.49,
+      "climb": 3.14,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.57
+       ],
+       [
+        "cruise(7, 10)",
+        0.18
+       ],
+       [
+        "cruise(5, 10)",
+        0.14
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.8,
+      "to_go": 85.5,
+      "height": 2.65,
+      "climb": 3.13,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.66
+       ],
+       [
+        "cruise(7, 10)",
+        0.15
+       ],
+       [
+        "cruise(5, 10)",
+        0.11
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.85,
+      "to_go": 85.2,
+      "height": 2.8,
+      "climb": 2.92,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.7
+       ],
+       [
+        "cruise(7, 10)",
+        0.14
+       ],
+       [
+        "cruise(5, 10)",
+        0.1
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.9,
+      "to_go": 84.9,
+      "height": 2.94,
+      "climb": 2.75,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.6
+       ],
+       [
+        "cruise(7, 10)",
+        0.17
+       ],
+       [
+        "cruise(5, 10)",
+        0.1
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 0.95,
+      "to_go": 84.6,
+      "height": 3.08,
+      "climb": 2.72,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.7
+       ],
+       [
+        "cruise(7, 10)",
+        0.12
+       ],
+       [
+        "cruise(5, 10)",
+        0.09
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.0,
+      "to_go": 84.3,
+      "height": 3.21,
+      "climb": 2.75,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.77
+       ],
+       [
+        "cruise(7, 10)",
+        0.1
+       ],
+       [
+        "cruise(5, 10)",
+        0.06
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.05,
+      "to_go": 83.9,
+      "height": 3.35,
+      "climb": 2.82,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.81
+       ],
+       [
+        "cruise(7, 10)",
+        0.06
+       ],
+       [
+        "cruise(9, 10)",
+        0.05
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.1,
+      "to_go": 83.6,
+      "height": 3.5,
+      "climb": 2.92,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.86
+       ],
+       [
+        "cruise(9, 10)",
+        0.06
+       ],
+       [
+        "cruise(7, 10)",
+        0.03
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.15,
+      "to_go": 83.2,
+      "height": 3.65,
+      "climb": 3.03,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.88
+       ],
+       [
+        "cruise(9, 10)",
+        0.06
+       ],
+       [
+        "cruise(11, 10)",
+        0.02
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.2,
+      "to_go": 82.8,
+      "height": 3.8,
+      "climb": 3.14,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.91
+       ],
+       [
+        "cruise(9, 10)",
+        0.05
+       ],
+       [
+        "cruise(11, 10)",
+        0.02
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.25,
+      "to_go": 82.3,
+      "height": 3.96,
+      "climb": 3.25,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.94
+       ],
+       [
+        "cruise(9, 10)",
+        0.03
+       ],
+       [
+        "cruise(11, 10)",
+        0.01
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.3,
+      "to_go": 81.8,
+      "height": 4.13,
+      "climb": 3.35,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.96
+       ],
+       [
+        "cruise(9, 10)",
+        0.03
+       ],
+       [
+        "cruise(11, 10)",
+        0.01
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.35,
+      "to_go": 81.3,
+      "height": 4.3,
+      "climb": 3.45,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.97
+       ],
+       [
+        "cruise(9, 10)",
+        0.02
+       ],
+       [
+        "cruise(11, 10)",
+        0.01
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.4,
+      "to_go": 80.8,
+      "height": 4.48,
+      "climb": 3.54,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.97
+       ],
+       [
+        "cruise(9, 10)",
+        0.02
+       ],
+       [
+        "cruise(11, 10)",
+        0.01
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.45,
+      "to_go": 80.3,
+      "height": 4.66,
+      "climb": 3.63,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.98
+       ],
+       [
+        "cruise(9, 10)",
+        0.02
+       ],
+       [
+        "cruise(11, 10)",
+        0.0
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.5,
+      "to_go": 79.7,
+      "height": 4.84,
+      "climb": 3.71,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.98
+       ],
+       [
+        "cruise(9, 10)",
+        0.01
+       ],
+       [
+        "cruise(11, 10)",
+        0.0
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.55,
+      "to_go": 79.2,
+      "height": 5.03,
+      "climb": 3.79,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.98
+       ],
+       [
+        "cruise(9, 10)",
+        0.02
+       ],
+       [
+        "cruise(11, 10)",
+        0.0
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.6,
+      "to_go": 78.6,
+      "height": 5.22,
+      "climb": 3.86,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.98
+       ],
+       [
+        "cruise(9, 10)",
+        0.01
+       ],
+       [
+        "cruise(11, 10)",
+        0.0
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.65,
+      "to_go": 78.0,
+      "height": 5.41,
+      "climb": 3.93,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.98
+       ],
+       [
+        "cruise(9, 10)",
+        0.01
+       ],
+       [
+        "cruise(11, 10)",
+        0.0
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.7,
+      "to_go": 77.4,
+      "height": 5.61,
+      "climb": 3.99,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.98
+       ],
+       [
+        "cruise(9, 10)",
+        0.01
+       ],
+       [
+        "cruise(7, 10)",
+        0.0
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.75,
+      "to_go": 76.7,
+      "height": 5.81,
+      "climb": 4.05,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.97
+       ],
+       [
+        "cruise(9, 10)",
+        0.01
+       ],
+       [
+        "cruise(7, 10)",
+        0.0
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.8,
+      "to_go": 76.1,
+      "height": 6.02,
+      "climb": 4.1,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.97
+       ],
+       [
+        "cruise(9, 10)",
+        0.02
+       ],
+       [
+        "cruise(7, 10)",
+        0.01
+       ]
+      ],
+      "threats": []
+     },
+     {
+      "t": 1.85,
+      "to_go": 75.4,
+      "height": 6.23,
+      "climb": 4.15,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.97
+       ],
+       [
+        "cruise(9, 10)",
+        0.02
+       ],
+       [
+        "cruise(11, 10)",
+        0.01
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.5,
+        -5.1
+       ]
+      ]
+     },
+     {
+      "t": 1.9,
+      "to_go": 74.8,
+      "height": 6.43,
+      "climb": 4.19,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.83
+       ],
+       [
+        "cruise(9, 10)",
+        0.05
+       ],
+       [
+        "cruise(7, 10)",
+        0.04
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.6,
+        -5.2
+       ]
+      ]
+     },
+     {
+      "t": 1.95,
+      "to_go": 74.1,
+      "height": 6.65,
+      "climb": 4.24,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.72
+       ],
+       [
+        "cruise(9, 10)",
+        0.14
+       ],
+       [
+        "cruise(7, 10)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.7,
+        -5.3
+       ]
+      ]
+     },
+     {
+      "t": 2.0,
+      "to_go": 73.4,
+      "height": 6.86,
+      "climb": 4.28,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.65
+       ],
+       [
+        "cruise(9, 10)",
+        0.19
+       ],
+       [
+        "cruise(7, 10)",
+        0.1
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.9,
+        -5.4
+       ]
+      ]
+     },
+     {
+      "t": 2.05,
+      "to_go": 72.7,
+      "height": 7.07,
+      "climb": 4.31,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.62
+       ],
+       [
+        "cruise(9, 10)",
+        0.21
+       ],
+       [
+        "cruise(7, 10)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.1,
+        -5.5
+       ]
+      ]
+     },
+     {
+      "t": 2.1,
+      "to_go": 71.9,
+      "height": 7.29,
+      "climb": 4.34,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.59
+       ],
+       [
+        "cruise(9, 10)",
+        0.22
+       ],
+       [
+        "cruise(7, 10)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.2,
+        -5.6
+       ]
+      ]
+     },
+     {
+      "t": 2.15,
+      "to_go": 71.2,
+      "height": 7.5,
+      "climb": 4.22,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.52
+       ],
+       [
+        "cruise(9, 10)",
+        0.25
+       ],
+       [
+        "cruise(7, 10)",
+        0.15
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.4,
+        -5.7
+       ]
+      ]
+     },
+     {
+      "t": 2.2,
+      "to_go": 70.5,
+      "height": 7.71,
+      "climb": 4.16,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.49
+       ],
+       [
+        "cruise(9, 10)",
+        0.24
+       ],
+       [
+        "cruise(7, 10)",
+        0.19
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.6,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 2.25,
+      "to_go": 69.8,
+      "height": 7.91,
+      "climb": 3.95,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.45
+       ],
+       [
+        "cruise(9, 10)",
+        0.3
+       ],
+       [
+        "cruise(7, 10)",
+        0.14
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.8,
+        -5.9
+       ]
+      ]
+     },
+     {
+      "t": 2.3,
+      "to_go": 69.1,
+      "height": 8.1,
+      "climb": 3.57,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.44
+       ],
+       [
+        "jink(1, 1)",
+        0.26
+       ],
+       [
+        "cruise(7, 10)",
+        0.17
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.9,
+        -5.9
+       ]
+      ]
+     },
+     {
+      "t": 2.35,
+      "to_go": 68.4,
+      "height": 8.26,
+      "climb": 3.09,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.4
+       ],
+       [
+        "jink(1, 1)",
+        0.29
+       ],
+       [
+        "cruise(7, 10)",
+        0.18
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.1,
+        -6.0
+       ]
+      ]
+     },
+     {
+      "t": 2.4,
+      "to_go": 67.8,
+      "height": 8.4,
+      "climb": 2.57,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.46
+       ],
+       [
+        "jink(1, 1)",
+        0.24
+       ],
+       [
+        "cruise(11, 10)",
+        0.14
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.2,
+        -6.0
+       ]
+      ]
+     },
+     {
+      "t": 2.45,
+      "to_go": 67.2,
+      "height": 8.52,
+      "climb": 2.37,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.51
+       ],
+       [
+        "cruise(11, 10)",
+        0.18
+       ],
+       [
+        "jink(1, 1)",
+        0.18
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.3,
+        -6.0
+       ]
+      ]
+     },
+     {
+      "t": 2.5,
+      "to_go": 66.6,
+      "height": 8.64,
+      "climb": 2.46,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.63
+       ],
+       [
+        "jink(1, 1)",
+        0.17
+       ],
+       [
+        "cruise(11, 10)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.4,
+        -6.0
+       ]
+      ]
+     },
+     {
+      "t": 2.55,
+      "to_go": 66.0,
+      "height": 8.76,
+      "climb": 2.35,
+      "move": "cruise(11, 7)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.69
+       ],
+       [
+        "cruise(11, 10)",
+        0.09
+       ],
+       [
+        "jink(1, 1)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.4,
+        -6.0
+       ]
+      ]
+     },
+     {
+      "t": 2.6,
+      "to_go": 65.4,
+      "height": 8.88,
+      "climb": 2.29,
+      "move": "cruise(11, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.56
+       ],
+       [
+        "cruise(7, 10)",
+        0.18
+       ],
+       [
+        "jink(1, 1)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.4,
+        -5.9
+       ]
+      ]
+     },
+     {
+      "t": 2.65,
+      "to_go": 64.9,
+      "height": 8.99,
+      "climb": 2.35,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.59
+       ],
+       [
+        "cruise(7, 10)",
+        0.12
+       ],
+       [
+        "jink(1, 1)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.4,
+        -5.9
+       ]
+      ]
+     },
+     {
+      "t": 2.7,
+      "to_go": 64.4,
+      "height": 9.11,
+      "climb": 2.2,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.6
+       ],
+       [
+        "jink(1, 1)",
+        0.15
+       ],
+       [
+        "cruise(11, 10)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.4,
+        -5.9
+       ]
+      ]
+     },
+     {
+      "t": 2.75,
+      "to_go": 63.9,
+      "height": 9.21,
+      "climb": 1.86,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.35
+       ],
+       [
+        "jink(1, 1)",
+        0.21
+       ],
+       [
+        "cruise(11, 10)",
+        0.19
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.3,
+        -5.9
+       ]
+      ]
+     },
+     {
+      "t": 2.8,
+      "to_go": 63.5,
+      "height": 9.29,
+      "climb": 1.77,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.33
+       ],
+       [
+        "cruise(11, 10)",
+        0.3
+       ],
+       [
+        "level(0, 10)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.2,
+        -5.9
+       ]
+      ]
+     },
+     {
+      "t": 2.85,
+      "to_go": 63.0,
+      "height": 9.39,
+      "climb": 1.95,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.38
+       ],
+       [
+        "cruise(11, 10)",
+        0.23
+       ],
+       [
+        "cruise(11, 4)",
+        0.14
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.1,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 2.9,
+      "to_go": 62.6,
+      "height": 9.49,
+      "climb": 2.24,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.37
+       ],
+       [
+        "cruise(11, 10)",
+        0.17
+       ],
+       [
+        "cruise(9, 10)",
+        0.15
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -30.0,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 2.95,
+      "to_go": 62.2,
+      "height": 9.62,
+      "climb": 2.56,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "cruise(11, 4)",
+        0.26
+       ],
+       [
+        "jink(1, 1)",
+        0.21
+       ],
+       [
+        "cruise(9, 10)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.9,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 3.0,
+      "to_go": 61.7,
+      "height": 9.76,
+      "climb": 2.85,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "cruise(11, 4)",
+        0.24
+       ],
+       [
+        "cruise(9, 10)",
+        0.22
+       ],
+       [
+        "jink(1, 1)",
+        0.21
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.8,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 3.05,
+      "to_go": 61.3,
+      "height": 9.9,
+      "climb": 2.8,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.42
+       ],
+       [
+        "jink(1, 1)",
+        0.17
+       ],
+       [
+        "cruise(11, 4)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.7,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 3.1,
+      "to_go": 60.8,
+      "height": 10.03,
+      "climb": 2.5,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.32
+       ],
+       [
+        "cruise(7, 10)",
+        0.13
+       ],
+       [
+        "level(0, 10)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.7,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 3.15,
+      "to_go": 60.4,
+      "height": 10.14,
+      "climb": 2.07,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.22
+       ],
+       [
+        "cruise(11, 10)",
+        0.21
+       ],
+       [
+        "level(0, 10)",
+        0.17
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.6,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 3.2,
+      "to_go": 60.0,
+      "height": 10.24,
+      "climb": 1.9,
+      "move": "cruise(11, 10)",
+      "top": [
+       [
+        "cruise(11, 10)",
+        0.28
+       ],
+       [
+        "level(0, 10)",
+        0.23
+       ],
+       [
+        "jink(1, 1)",
+        0.21
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.5,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 3.25,
+      "to_go": 59.5,
+      "height": 10.33,
+      "climb": 1.8,
+      "move": "cruise(11, 10)",
+      "top": [
+       [
+        "cruise(11, 10)",
+        0.23
+       ],
+       [
+        "jink(1, 1)",
+        0.22
+       ],
+       [
+        "cruise(9, 10)",
+        0.17
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.4,
+        -5.8
+       ]
+      ]
+     },
+     {
+      "t": 3.3,
+      "to_go": 59.1,
+      "height": 10.41,
+      "climb": 1.67,
+      "move": "jink(-1, 1)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.53
+       ],
+       [
+        "jink(-1, 1)",
+        0.16
+       ],
+       [
+        "jink(1, 1)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.3,
+        -5.7
+       ]
+      ]
+     },
+     {
+      "t": 3.35,
+      "to_go": 58.7,
+      "height": 10.49,
+      "climb": 1.4,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.62
+       ],
+       [
+        "jink(-1, 1)",
+        0.19
+       ],
+       [
+        "jink(1, 1)",
+        0.05
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.2,
+        -5.7
+       ]
+      ]
+     },
+     {
+      "t": 3.4,
+      "to_go": 58.2,
+      "height": 10.55,
+      "climb": 1.08,
+      "move": "jink(-1, 1)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.55
+       ],
+       [
+        "jink(-1, 1)",
+        0.17
+       ],
+       [
+        "jink(1, 1)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -29.0,
+        -5.6
+       ]
+      ]
+     },
+     {
+      "t": 3.45,
+      "to_go": 57.8,
+      "height": 10.59,
+      "climb": 0.7,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.7
+       ],
+       [
+        "jink(-1, 1)",
+        0.11
+       ],
+       [
+        "cruise(11, 10)",
+        0.08
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.9,
+        -5.5
+       ]
+      ]
+     },
+     {
+      "t": 3.5,
+      "to_go": 57.4,
+      "height": 10.61,
+      "climb": 0.4,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.57
+       ],
+       [
+        "cruise(11, 10)",
+        0.25
+       ],
+       [
+        "jink(1, 1)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.8,
+        -5.4
+       ]
+      ]
+     },
+     {
+      "t": 3.55,
+      "to_go": 57.0,
+      "height": 10.63,
+      "climb": 0.36,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.74
+       ],
+       [
+        "cruise(11, 10)",
+        0.15
+       ],
+       [
+        "jink(1, 1)",
+        0.05
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.7,
+        -5.3
+       ]
+      ]
+     },
+     {
+      "t": 3.6,
+      "to_go": 56.5,
+      "height": 10.65,
+      "climb": 0.37,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.49
+       ],
+       [
+        "cruise(11, 10)",
+        0.23
+       ],
+       [
+        "jink(1, 1)",
+        0.16
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.6,
+        -5.3
+       ]
+      ]
+     },
+     {
+      "t": 3.65,
+      "to_go": 56.1,
+      "height": 10.67,
+      "climb": 0.48,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.75
+       ],
+       [
+        "jink(1, 1)",
+        0.1
+       ],
+       [
+        "jink(-1, 1)",
+        0.06
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.5,
+        -5.2
+       ]
+      ]
+     },
+     {
+      "t": 3.7,
+      "to_go": 55.7,
+      "height": 10.7,
+      "climb": 0.56,
+      "move": "jink(-1, 1)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.67
+       ],
+       [
+        "jink(1, 1)",
+        0.11
+       ],
+       [
+        "jink(-1, 1)",
+        0.08
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.4,
+        -5.1
+       ]
+      ]
+     },
+     {
+      "t": 3.75,
+      "to_go": 55.2,
+      "height": 10.72,
+      "climb": 0.41,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.69
+       ],
+       [
+        "jink(-1, 1)",
+        0.12
+       ],
+       [
+        "jink(1, 1)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.3,
+        -5.0
+       ]
+      ]
+     },
+     {
+      "t": 3.8,
+      "to_go": 54.8,
+      "height": 10.74,
+      "climb": 0.26,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.63
+       ],
+       [
+        "jink(1, 1)",
+        0.13
+       ],
+       [
+        "cruise(11, 10)",
+        0.1
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.2,
+        -4.9
+       ]
+      ]
+     },
+     {
+      "t": 3.85,
+      "to_go": 54.3,
+      "height": 10.75,
+      "climb": 0.19,
+      "move": "jink(-1, 1)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.79
+       ],
+       [
+        "cruise(11, 10)",
+        0.07
+       ],
+       [
+        "jink(1, 1)",
+        0.06
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.1,
+        -4.9
+       ]
+      ]
+     },
+     {
+      "t": 3.9,
+      "to_go": 53.9,
+      "height": 10.75,
+      "climb": -0.01,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.7
+       ],
+       [
+        "jink(1, 1)",
+        0.13
+       ],
+       [
+        "jink(-1, 1)",
+        0.08
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -28.0,
+        -4.8
+       ]
+      ]
+     },
+     {
+      "t": 3.95,
+      "to_go": 53.4,
+      "height": 10.75,
+      "climb": -0.15,
+      "move": "level(0, 7)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.64
+       ],
+       [
+        "cruise(11, 10)",
+        0.13
+       ],
+       [
+        "jink(1, 1)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.9,
+        -4.7
+       ]
+      ]
+     },
+     {
+      "t": 4.0,
+      "to_go": 53.0,
+      "height": 10.74,
+      "climb": -0.14,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.81
+       ],
+       [
+        "cruise(11, 10)",
+        0.07
+       ],
+       [
+        "jink(1, 1)",
+        0.07
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.8,
+        -4.6
+       ]
+      ]
+     },
+     {
+      "t": 4.05,
+      "to_go": 52.6,
+      "height": 10.74,
+      "climb": -0.06,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.64
+       ],
+       [
+        "jink(1, 1)",
+        0.2
+       ],
+       [
+        "cruise(11, 10)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.7,
+        -4.5
+       ]
+      ]
+     },
+     {
+      "t": 4.1,
+      "to_go": 52.1,
+      "height": 10.74,
+      "climb": 0.16,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.75
+       ],
+       [
+        "jink(1, 1)",
+        0.11
+       ],
+       [
+        "jink(-1, 1)",
+        0.05
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.6,
+        -4.5
+       ]
+      ]
+     },
+     {
+      "t": 4.15,
+      "to_go": 51.7,
+      "height": 10.75,
+      "climb": 0.33,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.57
+       ],
+       [
+        "jink(1, 1)",
+        0.16
+       ],
+       [
+        "cruise(11, 10)",
+        0.1
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.5,
+        -4.4
+       ]
+      ]
+     },
+     {
+      "t": 4.2,
+      "to_go": 51.2,
+      "height": 10.78,
+      "climb": 0.56,
+      "move": "cruise(11, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.62
+       ],
+       [
+        "jink(1, 1)",
+        0.14
+       ],
+       [
+        "jink(-1, 1)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.4,
+        -4.4
+       ]
+      ]
+     },
+     {
+      "t": 4.25,
+      "to_go": 50.8,
+      "height": 10.81,
+      "climb": 0.72,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.31
+       ],
+       [
+        "jink(1, 1)",
+        0.31
+       ],
+       [
+        "cruise(11, 4)",
+        0.1
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.3,
+        -4.3
+       ]
+      ]
+     },
+     {
+      "t": 4.3,
+      "to_go": 50.3,
+      "height": 10.85,
+      "climb": 0.75,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.38
+       ],
+       [
+        "jink(1, 1)",
+        0.26
+       ],
+       [
+        "jink(-1, 1)",
+        0.15
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.2,
+        -4.3
+       ]
+      ]
+     },
+     {
+      "t": 4.35,
+      "to_go": 49.8,
+      "height": 10.88,
+      "climb": 0.7,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.4
+       ],
+       [
+        "jink(1, 1)",
+        0.26
+       ],
+       [
+        "jink(-1, 1)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.1,
+        -4.3
+       ]
+      ]
+     },
+     {
+      "t": 4.4,
+      "to_go": 49.4,
+      "height": 10.91,
+      "climb": 0.47,
+      "move": "cruise(11, 4)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.39
+       ],
+       [
+        "jink(1, 1)",
+        0.32
+       ],
+       [
+        "jink(-1, 1)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -27.0,
+        -4.2
+       ]
+      ]
+     },
+     {
+      "t": 4.45,
+      "to_go": 48.9,
+      "height": 10.93,
+      "climb": 0.29,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.39
+       ],
+       [
+        "level(0, 10)",
+        0.26
+       ],
+       [
+        "cruise(11, 10)",
+        0.19
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -26.9,
+        -4.2
+       ]
+      ]
+     },
+     {
+      "t": 4.5,
+      "to_go": 48.5,
+      "height": 10.95,
+      "climb": 0.37,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.52
+       ],
+       [
+        "jink(1, 1)",
+        0.19
+       ],
+       [
+        "cruise(11, 10)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "M",
+        -26.8,
+        -4.1
+       ]
+      ]
+     },
+     {
+      "t": 4.55,
+      "to_go": 48.1,
+      "height": 10.96,
+      "climb": 0.28,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.35
+       ],
+       [
+        "level(0, 10)",
+        0.27
+       ],
+       [
+        "cruise(11, 10)",
+        0.17
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        28.9,
+        -2.7
+       ],
+       [
+        "B",
+        27.7,
+        -0.2
+       ],
+       [
+        "B",
+        28.7,
+        -2.0
+       ],
+       [
+        "M",
+        -26.7,
+        -4.1
+       ]
+      ]
+     },
+     {
+      "t": 4.6,
+      "to_go": 47.6,
+      "height": 10.97,
+      "climb": 0.17,
+      "move": "cruise(11, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.44
+       ],
+       [
+        "cruise(11, 10)",
+        0.33
+       ],
+       [
+        "jink(-1, 1)",
+        0.05
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        28.2,
+        -2.7
+       ],
+       [
+        "B",
+        27.0,
+        -0.2
+       ],
+       [
+        "B",
+        28.1,
+        -2.0
+       ],
+       [
+        "M",
+        -26.6,
+        -4.1
+       ]
+      ]
+     },
+     {
+      "t": 4.65,
+      "to_go": 47.2,
+      "height": 10.98,
+      "climb": 0.13,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.55
+       ],
+       [
+        "cruise(11, 10)",
+        0.15
+       ],
+       [
+        "cruise(5, 10)",
+        0.14
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        27.6,
+        -2.7
+       ],
+       [
+        "B",
+        26.3,
+        -0.2
+       ],
+       [
+        "B",
+        27.4,
+        -2.0
+       ],
+       [
+        "M",
+        -26.5,
+        -4.0
+       ]
+      ]
+     },
+     {
+      "t": 4.7,
+      "to_go": 46.8,
+      "height": 10.98,
+      "climb": -0.07,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.55
+       ],
+       [
+        "cruise(5, 10)",
+        0.12
+       ],
+       [
+        "cruise(11, 10)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        26.9,
+        -2.7
+       ],
+       [
+        "B",
+        25.7,
+        -0.2
+       ],
+       [
+        "B",
+        26.7,
+        -2.0
+       ],
+       [
+        "M",
+        -26.4,
+        -4.0
+       ]
+      ]
+     },
+     {
+      "t": 4.75,
+      "to_go": 46.3,
+      "height": 10.97,
+      "climb": -0.2,
+      "move": "cruise(1.5, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.53
+       ],
+       [
+        "cruise(11, 10)",
+        0.24
+       ],
+       [
+        "cruise(5, 10)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        26.2,
+        -2.7
+       ],
+       [
+        "B",
+        25.0,
+        -0.2
+       ],
+       [
+        "B",
+        26.1,
+        -2.0
+       ],
+       [
+        "M",
+        -26.3,
+        -3.9
+       ]
+      ]
+     },
+     {
+      "t": 4.8,
+      "to_go": 45.9,
+      "height": 10.95,
+      "climb": -0.42,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.55
+       ],
+       [
+        "cruise(11, 10)",
+        0.22
+       ],
+       [
+        "cruise(5, 10)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        25.6,
+        -2.7
+       ],
+       [
+        "B",
+        24.4,
+        -0.2
+       ],
+       [
+        "B",
+        25.4,
+        -2.0
+       ],
+       [
+        "M",
+        -26.1,
+        -3.8
+       ]
+      ]
+     },
+     {
+      "t": 4.85,
+      "to_go": 45.5,
+      "height": 10.93,
+      "climb": -0.53,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.47
+       ],
+       [
+        "cruise(11, 10)",
+        0.31
+       ],
+       [
+        "cruise(5, 10)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        24.9,
+        -2.6
+       ],
+       [
+        "B",
+        23.7,
+        -0.2
+       ],
+       [
+        "B",
+        24.8,
+        -2.0
+       ],
+       [
+        "M",
+        -26.0,
+        -3.8
+       ]
+      ]
+     },
+     {
+      "t": 4.9,
+      "to_go": 45.1,
+      "height": 10.9,
+      "climb": -0.47,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.58
+       ],
+       [
+        "cruise(11, 10)",
+        0.17
+       ],
+       [
+        "cruise(5, 10)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        24.3,
+        -2.6
+       ],
+       [
+        "B",
+        23.1,
+        -0.1
+       ],
+       [
+        "B",
+        24.1,
+        -1.9
+       ],
+       [
+        "M",
+        -25.9,
+        -3.7
+       ]
+      ]
+     },
+     {
+      "t": 4.95,
+      "to_go": 44.7,
+      "height": 10.88,
+      "climb": -0.34,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.46
+       ],
+       [
+        "cruise(5, 10)",
+        0.21
+       ],
+       [
+        "cruise(11, 10)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        23.6,
+        -2.6
+       ],
+       [
+        "B",
+        22.4,
+        -0.1
+       ],
+       [
+        "B",
+        23.5,
+        -1.9
+       ],
+       [
+        "M",
+        -25.7,
+        -3.6
+       ]
+      ]
+     },
+     {
+      "t": 5.0,
+      "to_go": 44.2,
+      "height": 10.87,
+      "climb": -0.42,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.45
+       ],
+       [
+        "cruise(5, 10)",
+        0.23
+       ],
+       [
+        "cruise(11, 10)",
+        0.08
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        23.0,
+        -2.6
+       ],
+       [
+        "B",
+        21.8,
+        -0.1
+       ],
+       [
+        "B",
+        22.8,
+        -1.9
+       ],
+       [
+        "M",
+        -25.6,
+        -3.6
+       ]
+      ]
+     },
+     {
+      "t": 5.05,
+      "to_go": 43.8,
+      "height": 10.84,
+      "climb": -0.7,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.49
+       ],
+       [
+        "cruise(5, 10)",
+        0.19
+       ],
+       [
+        "cruise(11, 10)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        22.3,
+        -2.5
+       ],
+       [
+        "B",
+        21.1,
+        -0.1
+       ],
+       [
+        "B",
+        22.2,
+        -1.9
+       ],
+       [
+        "M",
+        -25.5,
+        -3.5
+       ]
+      ]
+     },
+     {
+      "t": 5.1,
+      "to_go": 43.4,
+      "height": 10.8,
+      "climb": -0.8,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.52
+       ],
+       [
+        "cruise(5, 10)",
+        0.16
+       ],
+       [
+        "cruise(11, 10)",
+        0.15
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        21.7,
+        -2.5
+       ],
+       [
+        "B",
+        20.5,
+        -0.0
+       ],
+       [
+        "B",
+        21.5,
+        -1.8
+       ],
+       [
+        "M",
+        -25.3,
+        -3.4
+       ]
+      ]
+     },
+     {
+      "t": 5.15,
+      "to_go": 43.0,
+      "height": 10.76,
+      "climb": -0.7,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.49
+       ],
+       [
+        "cruise(5, 10)",
+        0.17
+       ],
+       [
+        "cruise(11, 10)",
+        0.1
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        21.0,
+        -2.5
+       ],
+       [
+        "B",
+        19.8,
+        0.0
+       ],
+       [
+        "B",
+        20.9,
+        -1.8
+       ],
+       [
+        "M",
+        -25.2,
+        -3.4
+       ]
+      ]
+     },
+     {
+      "t": 5.2,
+      "to_go": 42.6,
+      "height": 10.72,
+      "climb": -0.78,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.32
+       ],
+       [
+        "cruise(5, 10)",
+        0.26
+       ],
+       [
+        "cruise(9, 10)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        20.4,
+        -2.4
+       ],
+       [
+        "B",
+        19.2,
+        0.0
+       ],
+       [
+        "B",
+        20.2,
+        -1.8
+       ],
+       [
+        "M",
+        -25.1,
+        -3.3
+       ]
+      ]
+     },
+     {
+      "t": 5.25,
+      "to_go": 42.1,
+      "height": 10.68,
+      "climb": -1.06,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.46
+       ],
+       [
+        "cruise(5, 10)",
+        0.17
+       ],
+       [
+        "cruise(11, 10)",
+        0.08
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        19.7,
+        -2.4
+       ],
+       [
+        "B",
+        18.5,
+        0.1
+       ],
+       [
+        "B",
+        19.6,
+        -1.7
+       ],
+       [
+        "M",
+        -25.0,
+        -3.2
+       ]
+      ]
+     },
+     {
+      "t": 5.3,
+      "to_go": 41.7,
+      "height": 10.61,
+      "climb": -1.4,
+      "move": "cruise(7, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.49
+       ],
+       [
+        "cruise(5, 10)",
+        0.15
+       ],
+       [
+        "cruise(11, 10)",
+        0.08
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        19.1,
+        -2.3
+       ],
+       [
+        "B",
+        17.9,
+        0.2
+       ],
+       [
+        "B",
+        18.9,
+        -1.7
+       ],
+       [
+        "M",
+        -24.8,
+        -3.2
+       ]
+      ]
+     },
+     {
+      "t": 5.35,
+      "to_go": 41.3,
+      "height": 10.53,
+      "climb": -1.73,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.5
+       ],
+       [
+        "cruise(5, 10)",
+        0.18
+       ],
+       [
+        "cruise(9, 10)",
+        0.08
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        18.5,
+        -2.2
+       ],
+       [
+        "B",
+        17.2,
+        0.2
+       ],
+       [
+        "B",
+        18.3,
+        -1.6
+       ],
+       [
+        "M",
+        -24.7,
+        -3.1
+       ]
+      ]
+     },
+     {
+      "t": 5.4,
+      "to_go": 40.9,
+      "height": 10.44,
+      "climb": -1.78,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.46
+       ],
+       [
+        "cruise(5, 10)",
+        0.15
+       ],
+       [
+        "cruise(9, 10)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        17.8,
+        -2.1
+       ],
+       [
+        "B",
+        16.6,
+        0.3
+       ],
+       [
+        "B",
+        17.7,
+        -1.5
+       ],
+       [
+        "M",
+        -24.5,
+        -3.0
+       ]
+      ]
+     },
+     {
+      "t": 5.45,
+      "to_go": 40.5,
+      "height": 10.35,
+      "climb": -1.82,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.28
+       ],
+       [
+        "cruise(5, 10)",
+        0.21
+       ],
+       [
+        "cruise(9, 10)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        17.2,
+        -2.0
+       ],
+       [
+        "B",
+        16.0,
+        0.4
+       ],
+       [
+        "B",
+        17.0,
+        -1.4
+       ],
+       [
+        "M",
+        -24.4,
+        -2.9
+       ]
+      ]
+     },
+     {
+      "t": 5.5,
+      "to_go": 40.1,
+      "height": 10.26,
+      "climb": -1.72,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.37
+       ],
+       [
+        "cruise(9, 10)",
+        0.14
+       ],
+       [
+        "jink(1, 1)",
+        0.14
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        16.6,
+        -2.0
+       ],
+       [
+        "B",
+        15.3,
+        0.5
+       ],
+       [
+        "B",
+        16.4,
+        -1.3
+       ],
+       [
+        "M",
+        -24.2,
+        -2.8
+       ]
+      ]
+     },
+     {
+      "t": 5.55,
+      "to_go": 39.7,
+      "height": 10.18,
+      "climb": -1.69,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.19
+       ],
+       [
+        "jink(1, 1)",
+        0.19
+       ],
+       [
+        "cruise(9, 10)",
+        0.16
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        15.9,
+        -1.9
+       ],
+       [
+        "B",
+        14.7,
+        0.6
+       ],
+       [
+        "B",
+        15.8,
+        -1.2
+       ],
+       [
+        "M",
+        -24.1,
+        -2.7
+       ]
+      ]
+     },
+     {
+      "t": 5.6,
+      "to_go": 39.3,
+      "height": 10.09,
+      "climb": -1.79,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.3
+       ],
+       [
+        "cruise(9, 10)",
+        0.17
+       ],
+       [
+        "jink(1, 1)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        15.3,
+        -1.8
+       ],
+       [
+        "B",
+        14.0,
+        0.7
+       ],
+       [
+        "B",
+        15.1,
+        -1.1
+       ],
+       [
+        "M",
+        -24.0,
+        -2.6
+       ]
+      ]
+     },
+     {
+      "t": 5.65,
+      "to_go": 38.9,
+      "height": 10.0,
+      "climb": -1.72,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "level(0, 10)",
+        0.27
+       ],
+       [
+        "cruise(9, 10)",
+        0.2
+       ],
+       [
+        "cruise(5, 10)",
+        0.16
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        14.6,
+        -1.7
+       ],
+       [
+        "B",
+        13.4,
+        0.8
+       ],
+       [
+        "B",
+        14.5,
+        -1.0
+       ],
+       [
+        "M",
+        -23.8,
+        -2.6
+       ]
+      ]
+     },
+     {
+      "t": 5.7,
+      "to_go": 38.4,
+      "height": 9.92,
+      "climb": -1.56,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.25
+       ],
+       [
+        "level(0, 10)",
+        0.21
+       ],
+       [
+        "cruise(5, 10)",
+        0.15
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        14.0,
+        -1.6
+       ],
+       [
+        "B",
+        12.7,
+        0.8
+       ],
+       [
+        "B",
+        13.8,
+        -1.0
+       ],
+       [
+        "M",
+        -23.7,
+        -2.5
+       ]
+      ]
+     },
+     {
+      "t": 5.75,
+      "to_go": 38.0,
+      "height": 9.84,
+      "climb": -1.55,
+      "move": "level(0, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.25
+       ],
+       [
+        "level(0, 10)",
+        0.19
+       ],
+       [
+        "cruise(5, 10)",
+        0.15
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        13.3,
+        -1.5
+       ],
+       [
+        "B",
+        12.1,
+        0.9
+       ],
+       [
+        "B",
+        13.2,
+        -0.9
+       ],
+       [
+        "M",
+        -23.6,
+        -2.5
+       ]
+      ]
+     },
+     {
+      "t": 5.8,
+      "to_go": 37.6,
+      "height": 9.77,
+      "climb": -1.43,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.29
+       ],
+       [
+        "level(0, 10)",
+        0.19
+       ],
+       [
+        "cruise(5, 10)",
+        0.15
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        12.7,
+        -1.5
+       ],
+       [
+        "B",
+        11.4,
+        1.0
+       ],
+       [
+        "B",
+        12.5,
+        -0.8
+       ],
+       [
+        "M",
+        -23.5,
+        -2.4
+       ]
+      ]
+     },
+     {
+      "t": 5.85,
+      "to_go": 37.2,
+      "height": 9.7,
+      "climb": -1.42,
+      "move": "jink(-1, 1)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.26
+       ],
+       [
+        "cruise(5, 10)",
+        0.19
+       ],
+       [
+        "level(0, 10)",
+        0.14
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        12.0,
+        -1.4
+       ],
+       [
+        "B",
+        10.8,
+        1.1
+       ],
+       [
+        "B",
+        11.8,
+        -0.7
+       ]
+      ]
+     },
+     {
+      "t": 5.9,
+      "to_go": 36.7,
+      "height": 9.62,
+      "climb": -1.62,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.24
+       ],
+       [
+        "jink(-1, 1)",
+        0.21
+       ],
+       [
+        "jink(1, 1)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        11.3,
+        -1.3
+       ],
+       [
+        "B",
+        10.1,
+        1.1
+       ],
+       [
+        "B",
+        11.2,
+        -0.7
+       ]
+      ]
+     },
+     {
+      "t": 5.95,
+      "to_go": 36.3,
+      "height": 9.53,
+      "climb": -1.86,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.29
+       ],
+       [
+        "jink(1, 1)",
+        0.16
+       ],
+       [
+        "cruise(9, 10)",
+        0.14
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        10.7,
+        -1.2
+       ],
+       [
+        "B",
+        9.5,
+        1.2
+       ],
+       [
+        "B",
+        10.5,
+        -0.6
+       ]
+      ]
+     },
+     {
+      "t": 6.0,
+      "to_go": 35.9,
+      "height": 9.44,
+      "climb": -1.87,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.4
+       ],
+       [
+        "cruise(9, 10)",
+        0.13
+       ],
+       [
+        "jink(-1, 1)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        10.0,
+        -1.1
+       ],
+       [
+        "B",
+        8.8,
+        1.3
+       ],
+       [
+        "B",
+        9.9,
+        -0.5
+       ]
+      ]
+     },
+     {
+      "t": 6.05,
+      "to_go": 35.5,
+      "height": 9.35,
+      "climb": -1.68,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.31
+       ],
+       [
+        "cruise(9, 10)",
+        0.13
+       ],
+       [
+        "cruise(11, 10)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        9.4,
+        -1.0
+       ],
+       [
+        "B",
+        8.2,
+        1.4
+       ],
+       [
+        "B",
+        9.2,
+        -0.4
+       ]
+      ]
+     },
+     {
+      "t": 6.1,
+      "to_go": 35.0,
+      "height": 9.28,
+      "climb": -1.41,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(1, 1)",
+        0.2
+       ],
+       [
+        "jink(-1, 1)",
+        0.14
+       ],
+       [
+        "cruise(9, 10)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        8.7,
+        -1.0
+       ],
+       [
+        "B",
+        7.5,
+        1.5
+       ],
+       [
+        "B",
+        8.6,
+        -0.3
+       ]
+      ]
+     },
+     {
+      "t": 6.15,
+      "to_go": 34.6,
+      "height": 9.22,
+      "climb": -1.12,
+      "move": "cruise(5, 10)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.27
+       ],
+       [
+        "jink(1, 1)",
+        0.1
+       ],
+       [
+        "cruise(9, 10)",
+        0.09
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        8.0,
+        -0.9
+       ],
+       [
+        "B",
+        6.8,
+        1.5
+       ],
+       [
+        "B",
+        7.9,
+        -0.3
+       ]
+      ]
+     },
+     {
+      "t": 6.2,
+      "to_go": 34.1,
+      "height": 9.16,
+      "climb": -1.06,
+      "move": "cruise(11, 7)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.31
+       ],
+       [
+        "cruise(9, 10)",
+        0.11
+       ],
+       [
+        "jink(1, 1)",
+        0.1
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        7.4,
+        -0.9
+       ],
+       [
+        "B",
+        6.1,
+        1.6
+       ],
+       [
+        "B",
+        7.2,
+        -0.2
+       ]
+      ]
+     },
+     {
+      "t": 6.25,
+      "to_go": 33.7,
+      "height": 9.11,
+      "climb": -0.93,
+      "move": "cruise(11, 10)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.17
+       ],
+       [
+        "jink(1, 1)",
+        0.16
+       ],
+       [
+        "cruise(9, 7)",
+        0.1
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        6.7,
+        -0.8
+       ],
+       [
+        "B",
+        5.4,
+        1.6
+       ],
+       [
+        "B",
+        6.5,
+        -0.2
+       ]
+      ]
+     },
+     {
+      "t": 6.3,
+      "to_go": 33.2,
+      "height": 9.08,
+      "climb": -0.65,
+      "move": "jink(-1, 1)",
+      "top": [
+       [
+        "cruise(9, 10)",
+        0.18
+       ],
+       [
+        "cruise(11, 10)",
+        0.17
+       ],
+       [
+        "jink(1, 1)",
+        0.15
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        6.0,
+        -0.8
+       ],
+       [
+        "B",
+        4.7,
+        1.7
+       ],
+       [
+        "B",
+        5.8,
+        -0.1
+       ]
+      ]
+     },
+     {
+      "t": 6.35,
+      "to_go": 32.7,
+      "height": 9.05,
+      "climb": -0.62,
+      "move": "jink(1, 1)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.28
+       ],
+       [
+        "cruise(9, 10)",
+        0.11
+       ],
+       [
+        "jink(1, 1)",
+        0.11
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        5.3,
+        -0.7
+       ],
+       [
+        "B",
+        4.0,
+        1.7
+       ],
+       [
+        "B",
+        5.1,
+        -0.1
+       ]
+      ]
+     },
+     {
+      "t": 6.4,
+      "to_go": 32.3,
+      "height": 9.02,
+      "climb": -0.52,
+      "move": "cruise(1.5, 4)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.29
+       ],
+       [
+        "jink(1, 1)",
+        0.1
+       ],
+       [
+        "cruise(3, 10)",
+        0.08
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        4.6,
+        -0.7
+       ],
+       [
+        "B",
+        3.3,
+        1.7
+       ],
+       [
+        "B",
+        4.4,
+        -0.1
+       ]
+      ]
+     },
+     {
+      "t": 6.45,
+      "to_go": 31.8,
+      "height": 8.99,
+      "climb": -0.59,
+      "move": "cruise(9, 10)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.18
+       ],
+       [
+        "cruise(9, 10)",
+        0.13
+       ],
+       [
+        "jink(1, 1)",
+        0.12
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        3.9,
+        -0.7
+       ],
+       [
+        "B",
+        2.6,
+        1.8
+       ],
+       [
+        "B",
+        3.7,
+        -0.0
+       ]
+      ]
+     },
+     {
+      "t": 6.5,
+      "to_go": 31.3,
+      "height": 8.96,
+      "climb": -0.59,
+      "move": "cruise(3, 10)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.23
+       ],
+       [
+        "cruise(3, 10)",
+        0.12
+       ],
+       [
+        "cruise(1.5, 10)",
+        0.07
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        3.2,
+        -0.7
+       ],
+       [
+        "B",
+        1.9,
+        1.8
+       ],
+       [
+        "B",
+        3.0,
+        -0.0
+       ]
+      ]
+     },
+     {
+      "t": 6.55,
+      "to_go": 30.9,
+      "height": 8.93,
+      "climb": -0.72,
+      "move": "jink(1, 0)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.43
+       ],
+       [
+        "jink(1, 0)",
+        0.12
+       ],
+       [
+        "jink(-1, -1)",
+        0.07
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        2.5,
+        -0.6
+       ],
+       [
+        "B",
+        1.2,
+        1.8
+       ],
+       [
+        "B",
+        2.3,
+        0.0
+       ]
+      ]
+     },
+     {
+      "t": 6.6,
+      "to_go": 30.4,
+      "height": 8.89,
+      "climb": -0.68,
+      "move": "jink(-1, 1)",
+      "top": [
+       [
+        "jink(-1, 1)",
+        0.76
+       ],
+       [
+        "jink(-1, -1)",
+        0.1
+       ],
+       [
+        "jink(-1, 0)",
+        0.06
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        1.8,
+        -0.6
+       ],
+       [
+        "B",
+        0.6,
+        1.9
+       ],
+       [
+        "B",
+        1.6,
+        0.1
+       ]
+      ]
+     },
+     {
+      "t": 6.65,
+      "to_go": 30.0,
+      "height": 8.85,
+      "climb": -0.77,
+      "move": "jink(-1, 1)",
+      "top": [
+       [
+        "jink(1, 0)",
+        0.37
+       ],
+       [
+        "jink(-1, 1)",
+        0.13
+       ],
+       [
+        "cruise(11, 10)",
+        0.13
+       ]
+      ],
+      "threats": [
+       [
+        "B",
+        1.1,
+        -0.6
+       ],
+       [
+        "B",
+        -0.1,
+        1.9
+       ],
+       [
+        "B",
+        0.9,
+        0.1
+       ]
+      ]
+     }
+    ]
+   },
+   "failures_by_course_landings": {
+    "0": 24,
+    "1": 21,
+    "2": 60,
+    "3": 90,
+    "4": 120,
+    "5": 168,
+    "6": 232,
+    "7": 195,
+    "8": 0
+   }
+  },
+  "k1-top": {
+   "net": "runs/k1/last.npz",
+   "hold": 4,
+   "temp": 0.0,
+   "again": {
+    "n": 500,
+    "reps": 4,
+    "landed_share": 0.8665,
+    "outcomes": {
+     "landed": 1733,
+     "bird": 146,
+     "missile": 52,
+     "frog": 43,
+     "water": 14,
+     "lost": 8,
+     "crashed": 4
+    },
+    "courses_by_landings": [
+     22,
+     27,
+     28,
+     42,
+     381
+    ],
+    "if_all_courses_alike": [
+     0.2,
+     4.1,
+     40.1,
+     173.7,
+     281.9
+    ],
+    "frog": {
+     "route": 36,
+     "pad": 7
+    },
+    "hit_by": {
+     "flock": 71,
+     "bird + missile": 38,
+     "missile": 29,
+     "two birds": 57,
+     "bird": 3
+    },
+    "landed_by_course": {
+     "bird + missile x0": [
+      0.886,
+      215
+     ],
+     "bird + missile x1": [
+      0.864,
+      219
+     ],
+     "bird + missile x2": [
+      0.808,
+      60
+     ],
+     "bird + missile x2+": [
+      0.833,
+      6
+     ],
+     "bird x0": [
+      0.859,
+      266
+     ],
+     "bird x1": [
+      0.87,
+      179
+     ],
+     "bird x2": [
+      0.883,
+      47
+     ],
+     "bird x2+": [
+      0.938,
+      8
+     ],
+     "flock x0": [
+      0.886,
+      304
+     ],
+     "flock x1": [
+      0.84,
+      164
+     ],
+     "flock x2": [
+      0.853,
+      29
+     ],
+     "flock x2+": [
+      0.5,
+      3
+     ],
+     "length 100-120": [
+      0.84,
+      189
+     ],
+     "length 60-80": [
+      0.873,
+      153
+     ],
+     "length 80-100": [
+      0.892,
+      158
+     ],
+     "missile x0": [
+      0.875,
+      325
+     ],
+     "missile x1": [
+      0.859,
+      153
+     ],
+     "missile x2": [
+      0.775,
+      20
+     ],
+     "missile x2+": [
+      1.0,
+      2
+     ],
+     "route frog 0": [
+      0.87,
+      251
+     ],
+     "route frog 1": [
+      0.863,
+      249
+     ],
+     "two birds x0": [
+      0.888,
+      237
+     ],
+     "two birds x1": [
+      0.837,
+      198
+     ],
+     "two birds x2": [
+      0.898,
+      59
+     ],
+     "two birds x2+": [
+      0.667,
+      6
+     ]
+    }
+   },
+   "failures_by_course_landings": {
+    "0": 88,
+    "1": 81,
+    "2": 56,
+    "3": 42,
+    "4": 0
+   }
+  }
+ },
+ "retries": {
+  "g1": [
+   {
+    "pass": 0,
+    "dev": {
+     "landed": 1778,
+     "water": 6,
+     "missile": 67,
+     "bird": 82,
+     "crashed": 16,
+     "frog": 48,
+     "timeout": 2,
+     "lost": 1,
+     "seconds": 21.24
+    },
+    "dev_open": {
+     "landed": 185,
+     "bird": 6,
+     "missile": 5,
+     "crashed": 2,
+     "frog": 2,
+     "seconds": 20.45
+    }
+   },
+   {
+    "pass": 1,
+    "courses": 8000,
+    "landed": 7142,
+    "outcomes": {
+     "landed": 7142,
+     "missile": 241,
+     "bird": 342,
+     "frog": 153,
+     "crashed": 71,
+     "water": 27,
+     "lost": 19,
+     "timeout": 5
+    },
+    "moments": 2562,
+    "failed_flights": 854,
+    "alive_as_flown": {
+     "1.0": 0.545,
+     "2.0": 0.675,
+     "3.0": 0.707
+    },
+    "alive_best_move": {
+     "1.0": 0.965,
+     "2.0": 0.977,
+     "3.0": 0.979
+    },
+    "held_before": 0.617,
+    "held_after": 0.63,
+    "dev": {
+     "frog": 53,
+     "landed": 1750,
+     "missile": 66,
+     "bird": 85,
+     "crashed": 24,
+     "timeout": 16,
+     "water": 5,
+     "lost": 1,
+     "seconds": 22.02
+    },
+    "dev_top": {
+     "landed": 836,
+     "bird": 45,
+     "missile": 37,
+     "crashed": 24,
+     "frog": 33,
+     "lost": 12,
+     "timeout": 6,
+     "water": 7,
+     "seconds": 20.92
+    },
+    "dev_open": {
+     "landed": 177,
+     "bird": 12,
+     "missile": 4,
+     "frog": 1,
+     "crashed": 4,
+     "lost": 2,
+     "seconds": 20.96
+    },
+    "minutes": 3.43
+   }
+  ]
+ },
  "trainings": [
   {
    "run": "a1",
@@ -3050,7 +10041,18 @@
       "lost": 4,
       "water": 10,
       "crashed": 4
-     }
+     },
+     "top_outcomes": {
+      "lost": 21,
+      "timeout": 34,
+      "missile": 66,
+      "frog": 137,
+      "crashed": 16,
+      "bird": 48,
+      "landed": 64,
+      "water": 14
+     },
+     "open": null
     },
     {
      "round": 25,
@@ -3066,7 +10068,17 @@
       "lost": 2,
       "crashed": 10,
       "water": 7
-     }
+     },
+     "top_outcomes": {
+      "bird": 37,
+      "landed": 147,
+      "frog": 137,
+      "missile": 43,
+      "lost": 10,
+      "water": 8,
+      "crashed": 18
+     },
+     "open": null
     },
     {
      "round": 50,
@@ -3081,7 +10093,17 @@
       "missile": 64,
       "crashed": 8,
       "water": 4
-     }
+     },
+     "top_outcomes": {
+      "frog": 123,
+      "landed": 174,
+      "missile": 40,
+      "water": 5,
+      "lost": 8,
+      "crashed": 10,
+      "bird": 40
+     },
+     "open": null
     },
     {
      "round": 75,
@@ -3096,7 +10118,17 @@
       "missile": 50,
       "crashed": 5,
       "water": 3
-     }
+     },
+     "top_outcomes": {
+      "frog": 115,
+      "landed": 192,
+      "bird": 30,
+      "missile": 44,
+      "lost": 3,
+      "water": 6,
+      "crashed": 10
+     },
+     "open": null
     },
     {
      "round": 100,
@@ -3111,7 +10143,17 @@
       "bird": 45,
       "water": 3,
       "crashed": 3
-     }
+     },
+     "top_outcomes": {
+      "frog": 99,
+      "landed": 197,
+      "missile": 43,
+      "bird": 38,
+      "crashed": 9,
+      "lost": 4,
+      "water": 10
+     },
+     "open": null
     },
     {
      "round": 125,
@@ -3127,7 +10169,17 @@
       "crashed": 4,
       "water": 3,
       "lost": 1
-     }
+     },
+     "top_outcomes": {
+      "frog": 95,
+      "crashed": 4,
+      "missile": 45,
+      "bird": 40,
+      "landed": 206,
+      "lost": 2,
+      "water": 8
+     },
+     "open": null
     },
     {
      "round": 150,
@@ -3142,7 +10194,17 @@
       "frog": 52,
       "crashed": 1,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "frog": 85,
+      "landed": 234,
+      "missile": 31,
+      "bird": 37,
+      "water": 2,
+      "lost": 1,
+      "crashed": 10
+     },
+     "open": null
     },
     {
      "round": 175,
@@ -3157,7 +10219,17 @@
       "missile": 44,
       "crashed": 8,
       "water": 3
-     }
+     },
+     "top_outcomes": {
+      "frog": 70,
+      "crashed": 14,
+      "landed": 250,
+      "bird": 32,
+      "missile": 30,
+      "lost": 3,
+      "water": 1
+     },
+     "open": null
     },
     {
      "round": 200,
@@ -3173,7 +10245,16 @@
       "water": 3,
       "lost": 1,
       "crashed": 6
-     }
+     },
+     "top_outcomes": {
+      "frog": 70,
+      "landed": 260,
+      "bird": 34,
+      "missile": 29,
+      "lost": 2,
+      "crashed": 5
+     },
+     "open": null
     },
     {
      "round": 225,
@@ -3188,7 +10269,15 @@
       "missile": 28,
       "lost": 1,
       "crashed": 6
-     }
+     },
+     "top_outcomes": {
+      "frog": 62,
+      "landed": 273,
+      "bird": 29,
+      "missile": 29,
+      "crashed": 7
+     },
+     "open": null
     },
     {
      "round": 250,
@@ -3203,7 +10292,17 @@
       "missile": 38,
       "crashed": 7,
       "water": 2
-     }
+     },
+     "top_outcomes": {
+      "frog": 57,
+      "landed": 270,
+      "missile": 26,
+      "bird": 31,
+      "lost": 4,
+      "crashed": 8,
+      "water": 4
+     },
+     "open": null
     },
     {
      "round": 275,
@@ -3218,7 +10317,17 @@
       "missile": 35,
       "crashed": 9,
       "water": 3
-     }
+     },
+     "top_outcomes": {
+      "frog": 54,
+      "landed": 277,
+      "missile": 31,
+      "bird": 27,
+      "crashed": 5,
+      "lost": 5,
+      "water": 1
+     },
+     "open": null
     },
     {
      "round": 300,
@@ -3233,7 +10342,16 @@
       "frog": 36,
       "crashed": 4,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "frog": 55,
+      "landed": 274,
+      "bird": 30,
+      "crashed": 6,
+      "missile": 33,
+      "lost": 2
+     },
+     "open": null
     },
     {
      "round": 325,
@@ -3249,7 +10367,17 @@
       "crashed": 13,
       "water": 1,
       "lost": 1
-     }
+     },
+     "top_outcomes": {
+      "bird": 38,
+      "landed": 282,
+      "frog": 39,
+      "missile": 28,
+      "lost": 1,
+      "crashed": 10,
+      "water": 2
+     },
+     "open": null
     },
     {
      "round": 350,
@@ -3264,7 +10392,17 @@
       "bird": 32,
       "crashed": 9,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "bird": 30,
+      "landed": 279,
+      "frog": 45,
+      "missile": 28,
+      "crashed": 12,
+      "lost": 4,
+      "water": 2
+     },
+     "open": null
     },
     {
      "round": 375,
@@ -3280,7 +10418,17 @@
       "crashed": 5,
       "water": 3,
       "lost": 1
-     }
+     },
+     "top_outcomes": {
+      "landed": 291,
+      "frog": 27,
+      "missile": 26,
+      "bird": 36,
+      "crashed": 9,
+      "water": 3,
+      "lost": 8
+     },
+     "open": null
     }
    ]
   },
@@ -3339,7 +10487,18 @@
       "lost": 4,
       "water": 10,
       "crashed": 4
-     }
+     },
+     "top_outcomes": {
+      "lost": 21,
+      "timeout": 34,
+      "missile": 66,
+      "frog": 137,
+      "crashed": 16,
+      "bird": 48,
+      "landed": 64,
+      "water": 14
+     },
+     "open": null
     },
     {
      "round": 25,
@@ -3354,7 +10513,17 @@
       "missile": 52,
       "crashed": 4,
       "water": 2
-     }
+     },
+     "top_outcomes": {
+      "frog": 164,
+      "landed": 136,
+      "missile": 40,
+      "bird": 39,
+      "lost": 6,
+      "water": 6,
+      "crashed": 9
+     },
+     "open": null
     },
     {
      "round": 50,
@@ -3369,7 +10538,17 @@
       "frog": 79,
       "missile": 37,
       "water": 3
-     }
+     },
+     "top_outcomes": {
+      "frog": 107,
+      "landed": 207,
+      "crashed": 10,
+      "bird": 39,
+      "missile": 28,
+      "lost": 6,
+      "water": 3
+     },
+     "open": null
     },
     {
      "round": 75,
@@ -3385,7 +10564,17 @@
       "lost": 1,
       "crashed": 7,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "bird": 35,
+      "landed": 222,
+      "missile": 41,
+      "frog": 88,
+      "crashed": 11,
+      "lost": 2,
+      "water": 1
+     },
+     "open": null
     },
     {
      "round": 100,
@@ -3400,7 +10589,17 @@
       "missile": 42,
       "crashed": 7,
       "water": 2
-     }
+     },
+     "top_outcomes": {
+      "frog": 70,
+      "landed": 242,
+      "missile": 42,
+      "bird": 31,
+      "lost": 4,
+      "crashed": 9,
+      "water": 2
+     },
+     "open": null
     },
     {
      "round": 125,
@@ -3415,7 +10614,16 @@
       "bird": 36,
       "crashed": 8,
       "lost": 1
-     }
+     },
+     "top_outcomes": {
+      "frog": 67,
+      "landed": 242,
+      "missile": 35,
+      "bird": 42,
+      "crashed": 10,
+      "lost": 4
+     },
+     "open": null
     },
     {
      "round": 150,
@@ -3431,7 +10639,17 @@
       "crashed": 3,
       "lost": 1,
       "water": 2
-     }
+     },
+     "top_outcomes": {
+      "landed": 248,
+      "bird": 27,
+      "frog": 74,
+      "missile": 31,
+      "crashed": 11,
+      "lost": 6,
+      "water": 3
+     },
+     "open": null
     },
     {
      "round": 175,
@@ -3447,7 +10665,17 @@
       "crashed": 6,
       "lost": 1,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "bird": 32,
+      "landed": 259,
+      "crashed": 12,
+      "frog": 64,
+      "missile": 28,
+      "lost": 4,
+      "water": 1
+     },
+     "open": null
     },
     {
      "round": 200,
@@ -3462,7 +10690,17 @@
       "lost": 1,
       "crashed": 10,
       "missile": 24
-     }
+     },
+     "top_outcomes": {
+      "landed": 262,
+      "frog": 53,
+      "lost": 13,
+      "bird": 37,
+      "missile": 22,
+      "crashed": 11,
+      "water": 2
+     },
+     "open": null
     },
     {
      "round": 225,
@@ -3476,7 +10714,17 @@
       "bird": 32,
       "missile": 23,
       "crashed": 5
-     }
+     },
+     "top_outcomes": {
+      "bird": 26,
+      "landed": 279,
+      "frog": 54,
+      "missile": 22,
+      "lost": 7,
+      "crashed": 8,
+      "water": 4
+     },
+     "open": null
     },
     {
      "round": 250,
@@ -3492,7 +10740,17 @@
       "missile": 21,
       "crashed": 8,
       "water": 3
-     }
+     },
+     "top_outcomes": {
+      "lost": 8,
+      "landed": 289,
+      "bird": 34,
+      "frog": 44,
+      "crashed": 8,
+      "missile": 14,
+      "water": 3
+     },
+     "open": null
     },
     {
      "round": 275,
@@ -3507,7 +10765,17 @@
       "missile": 25,
       "crashed": 10,
       "lost": 1
-     }
+     },
+     "top_outcomes": {
+      "landed": 296,
+      "frog": 41,
+      "crashed": 9,
+      "missile": 23,
+      "bird": 23,
+      "lost": 4,
+      "water": 4
+     },
+     "open": null
     },
     {
      "round": 300,
@@ -3522,7 +10790,17 @@
       "missile": 20,
       "crashed": 7,
       "water": 2
-     }
+     },
+     "top_outcomes": {
+      "landed": 299,
+      "frog": 43,
+      "bird": 23,
+      "missile": 16,
+      "lost": 4,
+      "crashed": 10,
+      "water": 5
+     },
+     "open": null
     },
     {
      "round": 325,
@@ -3537,7 +10815,17 @@
       "missile": 19,
       "frog": 25,
       "crashed": 4
-     }
+     },
+     "top_outcomes": {
+      "lost": 5,
+      "landed": 301,
+      "frog": 46,
+      "crashed": 9,
+      "missile": 16,
+      "bird": 21,
+      "water": 2
+     },
+     "open": null
     },
     {
      "round": 350,
@@ -3553,7 +10841,17 @@
       "frog": 24,
       "crashed": 5,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "lost": 4,
+      "landed": 305,
+      "frog": 50,
+      "bird": 20,
+      "missile": 11,
+      "crashed": 7,
+      "water": 3
+     },
+     "open": null
     },
     {
      "round": 375,
@@ -3567,7 +10865,17 @@
       "frog": 27,
       "missile": 15,
       "crashed": 8
-     }
+     },
+     "top_outcomes": {
+      "lost": 5,
+      "landed": 283,
+      "frog": 55,
+      "bird": 25,
+      "missile": 17,
+      "crashed": 10,
+      "water": 5
+     },
+     "open": null
     },
     {
      "round": 400,
@@ -3582,7 +10890,17 @@
       "frog": 16,
       "crashed": 10,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "landed": 278,
+      "frog": 64,
+      "missile": 14,
+      "crashed": 7,
+      "bird": 26,
+      "lost": 7,
+      "water": 4
+     },
+     "open": null
     },
     {
      "round": 425,
@@ -3596,7 +10914,16 @@
       "missile": 15,
       "crashed": 8,
       "bird": 17
-     }
+     },
+     "top_outcomes": {
+      "landed": 316,
+      "frog": 41,
+      "bird": 23,
+      "crashed": 6,
+      "lost": 1,
+      "missile": 13
+     },
+     "open": null
     }
    ]
   },
@@ -3652,7 +10979,14 @@
       "missile": 126,
       "crashed": 46,
       "lost": 2
-     }
+     },
+     "top_outcomes": {
+      "timeout": 235,
+      "crashed": 136,
+      "water": 20,
+      "lost": 9
+     },
+     "open": null
     },
     {
      "round": 25,
@@ -3666,7 +11000,16 @@
       "frog": 24,
       "missile": 42,
       "crashed": 3
-     }
+     },
+     "top_outcomes": {
+      "timeout": 349,
+      "frog": 15,
+      "missile": 17,
+      "bird": 16,
+      "lost": 2,
+      "water": 1
+     },
+     "open": null
     },
     {
      "round": 50,
@@ -3682,7 +11025,17 @@
       "crashed": 10,
       "water": 3,
       "landed": 1
-     }
+     },
+     "top_outcomes": {
+      "frog": 76,
+      "bird": 76,
+      "crashed": 7,
+      "timeout": 62,
+      "water": 47,
+      "missile": 127,
+      "lost": 5
+     },
+     "open": null
     },
     {
      "round": 75,
@@ -3697,7 +11050,18 @@
       "frog": 107,
       "water": 9,
       "crashed": 7
-     }
+     },
+     "top_outcomes": {
+      "bird": 53,
+      "timeout": 66,
+      "lost": 17,
+      "frog": 96,
+      "missile": 97,
+      "water": 52,
+      "crashed": 18,
+      "landed": 1
+     },
+     "open": null
     },
     {
      "round": 100,
@@ -3713,7 +11077,17 @@
       "lost": 5,
       "water": 12,
       "crashed": 5
-     }
+     },
+     "top_outcomes": {
+      "frog": 86,
+      "bird": 49,
+      "water": 98,
+      "crashed": 14,
+      "lost": 25,
+      "timeout": 60,
+      "missile": 68
+     },
+     "open": null
     },
     {
      "round": 125,
@@ -3729,7 +11103,17 @@
       "lost": 6,
       "crashed": 8,
       "water": 8
-     }
+     },
+     "top_outcomes": {
+      "timeout": 83,
+      "bird": 61,
+      "water": 88,
+      "crashed": 10,
+      "lost": 28,
+      "frog": 87,
+      "missile": 43
+     },
+     "open": null
     }
    ]
   },
@@ -3787,7 +11171,18 @@
       "lost": 4,
       "water": 10,
       "crashed": 4
-     }
+     },
+     "top_outcomes": {
+      "lost": 21,
+      "timeout": 34,
+      "missile": 66,
+      "frog": 137,
+      "crashed": 16,
+      "bird": 48,
+      "landed": 64,
+      "water": 14
+     },
+     "open": null
     },
     {
      "round": 25,
@@ -3802,7 +11197,17 @@
       "missile": 52,
       "crashed": 4,
       "water": 2
-     }
+     },
+     "top_outcomes": {
+      "frog": 164,
+      "landed": 136,
+      "missile": 40,
+      "bird": 39,
+      "lost": 6,
+      "water": 6,
+      "crashed": 9
+     },
+     "open": null
     },
     {
      "round": 50,
@@ -3817,7 +11222,17 @@
       "frog": 79,
       "missile": 37,
       "water": 3
-     }
+     },
+     "top_outcomes": {
+      "frog": 107,
+      "landed": 207,
+      "crashed": 10,
+      "bird": 39,
+      "missile": 28,
+      "lost": 6,
+      "water": 3
+     },
+     "open": null
     },
     {
      "round": 75,
@@ -3833,7 +11248,17 @@
       "lost": 1,
       "crashed": 7,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "bird": 35,
+      "landed": 222,
+      "missile": 41,
+      "frog": 88,
+      "crashed": 11,
+      "lost": 2,
+      "water": 1
+     },
+     "open": null
     },
     {
      "round": 100,
@@ -3848,7 +11273,17 @@
       "missile": 42,
       "crashed": 7,
       "water": 2
-     }
+     },
+     "top_outcomes": {
+      "frog": 70,
+      "landed": 242,
+      "missile": 42,
+      "bird": 31,
+      "lost": 4,
+      "crashed": 9,
+      "water": 2
+     },
+     "open": null
     },
     {
      "round": 125,
@@ -3863,7 +11298,16 @@
       "bird": 36,
       "crashed": 8,
       "lost": 1
-     }
+     },
+     "top_outcomes": {
+      "frog": 67,
+      "landed": 242,
+      "missile": 35,
+      "bird": 42,
+      "crashed": 10,
+      "lost": 4
+     },
+     "open": null
     }
    ]
   },
@@ -3917,7 +11361,17 @@
       "water": 4,
       "lost": 1,
       "crashed": 3
-     }
+     },
+     "top_outcomes": {
+      "landed": 294,
+      "frog": 39,
+      "missile": 24,
+      "bird": 31,
+      "lost": 5,
+      "crashed": 3,
+      "water": 4
+     },
+     "open": null
     },
     {
      "round": 25,
@@ -3933,7 +11387,17 @@
       "crashed": 8,
       "lost": 2,
       "water": 4
-     }
+     },
+     "top_outcomes": {
+      "landed": 269,
+      "frog": 54,
+      "crashed": 7,
+      "bird": 44,
+      "missile": 20,
+      "lost": 5,
+      "water": 1
+     },
+     "open": null
     },
     {
      "round": 50,
@@ -3948,7 +11412,17 @@
       "missile": 46,
       "crashed": 3,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "bird": 37,
+      "landed": 258,
+      "frog": 63,
+      "missile": 22,
+      "lost": 10,
+      "water": 1,
+      "crashed": 9
+     },
+     "open": null
     },
     {
      "round": 75,
@@ -3963,7 +11437,17 @@
       "missile": 38,
       "crashed": 12,
       "water": 2
-     }
+     },
+     "top_outcomes": {
+      "landed": 249,
+      "crashed": 12,
+      "bird": 33,
+      "missile": 28,
+      "frog": 65,
+      "lost": 9,
+      "water": 4
+     },
+     "open": null
     },
     {
      "round": 100,
@@ -3979,7 +11463,17 @@
       "missile": 30,
       "water": 1,
       "lost": 1
-     }
+     },
+     "top_outcomes": {
+      "lost": 8,
+      "landed": 260,
+      "frog": 52,
+      "missile": 39,
+      "bird": 26,
+      "crashed": 10,
+      "water": 5
+     },
+     "open": null
     },
     {
      "round": 125,
@@ -3995,7 +11489,1741 @@
       "crashed": 14,
       "lost": 1,
       "water": 1
-     }
+     },
+     "top_outcomes": {
+      "landed": 266,
+      "crashed": 15,
+      "frog": 56,
+      "missile": 25,
+      "bird": 26,
+      "lost": 7,
+      "water": 5
+     },
+     "open": null
+    }
+   ]
+  },
+  {
+   "run": "c1",
+   "config": {
+    "name": "c1",
+    "minutes": 20.0,
+    "workers": 8,
+    "envs": 1024,
+    "hold": 1,
+    "steps": 48,
+    "mix": "test",
+    "width": [
+     512,
+     512,
+     256
+    ],
+    "lr": 0.0001,
+    "lr_end": null,
+    "epochs": 3,
+    "batch": 16384,
+    "ent": 0.003,
+    "clip": 0.2,
+    "gamma": 0.9998,
+    "lam": 0.95,
+    "init": "runs/solo-sr.npz",
+    "critic": null,
+    "warm": 10,
+    "bc": 0.0,
+    "eval_every": 25,
+    "dev_n": 1000,
+    "seed": 1,
+    "cpu": false,
+    "landed": 20.0,
+    "failed": -50.0,
+    "time": 0.0,
+    "timeout": -50.0,
+    "replay": 0.0
+   },
+   "minutes": 20.03,
+   "decisions": 70778880,
+   "dev_n": 1000,
+   "final_dev": {
+    "top": 737,
+    "sampled": 810
+   },
+   "checks": [
+    {
+     "round": 1,
+     "minutes": 0.08,
+     "decisions": 393216,
+     "top": 163,
+     "sampled": 241,
+     "sampled_outcomes": {
+      "bird": 144,
+      "landed": 241,
+      "frog": 345,
+      "timeout": 40,
+      "missile": 188,
+      "lost": 8,
+      "water": 15,
+      "crashed": 19,
+      "seconds": 21.5
+     },
+     "top_outcomes": {
+      "lost": 46,
+      "timeout": 84,
+      "missile": 174,
+      "frog": 348,
+      "crashed": 31,
+      "bird": 129,
+      "landed": 163,
+      "water": 25,
+      "seconds": 23.09
+     },
+     "open": null
+    },
+    {
+     "round": 25,
+     "minutes": 2.71,
+     "decisions": 9830400,
+     "top": 351,
+     "sampled": 441,
+     "sampled_outcomes": {
+      "landed": 441,
+      "missile": 145,
+      "frog": 224,
+      "bird": 156,
+      "crashed": 12,
+      "water": 11,
+      "timeout": 10,
+      "lost": 1,
+      "seconds": 19.01
+     },
+     "top_outcomes": {
+      "lost": 11,
+      "landed": 351,
+      "missile": 113,
+      "frog": 334,
+      "water": 20,
+      "timeout": 13,
+      "bird": 118,
+      "crashed": 40,
+      "seconds": 19.53
+     },
+     "open": null
+    },
+    {
+     "round": 50,
+     "minutes": 5.5,
+     "decisions": 19660800,
+     "top": 546,
+     "sampled": 609,
+     "sampled_outcomes": {
+      "frog": 157,
+      "landed": 609,
+      "missile": 106,
+      "bird": 111,
+      "crashed": 13,
+      "water": 3,
+      "lost": 1,
+      "seconds": 18.04
+     },
+     "top_outcomes": {
+      "landed": 546,
+      "bird": 88,
+      "missile": 90,
+      "frog": 238,
+      "water": 11,
+      "lost": 8,
+      "crashed": 16,
+      "timeout": 3,
+      "seconds": 17.99
+     },
+     "open": null
+    },
+    {
+     "round": 75,
+     "minutes": 8.28,
+     "decisions": 29491200,
+     "top": 658,
+     "sampled": 667,
+     "sampled_outcomes": {
+      "landed": 667,
+      "frog": 140,
+      "crashed": 10,
+      "bird": 96,
+      "missile": 80,
+      "lost": 3,
+      "timeout": 2,
+      "water": 2,
+      "seconds": 18.39
+     },
+     "top_outcomes": {
+      "landed": 658,
+      "bird": 74,
+      "frog": 173,
+      "missile": 65,
+      "lost": 11,
+      "timeout": 5,
+      "crashed": 12,
+      "water": 2,
+      "seconds": 17.87
+     },
+     "open": null
+    },
+    {
+     "round": 100,
+     "minutes": 11.06,
+     "decisions": 39321600,
+     "top": 666,
+     "sampled": 702,
+     "sampled_outcomes": {
+      "landed": 702,
+      "missile": 78,
+      "frog": 101,
+      "bird": 91,
+      "crashed": 18,
+      "water": 6,
+      "timeout": 3,
+      "lost": 1,
+      "seconds": 19.24
+     },
+     "top_outcomes": {
+      "frog": 141,
+      "landed": 666,
+      "crashed": 41,
+      "missile": 45,
+      "lost": 10,
+      "bird": 81,
+      "timeout": 5,
+      "water": 11,
+      "seconds": 19.04
+     },
+     "open": null
+    },
+    {
+     "round": 125,
+     "minutes": 13.81,
+     "decisions": 49152000,
+     "top": 716,
+     "sampled": 741,
+     "sampled_outcomes": {
+      "bird": 74,
+      "landed": 741,
+      "frog": 86,
+      "missile": 70,
+      "crashed": 13,
+      "lost": 7,
+      "timeout": 5,
+      "water": 4,
+      "seconds": 21.26
+     },
+     "top_outcomes": {
+      "landed": 716,
+      "lost": 26,
+      "bird": 74,
+      "missile": 51,
+      "frog": 94,
+      "crashed": 25,
+      "water": 8,
+      "timeout": 6,
+      "seconds": 20.23
+     },
+     "open": null
+    },
+    {
+     "round": 150,
+     "minutes": 16.51,
+     "decisions": 58982400,
+     "top": 724,
+     "sampled": 774,
+     "sampled_outcomes": {
+      "bird": 69,
+      "landed": 774,
+      "frog": 71,
+      "missile": 47,
+      "crashed": 20,
+      "timeout": 13,
+      "water": 6,
+      "seconds": 22.51
+     },
+     "top_outcomes": {
+      "bird": 69,
+      "landed": 724,
+      "crashed": 45,
+      "frog": 103,
+      "missile": 33,
+      "water": 6,
+      "timeout": 13,
+      "lost": 7,
+      "seconds": 21.52
+     },
+     "open": null
+    },
+    {
+     "round": 175,
+     "minutes": 19.25,
+     "decisions": 68812800,
+     "top": 741,
+     "sampled": 790,
+     "sampled_outcomes": {
+      "landed": 790,
+      "frog": 68,
+      "bird": 52,
+      "missile": 53,
+      "crashed": 22,
+      "timeout": 10,
+      "lost": 2,
+      "water": 3,
+      "seconds": 22.26
+     },
+     "top_outcomes": {
+      "landed": 741,
+      "frog": 77,
+      "bird": 67,
+      "water": 6,
+      "lost": 22,
+      "crashed": 38,
+      "missile": 41,
+      "timeout": 8,
+      "seconds": 20.61
+     },
+     "open": null
+    }
+   ]
+  },
+  {
+   "run": "c2",
+   "config": {
+    "name": "c2",
+    "minutes": 20.0,
+    "workers": 8,
+    "envs": 1024,
+    "hold": 1,
+    "steps": 48,
+    "mix": "test",
+    "width": [
+     512,
+     512,
+     256
+    ],
+    "lr": 0.0001,
+    "lr_end": null,
+    "epochs": 3,
+    "batch": 16384,
+    "ent": 0.003,
+    "clip": 0.2,
+    "gamma": 0.9998,
+    "lam": 0.95,
+    "init": "runs/solo-sr.npz",
+    "critic": null,
+    "warm": 10,
+    "bc": 0.0,
+    "eval_every": 25,
+    "dev_n": 1000,
+    "seed": 1,
+    "cpu": false,
+    "landed": 20.0,
+    "failed": -50.0,
+    "time": 0.0,
+    "timeout": -50.0,
+    "replay": 0.5
+   },
+   "minutes": 20.05,
+   "decisions": 72351744,
+   "dev_n": 1000,
+   "final_dev": {
+    "top": 743,
+    "sampled": 806
+   },
+   "checks": [
+    {
+     "round": 1,
+     "minutes": 0.08,
+     "decisions": 393216,
+     "top": 163,
+     "sampled": 241,
+     "sampled_outcomes": {
+      "bird": 144,
+      "landed": 241,
+      "frog": 345,
+      "timeout": 40,
+      "missile": 188,
+      "lost": 8,
+      "water": 15,
+      "crashed": 19,
+      "seconds": 21.5
+     },
+     "top_outcomes": {
+      "lost": 46,
+      "timeout": 84,
+      "missile": 174,
+      "frog": 348,
+      "crashed": 31,
+      "bird": 129,
+      "landed": 163,
+      "water": 25,
+      "seconds": 23.09
+     },
+     "open": null
+    },
+    {
+     "round": 25,
+     "minutes": 2.66,
+     "decisions": 9830400,
+     "top": 388,
+     "sampled": 440,
+     "sampled_outcomes": {
+      "frog": 251,
+      "landed": 440,
+      "missile": 143,
+      "bird": 137,
+      "crashed": 14,
+      "water": 10,
+      "timeout": 3,
+      "lost": 2,
+      "seconds": 18.65
+     },
+     "top_outcomes": {
+      "bird": 115,
+      "frog": 327,
+      "missile": 104,
+      "landed": 388,
+      "crashed": 31,
+      "timeout": 10,
+      "water": 18,
+      "lost": 7,
+      "seconds": 19.72
+     },
+     "open": null
+    },
+    {
+     "round": 50,
+     "minutes": 5.35,
+     "decisions": 19660800,
+     "top": 554,
+     "sampled": 593,
+     "sampled_outcomes": {
+      "frog": 145,
+      "landed": 593,
+      "crashed": 16,
+      "missile": 105,
+      "bird": 134,
+      "water": 6,
+      "lost": 1,
+      "seconds": 17.76
+     },
+     "top_outcomes": {
+      "frog": 234,
+      "landed": 554,
+      "bird": 76,
+      "missile": 94,
+      "lost": 7,
+      "crashed": 22,
+      "water": 7,
+      "timeout": 6,
+      "seconds": 17.86
+     },
+     "open": null
+    },
+    {
+     "round": 75,
+     "minutes": 8.01,
+     "decisions": 29491200,
+     "top": 649,
+     "sampled": 639,
+     "sampled_outcomes": {
+      "landed": 639,
+      "frog": 134,
+      "missile": 94,
+      "bird": 117,
+      "water": 10,
+      "crashed": 4,
+      "timeout": 2,
+      "seconds": 18.99
+     },
+     "top_outcomes": {
+      "frog": 152,
+      "landed": 649,
+      "bird": 85,
+      "missile": 70,
+      "lost": 12,
+      "water": 7,
+      "crashed": 21,
+      "timeout": 4,
+      "seconds": 18.68
+     },
+     "open": null
+    },
+    {
+     "round": 100,
+     "minutes": 10.65,
+     "decisions": 39321600,
+     "top": 657,
+     "sampled": 705,
+     "sampled_outcomes": {
+      "bird": 100,
+      "landed": 705,
+      "frog": 105,
+      "missile": 64,
+      "crashed": 11,
+      "timeout": 10,
+      "water": 3,
+      "lost": 2,
+      "seconds": 21.24
+     },
+     "top_outcomes": {
+      "frog": 125,
+      "landed": 657,
+      "missile": 57,
+      "bird": 94,
+      "crashed": 22,
+      "timeout": 26,
+      "lost": 11,
+      "water": 8,
+      "seconds": 20.71
+     },
+     "open": null
+    },
+    {
+     "round": 125,
+     "minutes": 13.37,
+     "decisions": 49152000,
+     "top": 728,
+     "sampled": 762,
+     "sampled_outcomes": {
+      "landed": 762,
+      "frog": 86,
+      "bird": 73,
+      "lost": 2,
+      "missile": 55,
+      "crashed": 14,
+      "timeout": 5,
+      "water": 3,
+      "seconds": 22.17
+     },
+     "top_outcomes": {
+      "landed": 728,
+      "bird": 70,
+      "timeout": 14,
+      "lost": 18,
+      "frog": 105,
+      "crashed": 15,
+      "missile": 45,
+      "water": 5,
+      "seconds": 21.09
+     },
+     "open": null
+    },
+    {
+     "round": 150,
+     "minutes": 16.1,
+     "decisions": 58982400,
+     "top": 729,
+     "sampled": 782,
+     "sampled_outcomes": {
+      "bird": 71,
+      "landed": 782,
+      "lost": 3,
+      "frog": 74,
+      "missile": 51,
+      "water": 4,
+      "crashed": 13,
+      "timeout": 2,
+      "seconds": 21.62
+     },
+     "top_outcomes": {
+      "bird": 79,
+      "landed": 729,
+      "frog": 103,
+      "crashed": 22,
+      "missile": 46,
+      "lost": 11,
+      "water": 5,
+      "timeout": 5,
+      "seconds": 20.12
+     },
+     "open": null
+    },
+    {
+     "round": 175,
+     "minutes": 18.84,
+     "decisions": 68812800,
+     "top": 748,
+     "sampled": 790,
+     "sampled_outcomes": {
+      "bird": 74,
+      "landed": 790,
+      "lost": 8,
+      "crashed": 11,
+      "missile": 37,
+      "frog": 58,
+      "timeout": 21,
+      "water": 1,
+      "seconds": 22.8
+     },
+     "top_outcomes": {
+      "bird": 73,
+      "landed": 748,
+      "frog": 59,
+      "missile": 51,
+      "crashed": 19,
+      "timeout": 27,
+      "lost": 20,
+      "water": 3,
+      "seconds": 21.44
+     },
+     "open": null
+    }
+   ]
+  },
+  {
+   "run": "f1",
+   "config": {
+    "name": "f1",
+    "minutes": 90.0,
+    "workers": 8,
+    "envs": 1024,
+    "hold": 1,
+    "steps": 48,
+    "mix": "wide",
+    "width": [
+     512,
+     512,
+     256
+    ],
+    "lr": 0.0001,
+    "lr_end": 2e-05,
+    "epochs": 3,
+    "batch": 16384,
+    "ent": 0.003,
+    "ent_end": 0.001,
+    "clip": 0.2,
+    "gamma": 0.9998,
+    "lam": 0.95,
+    "init": "runs/c1/last.npz",
+    "critic": "runs/c1/critic.npz",
+    "warm": 0,
+    "bc": 0.0,
+    "eval_every": 50,
+    "dev_n": 1000,
+    "seed": 1,
+    "cpu": false,
+    "landed": 20.0,
+    "failed": -50.0,
+    "time": 0.004,
+    "timeout": -50.0,
+    "replay": 0.0
+   },
+   "minutes": 36.55,
+   "decisions": 138412032,
+   "dev_n": 1000,
+   "final_dev": {},
+   "checks": [
+    {
+     "round": 1,
+     "minutes": 0.09,
+     "decisions": 393216,
+     "top": 754,
+     "sampled": 798,
+     "sampled_outcomes": {
+      "landed": 798,
+      "bird": 59,
+      "missile": 41,
+      "crashed": 17,
+      "frog": 67,
+      "timeout": 7,
+      "lost": 6,
+      "water": 5,
+      "seconds": 22.44
+     },
+     "top_outcomes": {
+      "frog": 76,
+      "landed": 754,
+      "bird": 49,
+      "missile": 40,
+      "lost": 28,
+      "crashed": 39,
+      "timeout": 11,
+      "water": 3,
+      "seconds": 20.33
+     },
+     "open": null
+    },
+    {
+     "round": 50,
+     "minutes": 5.11,
+     "decisions": 19660800,
+     "top": 770,
+     "sampled": 802,
+     "sampled_outcomes": {
+      "landed": 802,
+      "missile": 34,
+      "bird": 77,
+      "frog": 53,
+      "crashed": 24,
+      "timeout": 7,
+      "water": 3,
+      "seconds": 24.08
+     },
+     "top_outcomes": {
+      "landed": 770,
+      "bird": 60,
+      "missile": 31,
+      "lost": 19,
+      "crashed": 31,
+      "water": 7,
+      "frog": 76,
+      "timeout": 6,
+      "seconds": 22.11
+     },
+     "open": null
+    },
+    {
+     "round": 100,
+     "minutes": 10.31,
+     "decisions": 39321600,
+     "top": 775,
+     "sampled": 835,
+     "sampled_outcomes": {
+      "timeout": 6,
+      "landed": 835,
+      "bird": 57,
+      "missile": 44,
+      "frog": 45,
+      "crashed": 10,
+      "lost": 2,
+      "water": 1,
+      "seconds": 22.83
+     },
+     "top_outcomes": {
+      "timeout": 3,
+      "bird": 58,
+      "landed": 775,
+      "frog": 61,
+      "missile": 43,
+      "lost": 33,
+      "crashed": 23,
+      "water": 4,
+      "seconds": 20.72
+     },
+     "open": null
+    },
+    {
+     "round": 150,
+     "minutes": 15.55,
+     "decisions": 58982400,
+     "top": 715,
+     "sampled": 806,
+     "sampled_outcomes": {
+      "frog": 55,
+      "landed": 806,
+      "missile": 57,
+      "bird": 56,
+      "crashed": 15,
+      "water": 8,
+      "timeout": 1,
+      "lost": 2,
+      "seconds": 21.59
+     },
+     "top_outcomes": {
+      "frog": 78,
+      "bird": 67,
+      "landed": 715,
+      "missile": 50,
+      "crashed": 27,
+      "lost": 41,
+      "water": 16,
+      "timeout": 6,
+      "seconds": 20.07
+     },
+     "open": 140
+    },
+    {
+     "round": 200,
+     "minutes": 20.76,
+     "decisions": 78643200,
+     "top": 839,
+     "sampled": 853,
+     "sampled_outcomes": {
+      "landed": 853,
+      "bird": 49,
+      "missile": 42,
+      "frog": 43,
+      "crashed": 9,
+      "timeout": 1,
+      "water": 3,
+      "seconds": 21.63
+     },
+     "top_outcomes": {
+      "landed": 839,
+      "bird": 47,
+      "frog": 38,
+      "missile": 34,
+      "lost": 14,
+      "crashed": 15,
+      "water": 9,
+      "timeout": 4,
+      "seconds": 20.29
+     },
+     "open": 170
+    },
+    {
+     "round": 250,
+     "minutes": 25.87,
+     "decisions": 98304000,
+     "top": 809,
+     "sampled": 869,
+     "sampled_outcomes": {
+      "landed": 869,
+      "missile": 26,
+      "frog": 50,
+      "bird": 43,
+      "crashed": 8,
+      "timeout": 1,
+      "water": 3,
+      "seconds": 21.23
+     },
+     "top_outcomes": {
+      "landed": 809,
+      "bird": 50,
+      "frog": 46,
+      "missile": 32,
+      "lost": 40,
+      "crashed": 15,
+      "water": 6,
+      "timeout": 2,
+      "seconds": 19.92
+     },
+     "open": 183
+    },
+    {
+     "round": 300,
+     "minutes": 30.96,
+     "decisions": 117964800,
+     "top": 818,
+     "sampled": 863,
+     "sampled_outcomes": {
+      "landed": 863,
+      "frog": 40,
+      "bird": 52,
+      "missile": 34,
+      "lost": 1,
+      "water": 3,
+      "timeout": 3,
+      "crashed": 4,
+      "seconds": 21.27
+     },
+     "top_outcomes": {
+      "landed": 818,
+      "crashed": 22,
+      "missile": 41,
+      "bird": 41,
+      "frog": 40,
+      "lost": 24,
+      "timeout": 10,
+      "water": 4,
+      "seconds": 20.53
+     },
+     "open": 177
+    },
+    {
+     "round": 350,
+     "minutes": 36.1,
+     "decisions": 137625600,
+     "top": 848,
+     "sampled": 878,
+     "sampled_outcomes": {
+      "landed": 878,
+      "water": 4,
+      "missile": 31,
+      "bird": 44,
+      "crashed": 9,
+      "frog": 33,
+      "timeout": 1,
+      "seconds": 21.14
+     },
+     "top_outcomes": {
+      "landed": 848,
+      "bird": 39,
+      "frog": 36,
+      "crashed": 17,
+      "missile": 33,
+      "lost": 14,
+      "water": 10,
+      "timeout": 3,
+      "seconds": 20.26
+     },
+     "open": 185
+    }
+   ]
+  },
+  {
+   "run": "h1",
+   "config": {
+    "name": "h1",
+    "minutes": 10.6,
+    "workers": 8,
+    "eval_workers": 8,
+    "envs": 1024,
+    "hold": 1,
+    "steps": 48,
+    "mix": "wide",
+    "width": [
+     512,
+     512,
+     256
+    ],
+    "lr": 0.0003,
+    "lr_end": null,
+    "epochs": 3,
+    "batch": 16384,
+    "ent": 0.0023,
+    "ent_end": null,
+    "clip": 0.2,
+    "gamma": 0.9998,
+    "lam": 0.95,
+    "init": "runs/f1-r250/last.npz",
+    "critic": "runs/f1-r250/critic.npz",
+    "warm": 0,
+    "bc": 0.0,
+    "eval_every": 50,
+    "dev_n": 1000,
+    "seed": 1,
+    "cpu": false,
+    "landed": 20.0,
+    "failed": -50.0,
+    "time": 0.004,
+    "timeout": -50.0,
+    "replay": 0.0
+   },
+   "minutes": 10.64,
+   "decisions": 44826624,
+   "dev_n": 1000,
+   "final_dev": {
+    "top": 784,
+    "sampled": 814
+   },
+   "checks": [
+    {
+     "round": 1,
+     "minutes": 0.09,
+     "decisions": 393216,
+     "top": 816,
+     "sampled": 860,
+     "sampled_outcomes": {
+      "frog": 49,
+      "landed": 860,
+      "missile": 23,
+      "bird": 50,
+      "water": 6,
+      "timeout": 1,
+      "crashed": 10,
+      "lost": 1,
+      "seconds": 21.66
+     },
+     "top_outcomes": {
+      "landed": 816,
+      "missile": 29,
+      "frog": 49,
+      "lost": 32,
+      "bird": 46,
+      "crashed": 12,
+      "water": 12,
+      "timeout": 4,
+      "seconds": 20.01
+     },
+     "open": 175
+    },
+    {
+     "round": 50,
+     "minutes": 4.59,
+     "decisions": 19660800,
+     "top": 741,
+     "sampled": 825,
+     "sampled_outcomes": {
+      "frog": 40,
+      "landed": 825,
+      "bird": 49,
+      "water": 2,
+      "missile": 61,
+      "crashed": 15,
+      "timeout": 5,
+      "lost": 3,
+      "seconds": 21.79
+     },
+     "top_outcomes": {
+      "landed": 741,
+      "frog": 68,
+      "water": 15,
+      "crashed": 14,
+      "bird": 73,
+      "lost": 39,
+      "missile": 43,
+      "timeout": 7,
+      "seconds": 20.1
+     },
+     "open": 167
+    },
+    {
+     "round": 100,
+     "minutes": 9.18,
+     "decisions": 39321600,
+     "top": 798,
+     "sampled": 832,
+     "sampled_outcomes": {
+      "landed": 832,
+      "missile": 56,
+      "frog": 40,
+      "bird": 56,
+      "crashed": 10,
+      "lost": 4,
+      "water": 2,
+      "seconds": 21.76
+     },
+     "top_outcomes": {
+      "landed": 798,
+      "bird": 71,
+      "missile": 43,
+      "lost": 26,
+      "frog": 50,
+      "crashed": 7,
+      "water": 5,
+      "seconds": 19.85
+     },
+     "open": 176
+    }
+   ]
+  },
+  {
+   "run": "k1",
+   "config": {
+    "name": "k1",
+    "minutes": 20.0,
+    "workers": 8,
+    "eval_workers": 8,
+    "envs": 1024,
+    "hold": 4,
+    "steps": 48,
+    "mix": "wide",
+    "width": [
+     512,
+     512,
+     256
+    ],
+    "lr": 0.0001,
+    "lr_end": null,
+    "epochs": 3,
+    "batch": 16384,
+    "ent": 0.003,
+    "ent_end": null,
+    "clip": 0.2,
+    "gamma": 0.9998,
+    "lam": 0.95,
+    "init": "runs/solo-sr.npz",
+    "critic": null,
+    "warm": 10,
+    "bc": 0.0,
+    "eval_every": 25,
+    "dev_n": 1000,
+    "seed": 1,
+    "cpu": false,
+    "landed": 20.0,
+    "failed": -50.0,
+    "time": 0.004,
+    "timeout": -50.0,
+    "replay": 0.0
+   },
+   "minutes": 19.84,
+   "decisions": 58982400,
+   "dev_n": 1000,
+   "final_dev": {
+    "top": 892,
+    "sampled": 831
+   },
+   "checks": [
+    {
+     "round": 1,
+     "minutes": 0.11,
+     "decisions": 393216,
+     "top": 138,
+     "sampled": 109,
+     "sampled_outcomes": {
+      "frog": 414,
+      "landed": 109,
+      "bird": 158,
+      "missile": 169,
+      "lost": 38,
+      "water": 60,
+      "timeout": 19,
+      "crashed": 33,
+      "seconds": 22.46
+     },
+     "top_outcomes": {
+      "bird": 137,
+      "timeout": 69,
+      "missile": 137,
+      "frog": 362,
+      "landed": 138,
+      "lost": 59,
+      "water": 73,
+      "crashed": 25,
+      "seconds": 23.5
+     },
+     "open": null
+    },
+    {
+     "round": 25,
+     "minutes": 3.29,
+     "decisions": 9830400,
+     "top": 568,
+     "sampled": 508,
+     "sampled_outcomes": {
+      "landed": 508,
+      "frog": 210,
+      "missile": 121,
+      "bird": 139,
+      "water": 11,
+      "crashed": 8,
+      "lost": 3,
+      "seconds": 19.07
+     },
+     "top_outcomes": {
+      "bird": 97,
+      "landed": 568,
+      "frog": 195,
+      "missile": 106,
+      "crashed": 14,
+      "timeout": 3,
+      "water": 14,
+      "lost": 3,
+      "seconds": 18.21
+     },
+     "open": null
+    },
+    {
+     "round": 50,
+     "minutes": 6.66,
+     "decisions": 19660800,
+     "top": 725,
+     "sampled": 689,
+     "sampled_outcomes": {
+      "landed": 689,
+      "frog": 98,
+      "missile": 90,
+      "lost": 4,
+      "bird": 111,
+      "crashed": 5,
+      "water": 3,
+      "seconds": 18.88
+     },
+     "top_outcomes": {
+      "landed": 725,
+      "crashed": 5,
+      "bird": 94,
+      "missile": 75,
+      "frog": 98,
+      "timeout": 1,
+      "water": 2,
+      "seconds": 18.11
+     },
+     "open": null
+    },
+    {
+     "round": 75,
+     "minutes": 9.98,
+     "decisions": 29491200,
+     "top": 807,
+     "sampled": 779,
+     "sampled_outcomes": {
+      "landed": 779,
+      "missile": 60,
+      "bird": 91,
+      "lost": 2,
+      "frog": 57,
+      "water": 3,
+      "timeout": 3,
+      "crashed": 5,
+      "seconds": 20.07
+     },
+     "top_outcomes": {
+      "landed": 807,
+      "missile": 46,
+      "bird": 67,
+      "lost": 1,
+      "frog": 69,
+      "crashed": 7,
+      "water": 2,
+      "timeout": 1,
+      "seconds": 18.54
+     },
+     "open": null
+    },
+    {
+     "round": 100,
+     "minutes": 13.24,
+     "decisions": 39321600,
+     "top": 856,
+     "sampled": 816,
+     "sampled_outcomes": {
+      "landed": 816,
+      "frog": 43,
+      "missile": 52,
+      "bird": 70,
+      "crashed": 6,
+      "water": 10,
+      "lost": 2,
+      "timeout": 1,
+      "seconds": 21.33
+     },
+     "top_outcomes": {
+      "landed": 856,
+      "missile": 42,
+      "bird": 60,
+      "frog": 37,
+      "lost": 3,
+      "crashed": 1,
+      "water": 1,
+      "seconds": 19.63
+     },
+     "open": null
+    },
+    {
+     "round": 125,
+     "minutes": 16.54,
+     "decisions": 49152000,
+     "top": 873,
+     "sampled": 793,
+     "sampled_outcomes": {
+      "landed": 793,
+      "frog": 54,
+      "bird": 86,
+      "missile": 59,
+      "timeout": 2,
+      "crashed": 3,
+      "water": 3,
+      "seconds": 22.28
+     },
+     "top_outcomes": {
+      "landed": 873,
+      "bird": 65,
+      "frog": 27,
+      "timeout": 1,
+      "missile": 28,
+      "water": 5,
+      "lost": 1,
+      "seconds": 19.78
+     },
+     "open": null
+    },
+    {
+     "round": 150,
+     "minutes": 19.84,
+     "decisions": 58982400,
+     "top": 892,
+     "sampled": 831,
+     "sampled_outcomes": {
+      "landed": 831,
+      "frog": 47,
+      "missile": 43,
+      "bird": 71,
+      "water": 7,
+      "crashed": 1,
+      "seconds": 22.84
+     },
+     "top_outcomes": {
+      "landed": 892,
+      "water": 5,
+      "frog": 26,
+      "missile": 30,
+      "bird": 42,
+      "lost": 2,
+      "timeout": 2,
+      "crashed": 1,
+      "seconds": 20.41
+     },
+     "open": 90
+    }
+   ]
+  },
+  {
+   "run": "k2",
+   "config": {
+    "name": "k2",
+    "minutes": 60.0,
+    "workers": 8,
+    "eval_workers": 8,
+    "envs": 1024,
+    "hold": 4,
+    "steps": 48,
+    "mix": "wide",
+    "width": [
+     512,
+     512,
+     256
+    ],
+    "lr": 0.0001,
+    "lr_end": 3e-05,
+    "epochs": 3,
+    "batch": 16384,
+    "ent": 0.003,
+    "ent_end": 0.001,
+    "clip": 0.2,
+    "gamma": 0.9998,
+    "lam": 0.95,
+    "init": "runs/k1/last.npz",
+    "critic": "runs/k1/critic.npz",
+    "warm": 0,
+    "bc": 0.0,
+    "eval_every": 50,
+    "dev_n": 1000,
+    "seed": 1,
+    "cpu": false,
+    "landed": 20.0,
+    "failed": -50.0,
+    "time": 0.004,
+    "timeout": -50.0,
+    "replay": 0.0
+   },
+   "minutes": 60.0,
+   "decisions": 125829120,
+   "dev_n": 1000,
+   "final_dev": {
+    "top": 971,
+    "sampled": 963
+   },
+   "checks": [
+    {
+     "round": 1,
+     "minutes": 0.12,
+     "decisions": 393216,
+     "top": 889,
+     "sampled": 842,
+     "sampled_outcomes": {
+      "landed": 842,
+      "bird": 59,
+      "frog": 45,
+      "missile": 47,
+      "water": 4,
+      "crashed": 2,
+      "lost": 1,
+      "seconds": 23.06
+     },
+     "top_outcomes": {
+      "landed": 889,
+      "water": 5,
+      "frog": 21,
+      "missile": 28,
+      "bird": 52,
+      "lost": 3,
+      "timeout": 1,
+      "crashed": 1,
+      "seconds": 20.4
+     },
+     "open": 94
+    },
+    {
+     "round": 50,
+     "minutes": 6.44,
+     "decisions": 19660800,
+     "top": 914,
+     "sampled": 882,
+     "sampled_outcomes": {
+      "landed": 882,
+      "missile": 27,
+      "bird": 52,
+      "frog": 32,
+      "lost": 2,
+      "crashed": 1,
+      "water": 3,
+      "timeout": 1,
+      "seconds": 23.77
+     },
+     "top_outcomes": {
+      "landed": 914,
+      "lost": 8,
+      "bird": 36,
+      "frog": 16,
+      "missile": 17,
+      "crashed": 3,
+      "water": 4,
+      "timeout": 2,
+      "seconds": 21.18
+     },
+     "open": 174
+    },
+    {
+     "round": 100,
+     "minutes": 12.81,
+     "decisions": 39321600,
+     "top": 947,
+     "sampled": 907,
+     "sampled_outcomes": {
+      "landed": 907,
+      "frog": 25,
+      "missile": 16,
+      "bird": 45,
+      "water": 4,
+      "lost": 1,
+      "crashed": 1,
+      "timeout": 1,
+      "seconds": 24.27
+     },
+     "top_outcomes": {
+      "landed": 947,
+      "bird": 15,
+      "missile": 13,
+      "frog": 19,
+      "lost": 4,
+      "water": 2,
+      "seconds": 21.66
+     },
+     "open": 172
+    },
+    {
+     "round": 150,
+     "minutes": 19.54,
+     "decisions": 58982400,
+     "top": 958,
+     "sampled": 936,
+     "sampled_outcomes": {
+      "landed": 936,
+      "bird": 23,
+      "frog": 22,
+      "missile": 15,
+      "water": 3,
+      "timeout": 1,
+      "seconds": 23.95
+     },
+     "top_outcomes": {
+      "landed": 958,
+      "missile": 8,
+      "frog": 15,
+      "bird": 17,
+      "lost": 2,
+      "seconds": 22.24
+     },
+     "open": 183
+    },
+    {
+     "round": 200,
+     "minutes": 30.24,
+     "decisions": 78643200,
+     "top": 957,
+     "sampled": 943,
+     "sampled_outcomes": {
+      "landed": 943,
+      "bird": 31,
+      "frog": 12,
+      "missile": 12,
+      "water": 2,
+      "seconds": 23.69
+     },
+     "top_outcomes": {
+      "landed": 957,
+      "frog": 13,
+      "bird": 18,
+      "lost": 3,
+      "missile": 7,
+      "crashed": 1,
+      "water": 1,
+      "seconds": 21.91
+     },
+     "open": 192
+    },
+    {
+     "round": 250,
+     "minutes": 42.9,
+     "decisions": 98304000,
+     "top": 957,
+     "sampled": 940,
+     "sampled_outcomes": {
+      "landed": 940,
+      "frog": 15,
+      "water": 1,
+      "bird": 30,
+      "missile": 12,
+      "crashed": 1,
+      "lost": 1,
+      "seconds": 23.05
+     },
+     "top_outcomes": {
+      "landed": 957,
+      "missile": 9,
+      "bird": 25,
+      "frog": 7,
+      "lost": 2,
+      "seconds": 21.57
+     },
+     "open": 189
+    },
+    {
+     "round": 300,
+     "minutes": 55.98,
+     "decisions": 117964800,
+     "top": 965,
+     "sampled": 954,
+     "sampled_outcomes": {
+      "landed": 954,
+      "bird": 20,
+      "frog": 10,
+      "water": 3,
+      "missile": 13,
+      "seconds": 22.82
+     },
+     "top_outcomes": {
+      "landed": 965,
+      "missile": 6,
+      "bird": 17,
+      "frog": 10,
+      "lost": 1,
+      "water": 1,
+      "seconds": 21.7
+     },
+     "open": 192
+    }
+   ]
+  },
+  {
+   "run": "k3a",
+   "config": {
+    "name": "k3a",
+    "minutes": 30.0,
+    "workers": 4,
+    "eval_workers": 4,
+    "envs": 1024,
+    "hold": 4,
+    "steps": 48,
+    "mix": "wide",
+    "width": [
+     512,
+     512,
+     256
+    ],
+    "lr": 5e-05,
+    "lr_end": null,
+    "epochs": 3,
+    "batch": 16384,
+    "ent": 0.001,
+    "ent_end": null,
+    "clip": 0.2,
+    "gamma": 0.9998,
+    "lam": 0.95,
+    "init": "runs/k2/last.npz",
+    "critic": "runs/k2/critic.npz",
+    "warm": 0,
+    "bc": 0.0,
+    "eval_every": 100,
+    "dev_n": 1000,
+    "seed": 1,
+    "cpu": false,
+    "landed": 20.0,
+    "failed": -50.0,
+    "time": 0.004,
+    "timeout": -50.0,
+    "again": 0.0,
+    "replay": 0.0
+   },
+   "minutes": 30.03,
+   "decisions": 56623104,
+   "dev_n": 1000,
+   "final_dev": {
+    "top": 976,
+    "sampled": 963
+   },
+   "checks": [
+    {
+     "round": 1,
+     "minutes": 0.13,
+     "decisions": 196608,
+     "top": 973,
+     "sampled": 968,
+     "sampled_outcomes": {
+      "landed": 968,
+      "frog": 11,
+      "bird": 14,
+      "missile": 7,
+      "seconds": 22.98
+     },
+     "top_outcomes": {
+      "landed": 973,
+      "frog": 6,
+      "missile": 4,
+      "bird": 13,
+      "crashed": 1,
+      "lost": 2,
+      "water": 1,
+      "seconds": 21.71
+     },
+     "open": 191
+    },
+    {
+     "round": 100,
+     "minutes": 10.57,
+     "decisions": 19660800,
+     "top": 974,
+     "sampled": 948,
+     "sampled_outcomes": {
+      "landed": 948,
+      "frog": 13,
+      "bird": 24,
+      "missile": 15,
+      "seconds": 22.43
+     },
+     "top_outcomes": {
+      "landed": 974,
+      "missile": 6,
+      "bird": 13,
+      "crashed": 1,
+      "frog": 6,
+      "seconds": 21.5
+     },
+     "open": 194
+    },
+    {
+     "round": 200,
+     "minutes": 21.23,
+     "decisions": 39321600,
+     "top": 973,
+     "sampled": 966,
+     "sampled_outcomes": {
+      "landed": 966,
+      "missile": 6,
+      "frog": 11,
+      "crashed": 2,
+      "bird": 15,
+      "seconds": 22.3
+     },
+     "top_outcomes": {
+      "landed": 973,
+      "missile": 9,
+      "bird": 8,
+      "frog": 9,
+      "lost": 1,
+      "seconds": 21.11
+     },
+     "open": 194
+    }
+   ]
+  },
+  {
+   "run": "k3b",
+   "config": {
+    "name": "k3b",
+    "minutes": 30.0,
+    "workers": 4,
+    "eval_workers": 4,
+    "envs": 1024,
+    "hold": 4,
+    "steps": 48,
+    "mix": "wide",
+    "width": [
+     512,
+     512,
+     256
+    ],
+    "lr": 5e-05,
+    "lr_end": null,
+    "epochs": 3,
+    "batch": 16384,
+    "ent": 0.001,
+    "ent_end": null,
+    "clip": 0.2,
+    "gamma": 0.9998,
+    "lam": 0.95,
+    "init": "runs/k2/last.npz",
+    "critic": "runs/k2/critic.npz",
+    "warm": 0,
+    "bc": 0.0,
+    "eval_every": 100,
+    "dev_n": 1000,
+    "seed": 1,
+    "cpu": false,
+    "landed": 20.0,
+    "failed": -50.0,
+    "time": 0.004,
+    "timeout": -50.0,
+    "again": 0.5,
+    "replay": 0.0
+   },
+   "minutes": 30.0,
+   "decisions": 54853632,
+   "dev_n": 1000,
+   "final_dev": {
+    "top": 977,
+    "sampled": 961
+   },
+   "checks": [
+    {
+     "round": 1,
+     "minutes": 0.13,
+     "decisions": 196608,
+     "top": 975,
+     "sampled": 960,
+     "sampled_outcomes": {
+      "landed": 960,
+      "bird": 17,
+      "missile": 8,
+      "frog": 12,
+      "water": 2,
+      "crashed": 1,
+      "seconds": 22.84
+     },
+     "top_outcomes": {
+      "frog": 7,
+      "landed": 975,
+      "lost": 2,
+      "bird": 10,
+      "missile": 2,
+      "water": 4,
+      "seconds": 21.77
+     },
+     "open": 191
+    },
+    {
+     "round": 100,
+     "minutes": 10.8,
+     "decisions": 19660800,
+     "top": 968,
+     "sampled": 963,
+     "sampled_outcomes": {
+      "landed": 963,
+      "frog": 5,
+      "bird": 19,
+      "missile": 9,
+      "water": 3,
+      "lost": 1,
+      "seconds": 22.56
+     },
+     "top_outcomes": {
+      "landed": 968,
+      "frog": 6,
+      "lost": 5,
+      "bird": 15,
+      "missile": 5,
+      "water": 1,
+      "seconds": 21.89
+     },
+     "open": 193
+    },
+    {
+     "round": 200,
+     "minutes": 21.77,
+     "decisions": 39321600,
+     "top": 976,
+     "sampled": 961,
+     "sampled_outcomes": {
+      "landed": 961,
+      "missile": 7,
+      "bird": 21,
+      "frog": 11,
+      "seconds": 21.89
+     },
+     "top_outcomes": {
+      "landed": 976,
+      "frog": 6,
+      "bird": 12,
+      "missile": 5,
+      "lost": 1,
+      "seconds": 20.98
+     },
+     "open": 193
     }
    ]
   }

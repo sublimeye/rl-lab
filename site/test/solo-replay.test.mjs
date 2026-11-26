@@ -1,5 +1,5 @@
-// Post 17's recorded flights (the network after its own practice, and the copy it started from;
-// a 45-degree drone) replayed in the browser port: the sticks exported by
+// Post 17's recorded flights (the final pilot, the one that was paid to hurry, and the copy both
+// started from; a 45-degree drone) replayed in the browser port: the sticks exported by
 // experiments/017-solo/publish.py --record must fly each test course to the same end as in Python.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { FULL, OUTCOMES, PHYSICS, WEATHER, makeCourse, newDrone, step } from "..
 
 const PH45 = { ...PHYSICS, tiltMax: (45 * Math.PI) / 180 };
 
-for (const name of ["solo", "copy"]) {
+for (const name of ["solo", "hurry", "copy"]) {
   const data = JSON.parse(
     readFileSync(new URL(`../public/data/017-solo/${name}-flights.json`, import.meta.url), "utf8"),
   );

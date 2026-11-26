@@ -1,8 +1,8 @@
 ---
 title: "Flying solo"
 number: 17
-date: 2026-11-23
-summary: "Post 16's network, copying the planner, landed 1 to 6 of 200 courses alone. Looking before training showed why: it had memorised its flights, and a pilot that ignores every threat did as well. Asked which moves are safe instead of which one the planner picked, then given 45 minutes of practice on a laptop, it lands 162 of 200 test courses and 163 of 200 new ones with no planner at flight time."
+date: 2026-11-25
+summary: "Post 16's network, copying the planner, landed 1 to 6 of 200 courses alone. This post looks before it trains, three times, and each look finds a different fault: the copy had memorised its flights, practice was paid to hurry, and a pilot that decides 20 times a second can't commit to anything. A network that picks a move five times a second now lands 194 of 200 test courses and 190 of 200 new ones, with no planner at flight time."
 ---
 
 import GauntletGame from '../../components/GauntletGame.astro';
@@ -10,11 +10,8 @@ import DroneChart from '../../components/DroneChart.astro';
 
 [Post 16](../016-flawless/) left a planner that lands every course and a network that, copying
 it, lands 1 to 6 of 200 alone. Posts 14, 15 and 16 each went straight to training. This one
-looks first:
-1. **Why does the copy fail?** Answered from post 16's saved flights, training nothing.
-2. **What does that say to change, and does it work?**
-
-The courses, the 45° drone and the 59 moves are post 16's.
+looks first, and looks again each time it gets stuck. The courses, the 45° drone and the 59
+moves are post 16's.
 
 **New here? The words in this post, in plain terms:**
 - **Course (the gauntlet).** A simulated flight of 60–120 m over water to a landing pad, past
@@ -22,188 +19,199 @@ The courses, the 45° drone and the 59 moves are post 16's.
 - **Planner.** A pilot that thinks ahead by trial: every 0.2 s it imagines about a thousand
   ways the next few seconds could go and follows the best. It lands every course, slowly.
 - **Network.** A fast formula with many tuned numbers, learned from examples.
-- **Move.** What the network decides, 20 times a second: one of 59, such as "cruise at 7 m up
-  and 10 m/s", a sharp dodge, or a wait beside the pad. A hand-written controller turns the
-  move into motor commands.
-- **Copying.** Training the network to give the planner's answer.
+- **Move.** What the network decides: one of 59, such as "cruise at 7 m up and 10 m/s" or a
+  sharp dodge. A hand-written controller turns the move into motor commands.
 - **Safe and fatal moves.** After a safe move the planner still finds a way through. After a
   fatal one, every plan it tries ends in a crash.
-- **Practice.** The network flies by itself, thousands of courses at once, and is nudged
-  toward what ended in a landing and away from what ended in a crash (reinforcement learning).
-- **Test, fresh and dev courses.** Courses nothing trains on: 200 test (post 14's), 200 fresh
-  (post 16's), and 1,000 dev courses for comparing versions, so the first two are flown once,
-  at the end.
+- **Practice and reward.** The network flies by itself, thousands of courses at once, and is
+  nudged toward whatever scored well. The reward is that score.
+- **Test, fresh and dev courses.** Courses nothing trains on: 200 test, 200 fresh, and dev
+  courses for comparing versions, so the first two are flown once per pilot.
 
 <GauntletGame
   models={[]}
   recorded={[
-    { src: '017-solo/solo-flights.json', label: 'After practice (recorded)' },
+    { src: '017-solo/solo-flights.json', label: 'This post’s pilot (recorded)' },
+    { src: '017-solo/hurry-flights.json', label: 'Paid to hurry (recorded)' },
     { src: '017-solo/copy-flights.json', label: 'Safe-move copy, before practice (recorded)' },
     { src: '016-flawless/network-flights.json', label: "Post 16's network (recorded)" },
     { src: '016-flawless/planner-flights.json', label: 'Fair planner (recorded)' },
   ]}
   tilt={45}
-  caption="On the first 24 test courses the network lands 18 after practice (3 hit by the missile, 2 caught by frogs, 1 crash) and 7 before it; post 16's network lands 1 and the fair planner all 24. Every pilot replays the sticks it flew: New course steps through the 24, and switching pilot keeps the course. To fly it yourself: W and S (or up and down) for the throttle, A and D (or left and right) for the tilt; this drone leans to 45°."
+  caption="On the first 24 test courses this post's pilot lands 23 (a frog catches it once). The pilot that was paid to hurry lands 18, the safe-move copy 7, post 16's network 1 and the fair planner all 24. Every pilot replays the sticks it flew: New course steps through the 24, and switching pilot keeps the course. To fly it yourself: W and S (or up and down) for the throttle, A and D (or left and right) for the tilt; this drone leans to 45°."
 />
 
 **Short answer:**
 - **The copy had memorised its flights.** It picks the planner's move 98% of the time on
-  flights it trained on and 63% on flights it hasn't seen, where about one decision in eight
-  is fatal.
-- **It was no better than not looking.** A pilot that ignores every threat lands 4 of 200.
-  Post 16's network lands 3, and none of 200 courses with no threats at all.
-- **The planner's pick is partly a coin toss.** It usually has 37 safe moves to choose from.
-  Nudge the world by the sensors' noise and it picks a different one 1 time in 10.
-- **Same flights, a different question.** Fitted to "any move the planner found safe", the
-  network lands 48 of 200 test courses, with no new data.
-- **Then practice.** After 45 minutes on a laptop, learning only from how its own flights
-  end: **162 of 200 test courses and 163 of 200 fresh ones**, with no planner at flight time.
+  flights it trained on and 63% on flights it hasn't seen. A pilot that ignores every threat
+  did as well.
+- **Same flights, a different question.** Fitted to "any move the planner found safe" instead
+  of "the move the planner picked", it lands 48 of 200 test courses.
+- **Practice took that to 162, and stalled.** Flying the same courses again showed why: the
+  same ones failed every time, and it flew faster than the planner. Its reward paid for
+  speed.
+- **Paid only to land,** it gained about 7 points for the same practice and worked out the
+  unguarded pad by itself.
+- **Deciding 5 times a second instead of 20,** practice went about three times faster. After
+  110 minutes on a laptop: **194 of 200 test courses, 190 of 200 fresh ones, and 193 of 200
+  with no frog on the pad**, with no planner at flight time. Not yet all 200.
 
-## Why the copy failed
+## First look: why the copy failed
 
-All of this comes from post 16's saved data: 1,900 flights, 410,000 moments, each with the
-planner's move and its verdict on every other move.
+From post 16's saved flights, training nothing: 410,000 moments, each with the planner's move
+and its verdict on every other move.
 
-**The accuracy was measured wrong.** Post 16's 90–94% held out single moments at random,
-and each had its neighbours, 0.05 s away in the same flight, in the training set. With whole
+**The accuracy was measured wrong.** Post 16's 90–94% held out single moments at random, and
+each had its neighbours, 0.05 s away in the same flight, in the training set. With whole
 flights held out:
 
 | Post 16's recipe | Flights it trained on | Flights it hasn't seen |
 |---|---|---|
 | Picks the planner's move | 98% | 63% |
 | Picks a fatal move | 0.9% | 13% |
-| The same, with a bird or missile about to pass | 2% | 24% |
 
-**Every part of the task fails.** Against a pilot that ignores every threat (cruise at 7 m,
-then land), 200 test courses each:
+- **It was no better than not looking.** A pilot that ignores every threat lands 4 of 200
+  courses. Post 16's network lands 3.
+- **The planner's pick is partly a coin toss.** It typically has 37 safe moves and takes one
+  by a tie-break. Nudged by the size of the sensors' noise, it picks a different move 1 time
+  in 10.
 
-| Course | Ignores every threat | Post 16's network |
+**So ask the same flights a different question.** The planner's verdict on every move was
+already saved. Fitted to "put your probability on moves the planner found safe, any of them",
+with the usual guards against memorising, the network lands **48 of 200 test courses**. No
+new data.
+
+## Practice, and where it stalled
+
+The safe-move network then practises on its own flights (the method is PPO): 8,192 drones at
+once on the laptop, taught only by post 14's reward. After 45 minutes it lands **162 of 200
+test courses**. The same practice from nothing landed 0 of 1,000.
+
+That was this post's first ending, and two things were wrong with it. 38 of 200 flights
+still ended in a hit. And with no frog on the pad it landed none of 200: every course it had
+seen had that frog. More practice was closing the gap by a point every five minutes, and
+slowing.
+
+## Second look: it was paid to hurry
+
+I flew 1,000 unused courses 8 times each.
+- **The same courses fail.** 450 courses landed all 8 times and 63 at most twice. A pilot
+  with the same odds on every course would give 180 and 1.
+- **It sprints.** A third of the time it holds the full-throttle dodge as its cruise. Its
+  landings take 12.6 s; the planner's, on the same courses, 15.5 s.
+
+The reward was post 14's: so much a metre, +20 for landing, −10 for failing, a small charge
+per second, and a discount that makes a reward one second away worth 10% less. By my
+arithmetic (an estimate) that makes a 7% chance of dying a fair price for one second saved.
+It did what it was paid for.
+
+So I changed the pay: nothing for speed, −50 for failing. Same start, same practice, dev
+courses landed:
+
+| Practice so far | Paid to hurry | Paid to land |
 |---|---|---|
-| No threats at all | 198 | 0 |
-| A bird at every waypoint | 25 | 0 |
-| The missile at every waypoint | 5 | 0 |
-| The two frogs only | 13 | 6 |
-| The full gauntlet | 4 | 3 |
+| 20 million decisions | 58% | 61% |
+| 39 million | 63% | 70% |
+| 59 million | 71% | 77% |
 
-On the clear courses 193 of its 200 flights leave the course without landing. Every course
-it trained on had a frog on the pad.
+Its landings now take 22 s. And once a quarter of its courses had no frog on the pad, it
+worked that out alone: none of 200 at first, when it hovered where the pad comes into sight
+until its minute ran out, then 185 of 200.
 
-**The planner's pick is partly arbitrary.** Of the 47 or so moves it weighs, 37 are typically
-safe, and it takes the best-scoring one after a tie-break. I had it decide 1,050 situations
-twice, the second time nudged by the size of the sensors' noise (5 cm, 0.1 m/s). It picked a
-different move in 10% of them, and in 3% a move the un-nudged planner found fatal. More
-flights help slowly: eight times as many take the fatal picks from 16.8% to 14.1%.
+## Third look: too many decisions
 
-**What this points to.** The planner's single pick is the wrong thing to copy: the end of a
-4.5 s search plus a tie-break, too fine for 1,900 flights to pin down. What a pilot needs is
-which moves get it killed. I wrote that down, with a line at which to stop each attempt,
-before training anything.
+After 56 minutes this pilot landed 88% of the dev courses and gained a point every ten
+minutes. So I watched one course it fails 8 times of 8.
 
-## The same flights, a different question
+A flock of three comes head-on: one bird level with the drone, two about 2 m below. The
+network puts about half its probability on holding its height and an eighth on a cruise 6 m
+lower. It draws a fresh move 20 times a second, so it does some of each, sinks 2 m in two
+seconds, and meets the lower birds.
 
-The planner's verdict on *every* move was already in the saved data. So instead of "put your
-probability on the planner's pick", the network is fitted to "put it on moves the planner
-found safe, any of them":
+**With 20 decisions a second, no single decision matters.** Each one's share of the credit
+is tiny, so practice learns slowly. Trying something else lasts 0.05 s, so a dive is never
+really tried. And two good answers average into a bad one. The planner decides every 0.2 s.
+Now the network does too, and holds its move in between. Same start, same pay:
 
-| Fitted to | Fatal picks, unseen flights | Dev courses landed (of 200) |
+| Practice | A move every 0.05 s | A move every 0.2 s |
 |---|---|---|
-| The planner's pick (post 16's recipe) | 13.2% | 12 |
-| The planner's pick, regularised, no last-move input | 11.8% | 13 |
-| Any safe move | 11.6% | 10 |
-| Any safe move, regularised, no last-move input | **7.5%** | **42** |
-
-Neither change does much alone. Together they nearly halve the fatal picks. ("Regularised":
-the usual guards against memorising.)
-
-I also took away the planner's wind estimate, which replays every update on a copy of the
-simulator. That cost nothing (40 of 200). Drawing its moves from its own probabilities, this
-network lands **48 of 200 test courses and 43 of 200 fresh ones**.
-
-## Practice
-
-The planner's verdicts say which moves are safe where the planner flew. The network's own
-flights say it wherever the network goes. So it practises (the method is PPO):
-- the only teacher is how each flight ends: post 14's reward (progress toward the pad, +20
-  for landing, −10 for any failure, a small cost for time);
-- it starts from the safe-move network;
-- 8,192 drones fly at once on the laptop.
-
-The line set beforehand: stop unless it lands 5 points more of the dev courses within 45
-minutes. The first run was 16 points up after 3. I ran it three ways:
-
-| Practice | Dev courses landed (of 1,000) |
-|---|---|
-| From nothing, 15 minutes | 0 |
-| From the copy, still fitting the saved flights as a side task, 45 minutes | 749 |
-| From the copy, no side task, 45 minutes | **843** |
-
-- **The copy is what makes practice work in this time.** From nothing, the same practice
-  landed 0 or 1 of 400 dev courses at every check.
-- **Holding on to the saved flights cost 9 points.** I added the side task so practice
-  couldn't forget what the planner had shown. It didn't need it.
+| 20 minutes | 81% | 89% |
+| 40 minutes | 85% | 96% |
+| 56 minutes | 88% | |
+| 110 minutes | | **98%** |
 
 <DroneChart
   src="017-solo/eval.json"
   title="Dev courses landed"
   x="minutes"
+  axis="Minutes of practice on the laptop"
   groups={[
-    { key: 'copy', label: 'Practice from the safe-move copy' },
-    { key: 'scratch', label: 'Practice from nothing' },
+    { key: 'slow', label: 'Paid to land, a move every 0.2 s' },
+    { key: 'land', label: 'Paid to land, a move every 0.05 s' },
+    { key: 'hurry', label: 'Paid to hurry, a move every 0.05 s' },
   ]}
-  caption="The network at each check, alone on 400 dev courses, drawing its moves from its probabilities. Both runs use the same moves and reward; the lower one had no copy to start from and ran 15 minutes."
+  caption="Each pilot alone on dev courses (1,000; the paid-to-hurry run's checks used 400), all three starting from the safe-move copy. Each check shows the better of its two ways of flying: always its top move, or a move drawn from its probabilities."
 />
 
-The last run (171 million decisions, 99 days of flying), flown once on the test and fresh
-courses:
+The pilot also stopped needing dice. Deciding every 0.05 s, drawing each move from its
+probabilities beat always taking the top one. Deciding every 0.2 s, the top move wins, so
+that is how the final pilot flies.
 
-| Pilot | Test courses (of 200) | Fresh courses (of 200) |
-|---|---|---|
-| Post 16's network (copies the planner's pick) | 3 | 5 |
-| Safe-move copy, before practice | 48 | 43 |
-| After practice, with the side task | 145 | 152 |
-| **After practice, no side task** | **162** | **163** |
-| The fair planner (post 16) | 200 | 200 |
+## The result
 
-Each pilot draws its moves from the network's probabilities. Always taking the most probable
-move lands a few fewer: 156 and 157.
+Each pilot flown once on each set of 200 courses:
+
+| Pilot | Test | Fresh | No frog on the pad |
+|---|---|---|---|
+| Post 16's network (copies the planner's pick) | 3 | 5 | |
+| Safe-move copy, before practice | 48 | 43 | |
+| Practice, paid to hurry | 162 | 163 | 0 |
+| **Practice, paid to land, a move every 0.2 s** | **194** | **190** | **193** |
+| The fair planner (post 16) | 200 | 200 | |
+
+That is 110 minutes of practice on a laptop, or 559 days of flying. I chose the pilot on
+2,000 dev courses, where it lands 1,958.
+
+One kind of encounter at every waypoint, 200 test courses each, hits per encounter:
+
+| Encounter | Ignores every threat | Paid to hurry | This post's pilot |
+|---|---|---|---|
+| A bird | 175 of 407 | 4 of 664 | 1 of 667 |
+| Two birds | 183 of 394 | 4 of 664 | 7 of 662 |
+| The missile | 195 of 270 | 14 of 656 | 2 of 667 |
+| A bird + the missile | 199 of 261 | 23 of 644 | 6 of 664 |
+| A crossing flock | 122 of 492 | 50 of 617 | 6 of 662 |
 
 ## What it still can't do
 
-One kind of encounter at every waypoint, 200 test courses each:
-
-| Encounter | Ignores every threat | After practice |
-|---|---|---|
-| A bird | 175 of 407 hit | 0 of 665 |
-| Two birds | 183 of 394 | 9 of 661 |
-| The missile | 195 of 270 | 13 of 652 |
-| A bird + the missile | 199 of 261 | 27 of 641 |
-| A crossing flock | 122 of 492 | 32 of 623 |
-
-- **Flocks are its worst encounter**: 1 in 19 hits it.
-- **On the test courses** its 38 failed flights are 15 caught by frogs, 11 hit by the
-  missile, 8 by birds, and 4 crashed or off the course.
-- **It can't land on an unguarded pad.** With no frog on the pad it lands none of 200: 139
-  fly on past the pad and off the far end, 61 climb out through the ceiling. Every course it
-  has seen had that frog. (The table counts its dodging on the way there.)
+- **It is still hit.** 16 of the 400 test and fresh flights fail: 6 caught by frogs, 6 hit by
+  birds, 1 by the missile, and 3 that left the course or met the water. The planner lands all
+  400.
+- **More practice is a slow road from here.** Halving its failures on the dev courses from
+  11% to 5% took 13 minutes. Halving them again, to about 2.5%, took 77.
 - **It doesn't work the sticks.** A hand-written controller turns each move into motor
   commands, from the drone's true state. Post 14's network worked the sticks itself, on a 30°
   drone, and landed 33: a different pilot, not a like-for-like match.
 
+Three more ideas didn't help: practising the courses it had failed, restarting practice just
+before its own failures, and rewinding failures to find the move that would have saved them.
+They are in the details below.
+
 ## What I take from it
 
-- **Look before training.** Three posts of training gave 1 to 33. Under an hour with saved
-  data showed the copy had memorised its flights, and what to ask instead.
+- **Look before training, every time it stalls.** Each look took minutes, trained nothing,
+  and found a fault more training would not have fixed.
 - **Hold out whole flights.** 94% of held-out moves right and 3 of 200 courses landed were
   both true of the same network.
-- **Copy what a search knows, not what it picks.** Which moves are safe carried over to new
-  flights. Which of 37 safe moves won a tie-break did not.
-- **The copy made practice possible; practice did most of the work.** And once practice
-  starts, the teacher's examples are no longer worth holding on to.
-- **Next:** unguarded pads and flocks in the practice courses, and a network that works the
-  sticks itself, taught by this one. Unlike the planner, this teacher is quick to ask.
+- **Copy what a search knows, not what it picks.**
+- **Practice chases the reward you wrote.** I asked for speed without noticing, and got a
+  pilot faster than the planner that died one flight in five.
+- **Decide as often as a decision matters, no oftener.**
+- **Next:** the last 3 or 4 in 100, and a network that works the sticks itself, taught by
+  this one.
 
 <details class="more">
-<summary>About 5 more minutes, if you're interested: how each piece works</summary>
+<summary>About 6 more minutes, if you're interested: how each piece works</summary>
 
 ### How the copy fails, flight by flight
 
@@ -211,95 +219,133 @@ Without refitting anything: each round's network, on the next round's flights (w
 trained on), picks the planner's move 59–67% of the time and a fatal one 11–13%, with no
 improvement over five rounds, in both of post 16's runs. With a bird or missile about to pass
 (closest approach within 2 s and 2 m) the fatal picks are 21–23%; with nothing in sight and no
-frog near, 1–2%.
-
-These are not rare slips. In a failed flight the first fatal move comes about 1 s before a
-bird hit, 2 s before a missile hit and 4 s before a frog's, and it is one of three or four.
-The flight is beyond saving (no safe move left) only in its last 0.6–0.8 s. Until then a safe
-move existed and the network kept not taking it.
+frog near, 1–2%. In a failed flight the first fatal move comes about 1 s before a bird hit, 2 s
+before a missile hit and 4 s before a frog's, and it is one of three or four. The flight is
+beyond saving (no safe move left) only in its last 0.6–0.8 s.
 
 It also repeats itself. When the planner wants a different move from the one the network made
-last, the network keeps its own 76–81% of the time. Hiding that input alone didn't help,
-though (fatal picks 14.1%).
-
-### Holding out flights, not moments
-
-A flight is a few hundred moments, 0.05 s apart, and each looks almost like the one before. A
-network that has seen a moment's neighbours can answer for it from memory. Post 16's fit ran
-270 passes over its first 122,000 moments, to a training loss near zero, and its random
-hold-out could not tell memory from skill. Here 197 of the 1,900 flights are set aside whole,
-and every fit is also flown: 200 courses take a network a few seconds, so there is no reason to
-trust a proxy.
+last, the network keeps its own 76–81% of the time. Hiding that input alone didn't help
+(fatal picks 14.1%). More flights help slowly: eight times as many take the fatal picks from
+16.8% to 14.1%.
 
 ### What "fatal" means here
 
 At a decision the planner flies about 900 plans ahead, grouped by the move each starts with.
 A move's score is its best plan's, under the worst of three guesses for when a frog strikes.
-Under −500, every plan starting with that move crashes within the look-ahead. A plan holds its
-first move for 0.6 s, so this is a little pessimistic about a move held for only 0.05 s; it is
-the planner's judgement, not ground truth. Post 16 saved these scores for every move at every
-decision and trained a second output on them, the "danger sense". Used as a veto on post 16's
-network (skip any move it expects to fail), it lifts 3 landings to 17.
+Under −500, every plan starting with that move crashes within the look-ahead. It is the
+planner's judgement, not ground truth. Used as a veto on post 16's network (skip any move its
+second output expects to fail), it lifts 3 landings to 17.
 
 ### Nudging the planner
 
-Forty flights on courses no run had used. At every third decision a copy of the planner, with
-the same memory and the same last plan, decides again from a nudged world: the drone's position
-moved by 5 cm and its speed by 0.1 m/s, each bird and missile by 5 cm (one standard deviation,
-the sizes of the sensor noise the network's inputs carry). The planner itself sees the true
-state, so it never meets this noise; a network copying it always does.
+Forty flights on unused courses. At every third decision a copy of the planner, with the same
+memory and the same last plan, decides again from a nudged world: the drone moved by 5 cm and
+0.1 m/s, each bird and missile by 5 cm (the sizes of the sensor noise the network's inputs
+carry). Of 1,050 decisions, 10% came out as a different move and 3% as a move the un-nudged
+planner found fatal.
 
 ### The safe-move fit
 
 For a moment where at least one move is safe, the loss is minus the log of the probability the
 network puts on the safe moves together, plus a tenth of the usual loss on the planner's own
-pick. Where nothing is safe (a flight already lost), the usual loss. Against memorising:
-dropout of 0.3, noise of 0.1 standard deviations on every input, weight decay of 0.01, and the
-last-move inputs blanked. Same network as post 16's (512, 512 and 256 units), same 8,000
-steps. Also tried on the same flights: the planner's scores as soft targets (10.5% fatal picks
-on unseen flights, 26 of 200 dev courses); fewer steps (12.9%, 4 of 200); no last-move input
-alone (14.1%, 7 of 200).
+pick. Against memorising: dropout of 0.3, noise of 0.1 standard deviations on every input,
+weight decay of 0.01, and the last-move inputs blanked. Same network as post 16's (512, 512 and
+256 units). Either change alone lands 10–14 of 200 dev courses; together 42. I also took away
+the planner's wind estimate, which replays every update on a copy of the simulator; that cost
+nothing (40 of 200).
 
 ### What the pilot is, exactly
 
 - **Inputs, 341:** post 14's 318 (the drone, the route, up to four pursuers with their closest
   approach, 3 s of each frog's motion), 16 for a memory of each frog's strikes (when the next
-  two could start and end, worked out from the strikes seen within 40 m, as post 16's planner
-  did), and 7 for the move made last.
+  two could start and end, worked out from the strikes seen within 40 m), and 7 for the move
+  made last.
 - **Output:** a probability for each of the 59 moves. Landing runs and waits are only on offer
-  within 25 m of the pad, as in the planner.
-- **Controller:** post 15's, with post 16's gentler touchdown. It reads the drone's true
-  position and speed and assumes still air and the average mass. Flown by a rule that only
-  cruises and then lands, it lands 198 of 200 courses with no threats, so the assumption costs
-  little.
+  within 25 m of the pad, as in the planner. The final pilot takes the most probable move
+  every 0.2 s.
+- **Controller:** post 15's, with post 16's gentler touchdown, working 20 times a second. It
+  reads the drone's true position and speed and assumes still air and the average mass.
 - **Nothing else:** no search, no copies of the simulator, no planner object.
 
-Drawing a move from the probabilities beats always taking the top one, before practice (48
-against 28 test courses) and after (162 against 156). I haven't measured why.
+### The first practice, in numbers
 
-### Practice, in numbers
+PPO, 8 processes of 1,024 drones each. Each round is 48 decisions per drone, then 3 passes
+over the 393,000 decisions in batches of 16,384. Learning rate 0.0001, clip 0.2, an entropy
+bonus of 0.003; for the first rounds only the value network learns. Post 14's reward: 0.3 a
+metre, +20 landed, −10 failed, 0.2 a second, discount 0.995 per decision of 0.05 s.
 
-PPO, 8 processes of 1,024 drones each, every course like a test course (60–120 m, every kind
-of encounter, the pad's frog, a mid-route frog half the time). Each round is 48 decisions per
-drone (2.4 s), then 3 passes over the 393,000 decisions in batches of 16,384. Learning rate
-0.0001, clip 0.2, discount 0.995 per decision, an entropy bonus of 0.003. For the first 5
-rounds only the value network learns. Where it was used, the side task (the safe-move loss on
-the saved flights) had weight 0.3. About 60,000 decisions a second on an M1 Pro: 56,000 with
-the side task, 63,000 without.
+- **From nothing** (15 minutes): 0 or 1 of 400 dev courses at every check, 0 of 1,000 at the
+  end. One run, one setting.
+- **With a side task** (still fitting the saved flights, so practice couldn't forget them):
+  749 of 1,000 dev courses after 45 minutes against 843 without; 145 test and 152 fresh
+  against 162 and 163. Practice didn't need it.
+- **Carrying a run on with a new value network** set it back (301 of 400 dev courses fell to
+  255); the trainer now saves its value network.
 
-The two shorter comparisons were 15-minute runs. From nothing (a learning rate of 0.0003):
-0, 0, 1, 0, 0, 0 of 400 dev courses drawn at its six checks, and 0 of 1,000 at the end; one
-run, one setting. Without the side task: 260 of 400 after 49 million decisions, against 221
-with it; the 45-minute run without it repeated those checks exactly.
+### The second look, in numbers
 
-### What I stopped, and what I didn't need
+The paid-to-hurry pilot, moves drawn, on 1,000 courses used for nothing else:
+- 8 flights each: 80.7% landed. By encounter, its 983 bird and missile hits: bird + missile
+  409, flock 226, two birds 156, the missile 127, one bird 65. Frogs caught it 376 times.
+- 178 failed flights wound back and flown on 32 times each: alive 4 s past the original end
+  when wound back 0.5 / 1 / 2 / 3 / 5 / 8 s: 23 / 37 / 51 / 56 / 59 / 60%. Three seconds before
+  its end a failed flight is rarely beyond saving (7% have under a 10% chance), yet from 8 s
+  back it still dies 40% of the time: the place is dangerous at that speed, not the last move.
+- It is over 10 m/s, the move table's fastest cruise, 36% of the time. Taking the sprint off
+  its menu at flight time doesn't help (774–783 of 1,000 against 822): it never practised
+  without it.
+- On the 63 courses it landed at most twice, five failures in six end the same way: the same
+  threat on the same course. The planner lands 34 of the 35 it failed most, and 31 when told
+  to assume still air and the average mass, as this pilot's controller does.
 
-- **Carrying a run on.** Before the clean run without the side task, I let the first
-  45-minute network practise on without it, with a new value network (I hadn't saved the old
-  one). That set it back: 301 of 400 dev courses fell to 255, and it was at 284 when I stopped
-  it after 13 minutes. The trainer now saves its value network.
-- **More planner labels.** The plan had a second route: more of the planner's verdicts, on
-  the new network's own flights, from a rented GPU. Practice passed its line first, so no GPU
-  was rented for this post.
+Paid to land: discount 0.9998 per 0.05 s, no charge for time (later 0.004 a move, to stop it
+dawdling), −50 for a failure or for running out the 60 s. After 20 minutes it landed 810 of
+1,000 dev courses (paid to hurry, at the same point: 76%). Carried on for 36 minutes with a
+quarter of the courses unguarded: 878, and open pads 0, 0, 0, 140, 170, 183, 177, 185 of 200
+at checks 20 million decisions apart.
+
+### The third look, in numbers
+
+- The paid-to-land pilot's failures fell from 30% at 39 million decisions to 12% at 208
+  million: roughly one over the square root of the practice. On that line 1% needs about 100
+  times more.
+- Made to hold each drawn move longer with no retraining, it lands 880, 822 and 539 of 1,000
+  for 1, 2 and 4 updates: it had learned to steer by mixing moves.
+- Deciding every 0.2 s from the same start: dev courses (top move) 568, 725, 807, 856, 873,
+  892 at checks 3.3 minutes apart, then 914, 947, 958, 957, 957, 965 and 971 over the next
+  hour, the learning rate falling to 0.00003, and 976 after 30 more minutes on half the
+  laptop's processes (the other half ran the restart comparison). Each decision now covers
+  four updates, so the laptop gets through 49,000 decisions a second instead of 63,000 but
+  four times the flying.
+- Its top-move pilot after 20 minutes, flown 4 times on each of 500 courses (only the
+  sensors' noise differs): 381 courses landed every time, 22 never.
+
+### What didn't help
+
+- **Practising the courses it failed** (half of its new courses were ones it had just
+  failed, kept until it landed them): 806 of 1,000 dev courses after 20 minutes, against 810
+  without.
+- **A larger learning rate** (three times): 83% of the dev courses against 88% at the same
+  point.
+- **Restarting practice just before its own failures** (half of its practice flights began
+  2 to 6 s before a recent failure of its own, same drone, course and moment): 1,943 of 2,000
+  dev courses after 30 minutes, against 1,958 for plain practice run beside it.
+- **Second tries,** next.
+
+The final pilot is the plain-practice run of that last comparison. It was chosen on the dev
+courses (1,958 of 2,000 taking its top move, 1,919 with moves drawn). The same run 30 minutes
+earlier landed 1,939 of them, and 193 test and 195 fresh courses where the final pilot lands
+194 and 190: between those two, the test numbers differ by luck. Both were flown once.
+
+### Second tries, in numbers
+
+From the paid-to-land pilot's failed flights, wound back 1, 2 and 3 s, every move on offer
+(about 48) was tried as the next move, held 0.3 s, on 8 copies, with the network flying on as
+usual. Alive 4 s past the original end: 53 / 65 / 67% drawing the next move as it does, and
+78 / 85 / 84% with the best next move (picked on 4 of the copies, scored on the other 4). So
+the simulator can say which move would have worked. But fitting the network to 2,300 such
+moments from about 770 flights raised its expected survival there from 62% to 79% and on held-out
+failed flights from 61.7% to 63.0%, and 2,000 dev courses went from 1,778 landed to 1,750.
+The same disease as post 16's copy, with the same cause: too few flights.
 
 </details>

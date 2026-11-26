@@ -4,7 +4,7 @@
 flown) are saved so the browser port replays each flight exactly
 (site/test/solo-replay.test.mjs).
 --export: site/public/data/017-solo/results.json and eval.json, read from this folder's runs/
-(diagnose.py, refit.py, sensitivity.py, train.py, solo_eval.py).
+(diagnose.py, refit.py, sensitivity.py, train.py, solo_eval.py, rewind.py, retry.py).
 
 uv run experiments/017-solo/publish.py --record 24 --export
 """
@@ -30,10 +30,11 @@ from solo_net import load  # noqa: E402
 
 RUNS = HERE / "runs"
 DATA = HERE.parent.parent / "site" / "public" / "data" / "017-solo"
-# name on the site -> (network, sampled moves?)
+# name on the site -> (network, moves drawn?, updates a move is held); "solo" is --final's
 PILOTS = {
-    "solo": ("b1/last.npz", True),
-    "copy": ("solo-sr.npz", True),
+    "solo": ("k3a/last.npz", False, 4),
+    "hurry": ("b1/last.npz", True, 1),
+    "copy": ("solo-sr.npz", True, 1),
 }
 REFITS = ("base", "noprev", "reg", "short", "safe", "safe-noprev", "safe-reg", "soft-noprev",
           "eighth", "quarter", "half", "sr")  # fmt: skip
@@ -41,9 +42,8 @@ REFITS = ("base", "noprev", "reg", "short", "safe", "safe-noprev", "safe-reg", "
 
 def _record(job):
     """solo_eval's flight of one chunk of 20 test courses, keeping the sticks."""
-    name, first = job
+    name, (path, sampled, hold), first = job
     os.environ["OMP_NUM_THREADS"] = "1"
-    path, sampled = PILOTS[name]
     net = load(RUNS / path)
     seeds = list(range(first, first + 20))
     if sampled:
@@ -53,7 +53,7 @@ def _record(job):
             return net.sample(x, mask, rng)
     else:
         policy = net.act
-    out, f, tape = se.fly(policy, seeds, hold=1, record=True)
+    out, f, tape = se.fly(policy, seeds, hold=hold, record=True)
     flights = []
     for i, s in enumerate(seeds):
         st = np.asarray(tape[i], "<f4")
@@ -66,7 +66,8 @@ def _record(job):
 def record(n: int, workers: int) -> None:
     from multiprocessing import Pool
 
-    jobs = [(name, first) for name in PILOTS for first in range(20_000, 20_000 + n, 20)]
+    jobs = [(name, PILOTS[name], first) for name in PILOTS
+            for first in range(20_000, 20_000 + n, 20)]  # fmt: skip
     with Pool(workers) as p:
         parts = p.map(_record, jobs)
     DATA.mkdir(parents=True, exist_ok=True)
@@ -119,18 +120,40 @@ def _training(run: str) -> dict | None:
                 "top": h["dev_top"].get("landed", 0),
                 "sampled": h["dev_sampled"].get("landed", 0),
                 "sampled_outcomes": h["dev_sampled"],
+                "top_outcomes": h["dev_top"],
+                "open": h.get("dev_open", {}).get("landed"),
             }
             for h in checks
         ],  # fmt: skip
     }
 
 
-def export(runs: list[str], lineage: list[str], scratch: str) -> None:
+def _rewind(name: str) -> dict | None:
+    """rewind.py's measurements of one network, without the per-flight rows."""
+    r = _read(f"rewind-{name}.json")
+    if not r:
+        return None
+    out = {k: v for k, v in r.items() if k != "courses"}
+    for part in ("rewind", "moves"):
+        if part in out:
+            out[part] = {k: v for k, v in out[part].items() if k != "rows"}
+    if "courses" in r:  # how the failures gather on a few courses
+        by = Counter(c["landed"] for c in r["courses"])
+        out["failures_by_course_landings"] = {
+            str(k): int((len(r["courses"][0]["ends"]) - k) * n) for k, n in sorted(by.items())
+        }
+    return out
+
+
+def export(runs: list[str], lines: dict[str, list[str]]) -> None:
     out = {
         "diagnosis": _read("diagnosis.json"),
         "sensitivity": (_read("sensitivity.json") or {}).get("summary"),
         "refits": {},
         "evals": {},
+        "dev": {},
+        "rewinds": {},
+        "retries": {},
     }
     for name in REFITS:
         r = _read(f"refit-{name}.json")
@@ -140,26 +163,30 @@ def export(runs: list[str], lineage: list[str], scratch: str) -> None:
             out["refits"][name]["args"] = {k: r["args"].get(k) for k in keys}
     for p in sorted(RUNS.glob("eval-*.json")):
         out["evals"][p.stem[5:]] = _strip(json.loads(p.read_text()))
+    for p in sorted(RUNS.glob("dev-*.json")):  # networks compared on the dev courses only
+        out["dev"][p.stem[4:]] = _strip(json.loads(p.read_text()))
+    for p in sorted(RUNS.glob("rewind-*.json")):
+        out["rewinds"][p.stem[7:]] = _rewind(p.stem[7:])
+    for p in sorted(RUNS.glob("*/retry.json")):
+        out["retries"][p.parent.name] = json.loads(p.read_text())
     out["trainings"] = [t for t in map(_training, runs) if t]
     DATA.mkdir(parents=True, exist_ok=True)
     (DATA / "results.json").write_text(json.dumps(out, indent=1))
-    # DroneChart's shape: dev courses landed at each check (the network drawing its moves).
-    # "copy" is the practice from the safe-move copy: the first run, then each run that carried
-    # on from it, its minutes and decisions counted on; "scratch" is the run with no copy.
+    # DroneChart's shape: dev courses landed at each check, the better of the pilot's two ways
+    # of flying (its top move, or its moves drawn). A line is a run and those that carried it
+    # on, their minutes and decisions counted on.
     by = {t["run"]: t for t in out["trainings"]}
-    line, t0, d0 = [], 0.0, 0
-    for run in [r for r in lineage if r in by]:
-        t = by[run]
-        for h in t["checks"][1 if line else 0 :]:
-            line.append({"steps": d0 + h["decisions"], "seconds": (t0 + h["minutes"]) * 60,
-                         "landed": h["sampled"], "n": t["dev_n"]})  # fmt: skip
-        t0, d0 = t0 + t["minutes"], d0 + t["decisions"]
-    curves = {"copy": {"practice": line}}
-    if scratch in by:
-        t = by[scratch]
-        curves["scratch"] = {scratch: [{"steps": h["decisions"], "seconds": h["minutes"] * 60,
-                                        "landed": h["sampled"], "n": t["dev_n"]}
-                                       for h in t["checks"]]}  # fmt: skip
+    curves = {}
+    for key, lineage in lines.items():
+        line, t0, d0 = [], 0.0, 0
+        for run in [r for r in lineage if r in by]:
+            t = by[run]
+            for h in t["checks"][1 if line else 0 :]:
+                line.append({"steps": d0 + h["decisions"], "seconds": (t0 + h["minutes"]) * 60,
+                             "landed": max(h["top"], h["sampled"]), "n": t["dev_n"]})  # fmt: skip
+            t0, d0 = t0 + t["minutes"], d0 + t["decisions"]
+        if line:
+            curves[key] = {key: line}
     (DATA / "eval.json").write_text(json.dumps({"curves": curves, "table": {}}))
     for f in sorted(DATA.glob("*.json")):
         print(f"{f.name}: {f.stat().st_size / 1e3:.0f} KB")
@@ -169,17 +196,22 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--record", type=int, default=0)
     ap.add_argument("--export", action="store_true")
-    ap.add_argument("--runs", nargs="+", default=["a1", "b1", "s1", "n1", "a2"],
-                    help="training runs to report (those found)")  # fmt: skip
-    ap.add_argument("--line", nargs="+", default=["b1"],
-                    help="the practice from the copy, each run carrying on the last")  # fmt: skip
-    ap.add_argument("--scratch", default="s1", help="the run that started from nothing")
+    ap.add_argument("--runs", nargs="+", help="training runs to report (those found)",
+                    default="a1 b1 s1 n1 a2 c1 c2 f1 h1 k1 k2 k3a k3b".split())  # fmt: skip
+    ap.add_argument("--hurry", nargs="+", default=["b1"], help="paid to hurry: the run(s)")
+    ap.add_argument("--land", nargs="+", default=["c1", "f1"], help="paid to land")
+    ap.add_argument(
+        "--slow", nargs="+", default=["k1", "k2", "k3a"], help="and deciding every 0.2 s"
+    )
+    ap.add_argument("--final", default=None, help="the pilot the post shows (default: k3a)")
     ap.add_argument("--workers", type=int, default=10)
     args = ap.parse_args()
+    if args.final:
+        PILOTS["solo"] = (f"{args.final}/last.npz", False, 4)
     if args.record:
         record(args.record, args.workers)
     if args.export:
-        export(args.runs, args.line, args.scratch)
+        export(args.runs, {"hurry": args.hurry, "land": args.land, "slow": args.slow})
 
 
 if __name__ == "__main__":

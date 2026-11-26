@@ -12,16 +12,18 @@ import { formatSteps } from '../lib';
 interface Props {
   src: string;
   title: string;
-  /** Groups in eval.json "curves", in series order (first = --flag, second = --timeout) */
+  /** Groups in eval.json "curves", in series order (--flag, --timeout, then --lava) */
   groups: { key: string; label: string }[];
   x?: 'steps' | 'minutes';
   caption?: string;
   /** What the share counts (post 12's arenas: "Held") */
   measure?: string;
+  /** The x axis's name, when the default doesn't fit */
+  axis?: string;
 }
-const { src, title, groups, x = 'steps', caption, measure = 'Landed' } = Astro.props;
+const { src, title, groups, x = 'steps', caption, measure = 'Landed', axis } = Astro.props;
 const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data', src), 'utf8'));
-const CLS = ['s1', 's2'];
+const CLS = ['s1', 's2', 's3'];
 type Pt = { steps: number; seconds: number; landed: number; n: number };
 const series = groups.map((g, gi) => {
   const runs = Object.values(data.curves[g.key]) as Pt[][];
@@ -127,7 +129,7 @@ const tips = series.flatMap((s) =>
     <i class="dot" hidden></i>
     <div class="tip" hidden></div>
   </div>
-  <p class="axis-name muted">{x === 'steps' ? 'Training steps (stick updates), log scale' : 'Wall-clock training time on a laptop CPU'}</p>
+  <p class="axis-name muted">{axis ?? (x === 'steps' ? 'Training steps (stick updates), log scale' : 'Wall-clock training time on a laptop CPU')}</p>
   {caption && <figcaption class="muted">{caption}</figcaption>}
   <details>
     <summary>Show the numbers as a table</summary>
@@ -197,6 +199,9 @@ const tips = series.flatMap((s) =>
   .sw.s2 {
     background: var(--timeout);
   }
+  .sw.s3 {
+    background: var(--lava);
+  }
   .sw.ref {
     background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px);
   }
@@ -238,6 +243,9 @@ const tips = series.flatMap((s) =>
   }
   path.s2 {
     stroke: var(--timeout);
+  }
+  path.s3 {
+    stroke: var(--lava);
   }
   .seed {
     stroke-width: 1;
@@ -314,6 +322,9 @@ const tips = series.flatMap((s) =>
   }
   .dot.s2 {
     background: var(--timeout);
+  }
+  .dot.s3 {
+    background: var(--lava);
   }
   .tip {
     position: absolute;

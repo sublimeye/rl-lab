@@ -68,8 +68,12 @@ def main() -> None:
               f"({t['decisions'] * 0.05 / 86400:.0f} days of flight); init {c.get('init')}, "
               f"bc {c.get('bc')}, lr {c.get('lr')}")  # fmt: skip
         for h in t["checks"]:
+            secs = h["sampled_outcomes"].get("seconds")
             print(f"     {h['minutes']:5.1f} min {h['decisions'] / 1e6:6.1f}M: top {h['top']:3d} "
-                  f"sampled {h['sampled']:3d} of {t['dev_n']}")  # fmt: skip
+                  f"sampled {h['sampled']:3d} of {t['dev_n']}"
+                  + (f", {secs} s a landing" if secs else "")
+                  + (f", open pads {h['open']}/200" if h.get("open") is not None else "")
+                  )  # fmt: skip
         if t.get("final_dev"):
             print(f"     1000 dev courses at the end: {t['final_dev']}")
     print("== alone on the test and fresh courses, and one kind of course at a time")
@@ -82,7 +86,66 @@ def main() -> None:
                     else ""
                 )
                 print(f"  {name:9s} {mode:7s} {k:15s}: {v['landed']:3d}/200 {v['outcomes']}{hit}")
-    for f in ("solo", "copy"):
+    print("== networks compared on dev courses (solo_eval.py --dev)")
+    for name, ev in r.get("dev", {}).items():
+        print(f"  {name}: " + "; ".join(
+            f"{mode} {t['dev']['landed']}/{t['dev']['n']}" for mode, t in ev.items()))  # fmt: skip
+    print("== the same courses again, rewinds, speed (rewind.py)")
+    for name, w in r.get("rewinds", {}).items():
+        print(
+            f"  -- {name}: a move held {w.get('hold', 1)} update(s), "
+            f"temperature {w.get('temp', 1.0)}"
+        )
+        if "again" in w:
+            a = w["again"]
+            print(
+                f"     {a.get('n', 1000)} courses x {a.get('reps', 8)}: landed "
+                f"{pct(a['landed_share'])} {a['outcomes']}"
+            )
+            print(
+                f"     courses by landings {a['courses_by_landings']}; if all alike "
+                f"{a['if_all_courses_alike']}; frogs {a['frog']}; hit by {a['hit_by']}"
+            )
+        if "failures_by_course_landings" in w:
+            print(f"     failures by the course's landings: {w['failures_by_course_landings']}")
+        for k, v in w.get("temps", {}).items():
+            print(f"     temperature {k}: {v.get('landed', 0)}")
+        for k, v in w.get("holds", {}).items():
+            print(f"     a move held {k} updates, no retraining: {v.get('landed', 0)}")
+        if "rewind" in w:
+            for g, o in w["rewind"]["by_outcome"].items():
+                print(
+                    f"     rewound {w['rewind']['back_s']} s, {g} ({o['flights']} flights): "
+                    f"alive {o['drawn']}; under 10% left {o['drawn_doomed']}"
+                )
+        for rule, o in w.get("speed", {}).items():
+            print(
+                f"     speed, {rule}: landed {o['landed']}/{o['n']}; mean {o['speed_mean']} m/s, "
+                f"over 10 m/s {pct(o['over_10'])}, over 12 {pct(o['over_12'])}, the sprint "
+                f"{pct(o['sprint_share'])} of moves, {o['seconds_landed']} s a landing"
+            )
+        if "planner" in w:
+            print(
+                f"     planner on its {w['planner']['courses']} hardest courses: "
+                f"{w['planner']['estimated']}; assuming still air {w['planner']['nominal']}"
+            )
+        for back, o in w.get("moves", {}).get("by_back", {}).items():
+            print(f"     every next move tried, {back} s back ({o['states']} moments): {o}")
+    print("== second tries (retry.py)")
+    for name, rows in r.get("retries", {}).items():
+        for row in rows:
+            if row["pass"] == 0:
+                print(f"  {name} start: dev {row['dev']}; open pads {row['dev_open']['landed']}")
+                continue
+            print(
+                f"  {name} pass {row['pass']}: {row['courses']} courses, {row['failed_flights']} "
+                f"failed, {row['moments']} moments; as flown {row['alive_as_flown']}; held-out "
+                f"{row['held_before']} -> {row['held_after']}; dev {row['dev']['landed']}; "
+                f"{row['minutes']} min"
+            )
+    for f in ("solo", "hurry", "copy"):
+        if not (DATA / f"{f}-flights.json").exists():
+            continue
         fl = json.loads((DATA / f"{f}-flights.json").read_text())["flights"]
         n = sum(x["outcome"] == "landed" for x in fl)
         out = {}
